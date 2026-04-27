@@ -9,11 +9,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: bash script/linux
-      - run: cargo build --release
+      - run: cargo build
         env:
-          CARGO_BUILD_JOBS: 1
-          RUSTFLAGS: "-C codegen-units=1 -C opt-level=1"
+          CARGO_BUILD_JOBS: 2
       - uses: actions/upload-artifact@v4
         with:
           name: void-binary
-          path: target/release/zed
+          path: target/debug/zed
