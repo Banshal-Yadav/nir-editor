@@ -11,7 +11,8 @@ jobs:
         run: bash script/linux
       - run: cargo build --release
         env:
-          CARGO_BUILD_JOBS: 2
+          CARGO_BUILD_JOBS: 1
+          RUSTFLAGS: "-C codegen-units=1 -C opt-level=1"
       - uses: actions/upload-artifact@v4
         with:
           name: void-binary
