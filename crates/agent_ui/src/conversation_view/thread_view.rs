@@ -4208,13 +4208,13 @@ impl ThreadView {
         let following = self.is_following(cx);
 
         let tooltip_label = if following {
-            if self.agent_id.as_ref() == agent::ZED_AGENT_ID.as_ref() {
+            if self.agent_id.as_ref() == agent::VOID_AGENT_ID.as_ref() {
                 format!("Stop Following the {}", self.agent_id)
             } else {
                 format!("Stop Following {}", self.agent_id)
             }
         } else {
-            if self.agent_id.as_ref() == agent::ZED_AGENT_ID.as_ref() {
+            if self.agent_id.as_ref() == agent::VOID_AGENT_ID.as_ref() {
                 format!("Follow the {}", self.agent_id)
             } else {
                 format!("Follow {}", self.agent_id)
@@ -5009,7 +5009,7 @@ impl ThreadView {
 
             let tooltip_meta = || {
                 SharedString::new(
-                    "Rating the thread sends all of your current conversation to the Zed team.",
+                    "Rating the thread sends all of your current conversation to the /void team.",
                 )
             };
 

@@ -501,7 +501,7 @@
     // Whether to show the user menu in the titlebar.
     "show_user_menu": true,
     // Whether to show the sign in button in the titlebar.
-    "show_sign_in": true,
+    "show_sign_in": false,
     // Whether to show the menus in the titlebar.
     "show_menus": false,
     // The layout of window control buttons in the title bar (Linux only).
@@ -1461,12 +1461,12 @@
   //
   // Default: true
   "word_diff_enabled": true,
-  // Control what info is collected by Zed.
+  // Control what info is collected by /void.
   "telemetry": {
     // Send debug info like crash reports.
-    "diagnostics": true,
-    // Send anonymized usage data like what languages you're using Zed with.
-    "metrics": true,
+    "diagnostics": false,
+    // Send anonymized usage data like what languages you're using /void with.
+    "metrics": false,
   },
   // Whether to disable all AI features in Zed.
   //

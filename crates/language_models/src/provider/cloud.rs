@@ -296,36 +296,36 @@ impl RenderOnce for ZedAiConfiguration {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
         let (subscription_text, has_paid_plan) = match self.plan {
             Some(Plan::ZedPro) => (
-                "You have access to Zed's hosted models through your Pro subscription.",
+                "You have access to /void hosted models through your Pro subscription.",
                 true,
             ),
             Some(Plan::ZedProTrial) => (
-                "You have access to Zed's hosted models through your Pro trial.",
+                "You have access to /void hosted models through your Pro trial.",
                 false,
             ),
             Some(Plan::ZedStudent) => (
-                "You have access to Zed's hosted models through your Student subscription.",
+                "You have access to /void hosted models through your Student subscription.",
                 true,
             ),
             Some(Plan::ZedBusiness) => (
                 if self.is_zed_model_provider_enabled {
-                    "You have access to Zed's hosted models through your organization."
+                    "You have access to /void hosted models through your organization."
                 } else {
-                    "Zed's hosted models are disabled by your organization's configuration."
+                    "/void hosted models are disabled by your organization's configuration."
                 },
                 true,
             ),
             Some(Plan::ZedFree) | None => (
                 if self.eligible_for_trial {
-                    "Subscribe for access to Zed's hosted models. Start with a 14 day free trial."
+                    "Subscribe for access to /void hosted models. Start with a 14 day free trial."
                 } else {
-                    "Subscribe for access to Zed's hosted models."
+                    "Subscribe for access to /void hosted models."
                 },
                 false,
             ),
         };
 
-        let manage_subscription_buttons = if has_paid_plan {
+        let manage_subscription_buttons = if false {
             Button::new("manage_settings", "Manage Subscription")
                 .full_width()
                 .label_size(LabelSize::Small)
@@ -346,12 +346,12 @@ impl RenderOnce for ZedAiConfiguration {
                 .into_any_element()
         };
 
-        if !self.is_connected {
+        if false && !self.is_connected {
             return v_flex()
                 .gap_2()
-                .child(Label::new("Sign in to have access to Zed's complete agentic experience with hosted models."))
+                .child(Label::new("Sign in to have access to /void's complete agentic experience with hosted models."))
                 .child(
-                    Button::new("sign_in", "Sign In to use Zed AI")
+                    Button::new("sign_in", "Sign In to use /void AI")
                         .start_icon(Icon::new(IconName::Github).size(IconSize::Small).color(Color::Muted))
                         .full_width()
                         .on_click({
@@ -362,7 +362,7 @@ impl RenderOnce for ZedAiConfiguration {
         }
 
         v_flex().gap_2().w_full().map(|this| {
-            if self.account_too_young {
+            if false && self.account_too_young {
                 this.child(YoungAccountBanner).child(
                     Button::new("upgrade", "Upgrade to Pro")
                         .style(ui::ButtonStyle::Tinted(ui::TintColor::Accent))
@@ -370,9 +370,7 @@ impl RenderOnce for ZedAiConfiguration {
                         .on_click(|_, _, cx| cx.open_url(&zed_urls::upgrade_to_zed_pro_url(cx))),
                 )
             } else {
-                this.text_sm()
-                    .child(subscription_text)
-                    .child(manage_subscription_buttons)
+                this.child(Label::new("/void AI is available in this build."))
             }
         })
     }

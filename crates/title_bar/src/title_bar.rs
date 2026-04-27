@@ -292,9 +292,7 @@ impl Render for TitleBar {
                 .children(self.render_connection_status(status, cx))
                 .child(self.update_version.clone())
                 .when(
-                    user.is_none()
-                        && is_signed_out_or_auth_error
-                        && TitleBarSettings::get_global(cx).show_sign_in,
+                    false,
                     |this| this.child(self.render_sign_in_button(cx)),
                 )
                 .when(is_signing_in, |this| {

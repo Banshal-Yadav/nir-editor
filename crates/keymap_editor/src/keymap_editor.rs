@@ -3575,21 +3575,21 @@ async fn load_keybind_context_language(
                 .project()
                 .read(cx)
                 .languages()
-                .language_for_name("Zed Keybind Context")
+                .language_for_name("/void Keybind Context")
         })
-        .context("Failed to load Zed Keybind Context language")
+        .context("Failed to load /void Keybind Context language")
         .log_err();
     let language = match language_task {
         Some(task) => task
             .await
-            .context("Failed to load Zed Keybind Context language")
+            .context("Failed to load /void Keybind Context language")
             .log_err(),
         None => None,
     };
     language.unwrap_or_else(|| {
         Arc::new(Language::new(
             LanguageConfig {
-                name: "Zed Keybind Context".into(),
+                name: "/void Keybind Context".into(),
                 ..Default::default()
             },
             Some(tree_sitter_rust::LANGUAGE.into()),

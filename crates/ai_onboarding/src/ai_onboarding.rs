@@ -352,18 +352,8 @@ impl ZedAiOnboarding {
 
 impl RenderOnce for ZedAiOnboarding {
     fn render(self, _window: &mut ui::Window, cx: &mut App) -> impl IntoElement {
-        if matches!(self.sign_in_status, SignInStatus::SignedIn) {
-            match self.plan {
-                None => self.render_free_plan_state(cx),
-                Some(Plan::ZedFree) => self.render_free_plan_state(cx),
-                Some(Plan::ZedProTrial) => self.render_trial_state(cx),
-                Some(Plan::ZedPro) => self.render_pro_plan_state(cx),
-                Some(Plan::ZedBusiness) => self.render_business_plan_state(cx),
-                Some(Plan::ZedStudent) => self.render_student_plan_state(cx),
-            }
-        } else {
-            self.render_sign_in_disclaimer(cx)
-        }
+        // Sign-in UI disabled for /void - show free plan state
+        self.render_free_plan_state(cx)
     }
 }
 
