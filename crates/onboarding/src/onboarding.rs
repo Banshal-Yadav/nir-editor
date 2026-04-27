@@ -314,11 +314,11 @@ impl Render for Onboarding {
                                             .child(
                                                 v_flex()
                                                     .child(
-                                                        Headline::new("Welcome to Zed")
+                                                        Headline::new("/void")
                                                             .size(HeadlineSize::Small),
                                                     )
                                                     .child(
-                                                        Label::new("The editor for what's next")
+                                                        Label::new("The void awaits")
                                                             .color(Color::Muted)
                                                             .size(LabelSize::Small)
                                                             .italic(),

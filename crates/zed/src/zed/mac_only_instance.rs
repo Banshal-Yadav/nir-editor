@@ -72,10 +72,10 @@ fn get_uid_as_u32(uid: &sysinfo::Uid) -> u32 {
 
 fn instance_handshake() -> &'static str {
     match *release_channel::RELEASE_CHANNEL {
-        ReleaseChannel::Dev => "Zed Editor Dev Instance Running",
-        ReleaseChannel::Nightly => "Zed Editor Nightly Instance Running",
-        ReleaseChannel::Preview => "Zed Editor Preview Instance Running",
-        ReleaseChannel::Stable => "Zed Editor Stable Instance Running",
+        ReleaseChannel::Dev => "/void Editor Dev Instance Running",
+        ReleaseChannel::Nightly => "/void Editor Nightly Instance Running",
+        ReleaseChannel::Preview => "/void Editor Preview Instance Running",
+        ReleaseChannel::Stable => "/void Editor Stable Instance Running",
     }
 }
 

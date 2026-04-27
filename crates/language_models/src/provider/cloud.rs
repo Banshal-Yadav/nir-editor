@@ -505,7 +505,7 @@ impl Component for ZedAiConfiguration {
                         }),
                     ),
                     single_example(
-                        "Zed Pro Trial Plan",
+                        "/void Pro Trial Plan",
                         configuration(PreviewConfiguration {
                             plan: Some(Plan::ZedProTrial),
                             is_connected: true,
@@ -514,7 +514,7 @@ impl Component for ZedAiConfiguration {
                         }),
                     ),
                     single_example(
-                        "Zed Pro Plan",
+                        "/void Pro Plan",
                         configuration(PreviewConfiguration {
                             plan: Some(Plan::ZedPro),
                             is_connected: true,
