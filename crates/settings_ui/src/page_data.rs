@@ -359,7 +359,7 @@ fn general_page(cx: &App) -> SettingsPage {
                 description: "Disabled in /void.",
                 field: Box::new(SettingField {
                     json_path: Some("telemetry.diagnostics"),
-                    pick: |_| Some(false),
+                    pick: |_| Some(&false),
                     write: |_, _, _| {},
                 }),
                 metadata: None,
@@ -370,7 +370,7 @@ fn general_page(cx: &App) -> SettingsPage {
                 description: "Disabled in /void.",
                 field: Box::new(SettingField {
                     json_path: Some("telemetry.metrics"),
-                    pick: |_| Some(false),
+                    pick: |_| Some(&false),
                     write: |_, _, _| {},
                 }),
                 metadata: None,
