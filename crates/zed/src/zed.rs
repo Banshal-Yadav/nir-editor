@@ -604,7 +604,7 @@ fn initialize_file_watcher(window: &mut Window, cx: &mut Context<Workspace>) {
             db::indoc! {r#"
             inotify_init returned {}
 
-            This may be due to system-wide limits on inotify instances. For troubleshooting see: /void/docs
+            This may be due to system-wide limits on inotify instances. For troubleshooting see: https://voideditor.com/docs
             "#},
             e
         );
@@ -618,7 +618,7 @@ fn initialize_file_watcher(window: &mut Window, cx: &mut Context<Workspace>) {
         cx.spawn(async move |_, cx| {
             if prompt.await == Ok(0) {
                 cx.update(|cx| {
-                    cx.open_url("/void/docs/linux#could-not-start-inotify");
+                    cx.open_url("https://voideditor.com/docs/linux#could-not-start-inotify");
                     cx.quit();
                 });
             }
@@ -635,7 +635,7 @@ fn initialize_file_watcher(window: &mut Window, cx: &mut Context<Workspace>) {
             db::indoc! {r#"
             ReadDirectoryChangesW initialization failed: {}
 
-            This may occur on network filesystems and WSL paths. For troubleshooting see: /void/docs
+            This may occur on network filesystems and WSL paths. For troubleshooting see: https://voideditor.com/docs
             "#},
             e
         );
@@ -649,7 +649,7 @@ fn initialize_file_watcher(window: &mut Window, cx: &mut Context<Workspace>) {
         cx.spawn(async move |_, cx| {
             if prompt.await == Ok(0) {
                 cx.update(|cx| {
-                    cx.open_url("/void/docs/windows");
+                    cx.open_url("https://voideditor.com/docs/windows");
                     cx.quit()
                 });
             }
@@ -667,14 +667,14 @@ fn show_software_emulation_warning_if_needed(
         let (graphics_api, docs_url, open_url) = if cfg!(target_os = "windows") {
             (
                 "DirectX",
-                "/void/docs/windows",
-                "/void/docs/windows",
+                "https://voideditor.com/docs/windows",
+                "https://voideditor.com/docs/windows",
             )
         } else {
             (
                 "Vulkan",
-                "/void/docs/linux",
-                "/void/docs/linux#void-fails-to-open-windows",
+                "https://voideditor.com/docs/linux",
+                "https://voideditor.com/docs/linux#void-fails-to-open-windows",
             )
         };
         let message = format!(

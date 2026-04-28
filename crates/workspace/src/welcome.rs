@@ -128,7 +128,7 @@ impl RenderOnce for SectionButton {
     }
 }
 
-/// Custom /void logo component without SVG
+/// Custom /void logo component with SVG and blinking cursor
 #[derive(IntoElement)]
 struct VoidLogo {
     #[allow(dead_code)]
@@ -145,17 +145,36 @@ impl VoidLogo {
 
 impl RenderOnce for VoidLogo {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
-        v_flex()
-            .gap_1()
+        use std::time::Duration;
+        use gpui::{Animation, AnimationExt};
+
+        let cursor_color = cx.theme().colors().text_accent;
+
+        h_flex()
+            .gap_2()
+            .items_center()
             .child(
                 Headline::new("/void")
                     .size(HeadlineSize::Large)
-                    .color(Color::Accent),
+                    .color(Color::Default),
             )
             .child(
-                Label::new("the void awaits")
-                    .size(LabelSize::Small)
-                    .color(Color::Muted),
+                // Blinking cursor bar
+                div()
+                    .id("void-cursor-blink")
+                    .w(px(3.))
+                    .h(rems(1.8))
+                    .bg(cursor_color)
+                    .rounded_sm()
+                    .with_animation(
+                        "cursor-blink",
+                        Animation::new(Duration::from_millis(1000)).repeat(),
+                        |this, delta| {
+                            // Step function: visible for first half, hidden for second half
+                            let opacity = if delta < 0.5 { 1.0 } else { 0.0 };
+                            this.opacity(opacity)
+                        },
+                    ),
             )
     }
 }

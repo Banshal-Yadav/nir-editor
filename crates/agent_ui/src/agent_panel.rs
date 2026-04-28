@@ -3512,7 +3512,7 @@ impl Render for AgentPanel {
                 VisibleSurface::Configuration(configuration) => {
                     parent.children(configuration.cloned())
                 },
-            })
+            });
 
         match self.visible_font_size() {
             WhichFontSize::AgentFont => {

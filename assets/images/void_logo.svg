@@ -1,0 +1,11 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- /void| logo - monospace geometric style -->
+  <path fill-rule="evenodd" clip-rule="evenodd" d="
+    M13 62 L16 62 L25 34 L22 34 Z
+    M28 34 L34 58 L40 34 L37 34 L34 50 L31 34 Z
+    M43 34 L55 34 L55 58 L43 58 Z M46 37 L46 55 L52 55 L52 37 Z
+    M59 29 L62 29 L62 33 L59 33 Z M59 37 L62 37 L62 58 L59 58 Z
+    M66 37 L77 37 L77 28 L80 28 L80 58 L66 58 Z M69 40 L69 55 L77 55 L77 40 Z
+    M85 27 L88 27 L88 63 L85 63 Z
+  " fill="black"/>
+</svg>
