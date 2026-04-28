@@ -3511,7 +3511,7 @@ impl Render for AgentPanel {
                     .child(self.render_drag_target(cx)),
                 VisibleSurface::Configuration(configuration) => {
                     parent.children(configuration.cloned())
-                }
+                },
             })
 
         match self.visible_font_size() {
