@@ -20,7 +20,7 @@ jobs:
       - name: Package with assets
         run: |
           mkdir -p void-package
-          cp target/debug/zed void-package/
+          cp target/debug/void void-package/
           cp -r assets void-package/
       - uses: actions/upload-artifact@v4
         with:
