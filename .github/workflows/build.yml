@@ -17,6 +17,8 @@ jobs:
           sudo rm -rf /usr/share/swift
           docker system prune -af 2>/dev/null || true
           df -h
+      - name: Verify assets
+        run: ls assets/settings/
       - name: Install dependencies
         run: bash script/linux
       - run: cargo build --release
