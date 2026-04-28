@@ -1,0 +1,24 @@
+name: Windows Build
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk space
+        run: |
+          Remove-Item -Recurse -Force "C:\Program Files\dotnet" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "C:\Program Files\Android" -ErrorAction SilentlyContinue
+      - run: cargo build
+        env:
+          CARGO_BUILD_JOBS: 2
+      - name: Package with assets
+        run: |
+          mkdir void-package
+          copy target\debug\zed.exe void-package\
+          xcopy assets void-package\assets\ /E /I
+      - uses: actions/upload-artifact@v4
+        with:
+          name: void-windows
+          path: void-package/

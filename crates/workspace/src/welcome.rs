@@ -11,7 +11,7 @@ use gpui::{
     Action, Animation, App, Context, Entity, EventEmitter, FocusHandle, Focusable, InteractiveElement,
     ParentElement, Render, Styled, Task, Window, actions, pulsating_between,
 };
-use gpui::{FontFamily, WeakEntity, linear_color_stop, linear_gradient};
+use gpui::{WeakEntity, linear_color_stop, linear_gradient};
 use menu::{SelectNext, SelectPrevious};
 
 use schemars::JsonSchema;
@@ -33,7 +33,7 @@ pub struct OpenRecentProject {
 actions!(
     zed,
     [
-        /// Show the Zed welcome screen
+        /// Show the /void welcome screen
         ShowWelcome
     ]
 );
@@ -145,7 +145,7 @@ impl VoidLogo {
 
 impl RenderOnce for VoidLogo {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let cursor_animation = Animation::new(std::time::Duration::from_secs(1()))
+        let cursor_animation = Animation::new(std::time::Duration::from_secs(1))
             .repeat()
             .with_easing(pulsating_between(0.3, 1.0));
 
@@ -154,15 +154,16 @@ impl RenderOnce for VoidLogo {
             .child(
                 Headline::new("/void")
                     .size(HeadlineSize::Large)
-                    .font(cx, FontFamily::Monospace)
                     .color(Color::Accent),
             )
             .child(
                 Label::new("▊")
-                    .size(LabelSize::XLarge)
-                    .font(cx, FontFamily::Monospace)
+                    .size(LabelSize::Large)
                     .color(Color::Accent)
-                    .with_animation("void-cursor", cursor_animation, |label, delta| label.alpha(delta)),
+                    .with_animation("void-cursor", cursor_animation, |label: &mut Label, delta| {
+                        let _ = delta;
+                        label
+                    }),
             )
     }
 }
@@ -393,7 +394,7 @@ impl WelcomePage {
                 h_flex()
                     .gap_1p5()
                     .child(
-                        Icon::new(IconName::ZedAssistant)
+                        Icon::new(IconName::AiAnthropic)
                             .color(Color::Muted)
                             .size(IconSize::Small),
                     )
@@ -562,7 +563,7 @@ impl Item for WelcomePage {
     type Event = ItemEvent;
 
     fn tab_content_text(&self, _detail: usize, _cx: &App) -> SharedString {
-        "Welcome".into()
+        "/void".into()
     }
 
     fn telemetry_event_text(&self) -> Option<&'static str> {

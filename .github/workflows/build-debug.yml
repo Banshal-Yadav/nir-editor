@@ -1,0 +1,28 @@
+name: Debug Build
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          sudo rm -rf /usr/local/lib/android /usr/local/share/powershell /usr/share/swift
+          docker system prune -af 2>/dev/null || true
+      - name: Install dependencies
+        run: bash script/linux
+      - run: cargo build
+        env:
+          CARGO_BUILD_JOBS: 2
+      - name: Package with assets
+        run: |
+          mkdir -p void-package
+          cp target/debug/zed void-package/
+          cp -r assets void-package/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: void-debug
+          path: void-package/
