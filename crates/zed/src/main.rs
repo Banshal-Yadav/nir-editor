@@ -150,21 +150,24 @@ fn fail_to_open_window(e: anyhow::Error, _cx: &mut App) {
 
         let notification_id = "dev.void.Oops";
         let body = format!("{e:?}. See /void docs for troubleshooting steps.");
-        _cx.background_spawn(async move {
-            if let Ok(proxy) = NotificationProxy::new().await {
-                proxy
-                    .add_notification(
-                        notification_id,
-                        Notification::new("/void failed to launch")
-                            .body(Some(body.as_str()))
-                            .priority(Priority::High)
-                            .icon(ashpd::desktop::Icon::with_names(&[
-                                "dialog-question-symbolic",
-                            ])),
-                    )
-                    .await
-                    .ok();
-            }
+        _cx.spawn(async move |_cx| {
+            let Ok(proxy) = NotificationProxy::new().await else {
+                process::exit(1);
+            };
+
+            proxy
+                .add_notification(
+                    notification_id,
+                    Notification::new("/void failed to launch")
+                        .body(Some(body.as_str()))
+                        .priority(Priority::High)
+                        .icon(ashpd::desktop::Icon::with_names(&[
+                            "dialog-question-symbolic",
+                        ])),
+                )
+                .await
+                .ok();
+
             process::exit(1);
         })
         .detach();
