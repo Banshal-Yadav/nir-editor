@@ -19,13 +19,13 @@ jobs:
           df -h
       - name: Install dependencies
         run: bash script/linux
-      - run: cargo build
+      - run: cargo build --release
         env:
           CARGO_BUILD_JOBS: 2
       - name: Package binary with assets
         run: |
           mkdir -p void-package
-          cp target/debug/void void-package/
+          cp target/release/void void-package/
           cp -r assets void-package/
       - uses: actions/upload-artifact@v4
         with:
