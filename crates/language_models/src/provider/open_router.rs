@@ -835,7 +835,14 @@ impl Render for ConfigurationView {
             v_flex()
                 .size_full()
                 .on_action(cx.listener(Self::save_api_key))
-                .child(Label::new("To use Zed's agent with OpenRouter, you need to add an API key. Follow these steps:"))
+                .child(
+                    div()
+                        .bg(Color::Accent.lighter())
+                        .rounded_md()
+                        .p_3()
+                        .child(Label::new("💡 Recommended — Free models available with OpenRouter").color(Color::Accent))
+                )
+                .child(Label::new("To use /void with OpenRouter, you need to add an API key. Follow these steps:"))
                 .child(
                     List::new()
                         .child(
@@ -843,7 +850,7 @@ impl Render for ConfigurationView {
                                 .child(Label::new("Create an API key by visiting"))
                                 .child(ButtonLink::new("OpenRouter's console", "https://openrouter.ai/keys"))
                         )
-                        .child(ListBulletItem::new("Ensure your OpenRouter account has credits")
+                        .child(ListBulletItem::new("Free credits for new users — no payment required to get started")
                         )
                         .child(ListBulletItem::new("Paste your API key below and hit enter to start using the assistant")
                         ),
@@ -851,7 +858,7 @@ impl Render for ConfigurationView {
                 .child(self.api_key_editor.clone())
                 .child(
                     Label::new(
-                        format!("You can also set the {API_KEY_ENV_VAR_NAME} environment variable and restart Zed."),
+                        format!("You can also set the {API_KEY_ENV_VAR_NAME} environment variable and restart /void."),
                     )
                     .size(LabelSize::Small).color(Color::Muted),
                 )

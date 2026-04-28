@@ -136,7 +136,7 @@ fn fail_to_open_window_async(e: anyhow::Error, cx: &mut AsyncApp) {
 
 fn fail_to_open_window(e: anyhow::Error, _cx: &mut App) {
     eprintln!(
-        "/void failed to open a window: {e:?}. See https://zed.dev/docs/linux for troubleshooting steps."
+        "/void failed to open a window: {e:?}. See /void docs for troubleshooting steps."
     );
     #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
     {
@@ -147,23 +147,19 @@ fn fail_to_open_window(e: anyhow::Error, _cx: &mut App) {
     #[cfg(any(target_os = "linux", target_os = "freebsd"))]
     {
         use ashpd::desktop::notification::{Notification, NotificationProxy, Priority};
-        _cx.spawn(async move |_cx| {
-            let Ok(proxy) = NotificationProxy::new().await else {
-                process::exit(1);
-            };
 
-            let notification_id = "dev.zed.Oops";
-            proxy
-                .add_notification(
-                    notification_id,
-                    Notification::new("/void failed to launch")
-                        .body(Some(
-                            format!(
-                                "{e:?}. See https://zed.dev/docs/linux for troubleshooting steps."
-                            )
-                            .as_str(),
-                        ))
-                        .priority(Priority::High)
+        let notification_id = "dev.zed.Oops";
+        proxy
+            .add_notification(
+                notification_id,
+                Notification::new("/void failed to launch")
+                    .body(Some(
+                        format!(
+                            "{e:?}. See /void docs for troubleshooting steps."
+                        )
+                        .as_str(),
+                    ))
+                    .priority(Priority::High)
                         .icon(ashpd::desktop::Icon::with_names(&[
                             "dialog-question-symbolic",
                         ])),

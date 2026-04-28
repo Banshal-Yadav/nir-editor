@@ -2,27 +2,31 @@ name: Build
 on: 
   push:
   workflow_dispatch:
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /usr/local/share/powershell
-          sudo rm -rf /usr/share/swift
-          docker system prune -af 2>/dev/null || true
-          df -h
-      - name: Install dependencies
-        run: bash script/linux
-      - run: cargo build
-        env:
-          CARGO_BUILD_JOBS: 2
-      - uses: actions/upload-artifact@v4
-        with:
-          name: void-binary
-          path: target/debug/zed
+ jobs:
+   build:
+     runs-on: ubuntu-latest
+     steps:
+       - uses: actions/checkout@v4
+       - name: Free disk space
+         run: |
+           sudo rm -rf /usr/share/dotnet
+           sudo rm -rf /opt/ghc
+           sudo rm -rf /usr/local/share/boost
+           sudo rm -rf /usr/local/lib/android
+           sudo rm -rf /usr/local/share/powershell
+           sudo rm -rf /usr/share/swift
+           docker system prune -af 2>/dev/null || true
+           df -h
+       - name: Verify assets exist
+         run: |
+           ls -la assets/settings/default.json
+           ls -la assets/settings/
+       - name: Install dependencies
+         run: bash script/linux
+       - run: cargo build
+         env:
+           CARGO_BUILD_JOBS: 2
+       - uses: actions/upload-artifact@v4
+         with:
+           name: void-binary
+           path: target/debug/zed

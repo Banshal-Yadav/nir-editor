@@ -8,10 +8,10 @@ use agent_settings::AgentSettings;
 use chrono::{DateTime, Utc};
 use git::Clone as GitClone;
 use gpui::{
-    Action, App, Context, Entity, EventEmitter, FocusHandle, Focusable, InteractiveElement,
-    ParentElement, Render, Styled, Task, Window, actions,
+    Action, Animation, App, Context, Entity, EventEmitter, FocusHandle, Focusable, InteractiveElement,
+    ParentElement, Render, Styled, Task, Window, actions, pulsating_between,
 };
-use gpui::{WeakEntity, linear_color_stop, linear_gradient};
+use gpui::{FontFamily, WeakEntity, linear_color_stop, linear_gradient};
 use menu::{SelectNext, SelectPrevious};
 
 use schemars::JsonSchema;
@@ -125,6 +125,45 @@ impl RenderOnce for SectionButton {
             .on_click(move |_, window, cx| {
                 self.focus_handle.dispatch_action(&*self.action, window, cx)
             })
+    }
+}
+
+/// Custom /void logo component without SVG
+#[derive(IntoElement)]
+struct VoidLogo {
+    #[allow(dead_code)]
+    phantom: std::marker::PhantomData<()>,
+}
+
+impl VoidLogo {
+    fn new(_cx: &App) -> Self {
+        Self {
+            phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+impl RenderOnce for VoidLogo {
+    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let cursor_animation = Animation::new(std::time::Duration::from_secs(1()))
+            .repeat()
+            .with_easing(pulsating_between(0.3, 1.0));
+
+        h_flex()
+            .gap_2()
+            .child(
+                Headline::new("/void")
+                    .size(HeadlineSize::Large)
+                    .font(cx, FontFamily::Monospace)
+                    .color(Color::Accent),
+            )
+            .child(
+                Label::new("▊")
+                    .size(LabelSize::XLarge)
+                    .font(cx, FontFamily::Monospace)
+                    .color(Color::Accent)
+                    .with_animation("void-cursor", cursor_animation, |label, delta| label.alpha(delta)),
+            )
     }
 }
 
@@ -479,14 +518,12 @@ impl Render for WelcomePage {
                             .justify_center()
                             .mb_4()
                             .gap_4()
-                            .child(Vector::square(VectorName::ZedLogo, rems_from_px(45.)))
+                            .child(VoidLogo::new(cx))
                             .child(
-                                v_flex().child(Headline::new(welcome_label)).child(
-                                    Label::new("The void awaits")
-                                        .size(LabelSize::Small)
-                                        .color(Color::Muted)
-                                        .italic(),
-                                ),
+                                v_flex().child(Label::new("The void awaits")
+                                    .size(LabelSize::Small)
+                                    .color(Color::Muted)
+                                    .italic()),
                             ),
                     )
                     .child(first_section.render(Default::default(), &self.focus_handle))
