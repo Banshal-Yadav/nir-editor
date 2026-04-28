@@ -281,6 +281,7 @@ impl ZedAiOnboarding {
         }
     }
 
+    #[allow(dead_code)]
     fn render_trial_state(&self, cx: &mut App) -> AnyElement {
         v_flex()
             .w_full()
@@ -298,6 +299,7 @@ impl ZedAiOnboarding {
             .into_any_element()
     }
 
+    #[allow(dead_code)]
     fn render_pro_plan_state(&self, cx: &mut App) -> AnyElement {
         v_flex()
             .w_full()
@@ -315,6 +317,7 @@ impl ZedAiOnboarding {
             .into_any_element()
     }
 
+    #[allow(dead_code)]
     fn render_business_plan_state(&self, cx: &mut App) -> AnyElement {
         v_flex()
             .w_full()
@@ -332,6 +335,7 @@ impl ZedAiOnboarding {
             .into_any_element()
     }
 
+    #[allow(dead_code)]
     fn render_student_plan_state(&self, cx: &mut App) -> AnyElement {
         v_flex()
             .w_full()

@@ -8,8 +8,8 @@ use agent_settings::AgentSettings;
 use chrono::{DateTime, Utc};
 use git::Clone as GitClone;
 use gpui::{
-    Action, Animation, AnimationExt, App, Context, Entity, EventEmitter, FocusHandle, Focusable, InteractiveElement,
-    ParentElement, Render, Styled, Task, Window, actions, pulsating_between,
+    Action, App, Context, Entity, EventEmitter, FocusHandle, Focusable, InteractiveElement,
+    ParentElement, Render, Styled, Task, Window, actions,
 };
 use gpui::{WeakEntity, linear_color_stop, linear_gradient};
 use menu::{SelectNext, SelectPrevious};
@@ -145,25 +145,17 @@ impl VoidLogo {
 
 impl RenderOnce for VoidLogo {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let cursor_animation = Animation::new(std::time::Duration::from_secs(1))
-            .repeat()
-            .with_easing(pulsating_between(0.3, 1.0));
-
-        h_flex()
-            .gap_2()
+        v_flex()
+            .gap_1()
             .child(
                 Headline::new("/void")
                     .size(HeadlineSize::Large)
                     .color(Color::Accent),
             )
             .child(
-                Label::new("▊")
-                    .size(LabelSize::Large)
-                    .color(Color::Accent)
-                    .with_animation("void-cursor", cursor_animation, |label: &mut Label, delta| {
-                        let _ = delta;
-                        label
-                    }),
+                Label::new("the void awaits")
+                    .size(LabelSize::Small)
+                    .color(Color::Muted),
             )
     }
 }
@@ -487,12 +479,6 @@ impl Render for WelcomePage {
             second_section
                 .render(first_section_entries, &self.focus_handle)
                 .into_any_element()
-        };
-
-        let _welcome_label = if self.fallback_to_recent_projects {
-            "/void"
-        } else {
-            "/void"
         };
 
         h_flex()
