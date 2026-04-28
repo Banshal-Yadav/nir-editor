@@ -17,16 +17,17 @@ jobs:
           sudo rm -rf /usr/share/swift
           docker system prune -af 2>/dev/null || true
           df -h
-      - name: Verify assets exist
-        run: |
-          ls -la assets/settings/default.json
-          ls -la assets/settings/
       - name: Install dependencies
         run: bash script/linux
       - run: cargo build
         env:
           CARGO_BUILD_JOBS: 2
+      - name: Package binary with assets
+        run: |
+          mkdir -p void-package
+          cp target/debug/zed void-package/
+          cp -r assets void-package/
       - uses: actions/upload-artifact@v4
         with:
           name: void-binary
-          path: target/debug/zed
+          path: void-package/
