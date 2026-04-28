@@ -837,7 +837,7 @@ impl Render for ConfigurationView {
                 .on_action(cx.listener(Self::save_api_key))
                 .child(
                     div()
-                        .bg(Color::Accent)
+                        .bg(gpui::blue())
                         .rounded_md()
                         .p_3()
                         .child(Label::new("💡 Recommended — Free models available with OpenRouter").color(Color::Accent))
