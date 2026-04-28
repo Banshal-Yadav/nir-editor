@@ -6,6 +6,8 @@
 **/.direnv
 *.wasm
 *.xcodeproj
+void-docs/
+AGENTS.md
 .DS_Store
 .blob_store
 .build
