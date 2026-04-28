@@ -294,7 +294,7 @@ struct ZedAiConfiguration {
 
 impl RenderOnce for ZedAiConfiguration {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
-        let (subscription_text, has_paid_plan) = match self.plan {
+        let (_subscription_text, _has_paid_plan) = match self.plan {
             Some(Plan::ZedPro) => (
                 "You have access to /void hosted models through your Pro subscription.",
                 true,
@@ -325,7 +325,7 @@ impl RenderOnce for ZedAiConfiguration {
             ),
         };
 
-        let manage_subscription_buttons = if false {
+        let _manage_subscription_buttons = if false {
             Button::new("manage_settings", "Manage Subscription")
                 .full_width()
                 .label_size(LabelSize::Small)
