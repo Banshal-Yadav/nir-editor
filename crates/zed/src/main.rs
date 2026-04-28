@@ -1470,7 +1470,7 @@ pub(crate) async fn restore_or_create_workspace(
         // If the user cancelled a failed remote connection at startup,
         // open_remote_project returns Ok but removes the window, so error_count
         // stays 0 and the toast fallback above does not trigger. Without this
-        // check, Zed would exit silently.
+        // check, /void would exit silently.
         if cx.update(|cx| cx.windows().is_empty()) {
             cx.update(|cx| {
                 workspace::open_new(
@@ -1644,14 +1644,14 @@ struct Args {
     /// Sets a custom directory for all user data (e.g., database, extensions, logs).
     ///
     /// This overrides the default platform-specific data directory location.
-    /// On macOS, the default is `~/Library/Application Support/Zed`.
+    /// On macOS, the default is `~/Library/Application Support//void`.
     /// On Linux/FreeBSD, the default is `$XDG_DATA_HOME/zed`.
-    /// On Windows, the default is `%LOCALAPPDATA%\Zed`.
+    /// On Windows, the default is `%LOCALAPPDATA%\/void`.
     #[arg(long, value_name = "DIR", verbatim_doc_comment)]
     user_data_dir: Option<String>,
 
     /// The username and WSL distribution to use when opening paths. If not specified,
-    /// Zed will attempt to open the paths directly.
+    /// /void will attempt to open the paths directly.
     ///
     /// The username is optional, and if not specified, the default user for the distribution
     /// will be used.
@@ -1677,17 +1677,17 @@ struct Args {
     /// Prints system specs.
     ///
     /// Useful for submitting issues on GitHub when encountering a bug that
-    /// prevents Zed from starting, so you can't run `zed: copy system specs to
+    /// prevents /void from starting, so you can't run `zed: copy system specs to
     /// clipboard`
     #[arg(long)]
     system_specs: bool,
 
     /// Used for the MCP Server, to remove the need for netcat as a dependency,
-    /// by having Zed act like netcat communicating over a Unix socket.
+    /// by having /void act like netcat communicating over a Unix socket.
     #[arg(long, hide = true)]
     nc: Option<String>,
 
-    /// Used for recording minidumps on crashes by having Zed run a separate
+    /// Used for recording minidumps on crashes by having /void run a separate
     /// process communicating over a socket.
     #[arg(long, hide = true)]
     crash_handler: Option<PathBuf>,
@@ -1705,7 +1705,7 @@ struct Args {
     dock_action: Option<usize>,
 
     /// Used for SSH/Git password authentication, to remove the need for netcat as a dependency,
-    /// by having Zed act like netcat communicating over a Unix socket.
+    /// by having /void act like netcat communicating over a Unix socket.
     #[arg(long)]
     #[cfg(not(target_os = "windows"))]
     #[arg(hide = true)]
@@ -1723,7 +1723,7 @@ struct Args {
     #[arg(long, hide = true)]
     record_etw_trace: bool,
 
-    /// The PID of the Zed process to trace for heap analysis.
+    /// The PID of the /void process to trace for heap analysis.
     #[cfg(target_os = "windows")]
     #[arg(long, hide = true, allow_hyphen_values = true)]
     etw_zed_pid: Option<i64>,
@@ -1733,7 +1733,7 @@ struct Args {
     #[arg(long, hide = true)]
     etw_output: Option<PathBuf>,
 
-    /// Unix socket path for IPC with the parent Zed process.
+    /// Unix socket path for IPC with the parent /void process.
     #[cfg(target_os = "windows")]
     #[arg(long, hide = true)]
     etw_socket: Option<String>,

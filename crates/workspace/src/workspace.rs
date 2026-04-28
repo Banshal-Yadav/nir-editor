@@ -9030,9 +9030,9 @@ pub struct OpenChannelNotesById {
 actions!(
     zed,
     [
-        /// Opens the Zed log file.
+        /// Opens the /void log file.
         OpenLog,
-        /// Reveals the Zed log file in the system file manager.
+        /// Reveals the /void log file in the system file manager.
         RevealLogInFileManager
     ]
 );

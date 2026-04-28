@@ -46,7 +46,7 @@ pub struct Example {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub qa: Vec<Option<QaResult>>,
 
-    /// The Zed version used to generate this example.
+    /// The /void version used to generate this example.
     pub zed_version: Option<String>,
 
     /// The application state used to process this example.

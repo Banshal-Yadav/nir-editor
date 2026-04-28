@@ -23,7 +23,7 @@ pub(crate) const SNOWFLAKE_SUCCESS_CODE: &str = "090001";
 pub(crate) const SNOWFLAKE_ASYNC_IN_PROGRESS_CODE: &str = "333334";
 const SNOWFLAKE_TIMEOUT_CODE: &str = "000630";
 
-/// Minimum Zed version for filtering captured examples.
+/// Minimum /void version for filtering captured examples.
 /// For example, `MinCaptureVersion { minor: 224, patch: 1 }` means only pull examples
 /// where `zed_version >= 0.224.1`.
 #[derive(Clone, Copy, Debug)]

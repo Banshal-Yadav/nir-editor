@@ -116,7 +116,7 @@ const DEBUG_TERMINAL_HEIGHT: Pixels = px(30.);
 const DEBUG_CELL_WIDTH: Pixels = px(5.);
 const DEBUG_LINE_HEIGHT: Pixels = px(5.);
 
-/// Inserts Zed-specific environment variables for terminal sessions.
+/// Inserts /void-specific environment variables for terminal sessions.
 /// Used by both local terminals and remote terminals (via SSH).
 pub fn insert_zed_terminal_env(
     env: &mut HashMap<String, String>,
@@ -2121,7 +2121,7 @@ impl Terminal {
     /// that's running inside the terminal.
     ///
     /// This does *not* return the working directory of the shell that runs on the
-    /// remote host, in case Zed is connected to a remote host.
+    /// remote host, in case /void is connected to a remote host.
     fn client_side_working_directory(&self) -> Option<PathBuf> {
         match &self.terminal_type {
             TerminalType::Pty { info, .. } => info
@@ -2290,7 +2290,7 @@ impl Terminal {
         if !lines_to_show.is_empty() {
             // SAFETY: the invocation happens on non `TaskStatus::Running` tasks, once,
             // after either `AlacTermEvent::Exit` or `AlacTermEvent::ChildExit` events that are spawned
-            // when Zed task finishes and no more output is made.
+            // when /void task finishes and no more output is made.
             // After the task summary is output once, no more text is appended to the terminal.
             unsafe { append_text_to_term(&mut self.term.lock(), &lines_to_show) };
         }

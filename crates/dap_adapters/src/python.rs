@@ -95,7 +95,7 @@ impl PythonDebugAdapter {
 
         let mut configuration = task_definition.config.clone();
         if let Ok(console) = configuration.dot_get_mut("console") {
-            // Use built-in Zed terminal if user did not explicitly provide a setting for console.
+            // Use built-in /void terminal if user did not explicitly provide a setting for console.
             if console.is_null() {
                 *console = Value::String("integratedTerminal".into());
             }
@@ -854,7 +854,7 @@ impl DebugAdapter for PythonDebugAdapter {
             })
             .chain(
                 // While Debugpy's wiki saids absolute paths are required, but it actually supports relative paths when cwd is passed in.
-                // (Which should always be the case because Zed defaults to the cwd worktree root)
+                // (Which should always be the case because /void defaults to the cwd worktree root)
                 // So we want to check that these relative paths find toolchains as well. Otherwise, they won't be checked
                 // because the strip prefix in the iteration above will return an error
                 config

@@ -158,7 +158,7 @@ impl Render for QuickActionBar {
 
         let assistant_button = QuickActionBarButton::new(
             "toggle inline assistant",
-            IconName::ZedAssistant,
+            IconName::VoidAssistant,
             false,
             Box::new(InlineAssist::default()),
             focus_handle,

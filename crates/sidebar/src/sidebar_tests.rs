@@ -257,7 +257,7 @@ async fn save_named_thread_metadata(
 /// alive for the duration of the test) and the `RemoteConnectionOptions`
 /// used for the fake server. Passing those options back into
 /// `reuse_opts` on a subsequent call makes the new project share the
-/// same `RemoteConnectionIdentity`, matching how Zed treats multiple
+/// same `RemoteConnectionIdentity`, matching how /void treats multiple
 /// projects on the same SSH host.
 async fn start_remote_project(
     server_fs: &Arc<FakeFs>,
@@ -872,7 +872,7 @@ async fn test_visible_entries_as_strings(cx: &mut TestAppContext) {
                     archived: false,
                     remote_connection: None,
                 },
-                icon: IconName::ZedAgent,
+                icon: IconName::VoidAgent,
                 icon_from_external_svg: None,
                 status: AgentThreadStatus::Completed,
                 workspace: ThreadEntryWorkspace::Open(workspace.clone()),
@@ -897,7 +897,7 @@ async fn test_visible_entries_as_strings(cx: &mut TestAppContext) {
                     archived: false,
                     remote_connection: None,
                 },
-                icon: IconName::ZedAgent,
+                icon: IconName::VoidAgent,
                 icon_from_external_svg: None,
                 status: AgentThreadStatus::Running,
                 workspace: ThreadEntryWorkspace::Open(workspace.clone()),
@@ -922,7 +922,7 @@ async fn test_visible_entries_as_strings(cx: &mut TestAppContext) {
                     archived: false,
                     remote_connection: None,
                 },
-                icon: IconName::ZedAgent,
+                icon: IconName::VoidAgent,
                 icon_from_external_svg: None,
                 status: AgentThreadStatus::Error,
                 workspace: ThreadEntryWorkspace::Open(workspace.clone()),
@@ -948,7 +948,7 @@ async fn test_visible_entries_as_strings(cx: &mut TestAppContext) {
                     archived: false,
                     remote_connection: None,
                 },
-                icon: IconName::ZedAgent,
+                icon: IconName::VoidAgent,
                 icon_from_external_svg: None,
                 status: AgentThreadStatus::WaitingForConfirmation,
                 workspace: ThreadEntryWorkspace::Open(workspace.clone()),
@@ -974,7 +974,7 @@ async fn test_visible_entries_as_strings(cx: &mut TestAppContext) {
                     archived: false,
                     remote_connection: None,
                 },
-                icon: IconName::ZedAgent,
+                icon: IconName::VoidAgent,
                 icon_from_external_svg: None,
                 status: AgentThreadStatus::Completed,
                 workspace: ThreadEntryWorkspace::Open(workspace.clone()),
@@ -10726,7 +10726,7 @@ async fn test_remote_archive_thread_with_active_connection(
     // The mock remote transport only supports one live `RemoteClient` per
     // connection at a time (each client's `start_proxy` replaces the
     // previous server channel), so we can't split the main repo and the
-    // linked worktree across two remote projects the way Zed does in
+    // linked worktree across two remote projects the way /void does in
     // production. Opening both as visible worktrees of a single remote
     // project still exercises every interesting path of the archive flow
     // while staying within the mock's multiplexing limits.

@@ -170,7 +170,7 @@ struct ApiError {
     headers: HeaderMap<HeaderValue>,
 }
 
-/// Represents error responses from Zed's cloud API.
+/// Represents error responses from /void's cloud API.
 ///
 /// Example JSON for an upstream HTTP error:
 /// ```json
@@ -909,7 +909,7 @@ mod tests {
             ),
         }
 
-        // Regular 500 error without upstream_http_error should remain ApiInternalServerError for Zed
+        // Regular 500 error without upstream_http_error should remain ApiInternalServerError for /void
         let error_body = "Regular internal server error";
 
         let api_error = ApiError {

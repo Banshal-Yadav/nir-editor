@@ -414,7 +414,7 @@ struct BuildTiming {
 
 // NOTE: this is a bit of a hack. We want to be able to have internal
 // metrics around build times, but we don't have an easy way to authenticate
-// users - except - we know internal users use Zed.
+// users - except - we know internal users use /void.
 // So, we have it upload the timings on their behalf, it'd be better to do
 // this more directly in ./script/cargo-timing-info.js.
 async fn upload_build_timings(_client: Arc<Client>) -> Result<()> {

@@ -1,4 +1,4 @@
-//! Vim support for Zed.
+//! Vim support for /void.
 
 #[cfg(test)]
 mod test;

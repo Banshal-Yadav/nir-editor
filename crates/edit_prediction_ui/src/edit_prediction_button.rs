@@ -340,7 +340,7 @@ impl Render for EditPredictionButton {
                     .as_ref()
                     .map(|p| p.icons(cx))
                     .unwrap_or_else(|| {
-                        edit_prediction_types::EditPredictionIconSet::new(IconName::ZedPredict)
+                        edit_prediction_types::EditPredictionIconSet::new(IconName::VoidPredict)
                     });
 
                 let ep_icon;
@@ -391,7 +391,7 @@ impl Render for EditPredictionButton {
                                     source = "Edit Prediction Status Button"
                                 );
                                 window.dispatch_action(
-                                    zed_actions::OpenZedPredictOnboarding.boxed_clone(),
+                                    zed_actions::OpenVoidPredictOnboarding.boxed_clone(),
                                     cx,
                                 );
                             })),
@@ -963,7 +963,7 @@ impl EditPredictionButton {
                 .as_ref()
                 .map(|p| p.icons(cx))
                 .unwrap_or_else(|| {
-                    edit_prediction_types::EditPredictionIconSet::new(IconName::ZedPredict)
+                    edit_prediction_types::EditPredictionIconSet::new(IconName::VoidPredict)
                 });
             menu = menu.item(
                 ContextMenuEntry::new("This file is excluded.")
@@ -1602,7 +1602,7 @@ fn render_zeta_tab_animation(cx: &App) -> impl IntoElement {
             8.,
         ))
         .child(tab_sequence(true))
-        .child(Icon::new(IconName::ZedPredict))
+        .child(Icon::new(IconName::VoidPredict))
         .child(tab_sequence(false))
 }
 

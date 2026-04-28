@@ -11,7 +11,7 @@ use workspace::{Toast, Workspace};
 actions!(
     cli,
     [
-        /// Installs the Zed CLI tool to the system PATH.
+        /// Installs the /void CLI tool to the system PATH.
         InstallCliBinary,
     ]
 );
@@ -62,7 +62,7 @@ async fn install_script(cx: &AsyncApp) -> Result<PathBuf> {
 }
 
 pub fn install_cli_binary(window: &mut Window, cx: &mut Context<Workspace>) {
-    const LINUX_PROMPT_DETAIL: &str = "If you installed Zed from our official release add ~/.local/bin to your PATH.\n\nIf you installed Zed from a different source like your package manager, then you may need to create an alias/symlink manually.\n\nDepending on your package manager, the CLI might be named zeditor, zedit, zed-editor or something else.";
+    const LINUX_PROMPT_DETAIL: &str = "If you installed /void from our official release add ~/.local/bin to your PATH.\n\nIf you installed /void from a different source like your package manager, then you may need to create an alias/symlink manually.\n\nDepending on your package manager, the CLI might be named voideditor, voidit, void-editor or something else.";
 
     cx.spawn_in(window, async move |workspace, cx| {
         if cfg!(any(target_os = "linux", target_os = "freebsd")) {
@@ -86,7 +86,7 @@ pub fn install_cli_binary(window: &mut Window, cx: &mut Context<Workspace>) {
                 Toast::new(
                     NotificationId::unique::<InstalledZedCli>(),
                     format!(
-                        "Installed `zed` to {}. You can launch {} from your terminal.",
+                        "Installed `void` to {}. You can launch {} from your terminal.",
                         path.to_string_lossy(),
                         ReleaseChannel::global(cx).display_name()
                     ),
@@ -97,5 +97,5 @@ pub fn install_cli_binary(window: &mut Window, cx: &mut Context<Workspace>) {
         register_zed_scheme(cx).await.log_err();
         Ok(())
     })
-    .detach_and_prompt_err("Error installing zed cli", window, cx, |_, _, _| None);
+    .detach_and_prompt_err("Error installing void cli", window, cx, |_, _, _| None);
 }

@@ -61,7 +61,7 @@ actions!(
         OpenServerSettings,
         /// Quits the application.
         Quit,
-        /// Shows information about Zed.
+        /// Shows information about /void.
         About,
         /// Opens the documentation website.
         OpenDocs,
@@ -271,7 +271,7 @@ pub enum NewWorktreeBranchTarget {
 #[action(namespace = git)]
 #[serde(deny_unknown_fields)]
 pub struct CreateWorktree {
-    /// When this is None, Zed will randomly generate a worktree name.
+    /// When this is None, /void will randomly generate a worktree name.
     pub worktree_name: Option<String>,
     pub branch_target: NewWorktreeBranchTarget,
 }
@@ -367,7 +367,7 @@ pub mod feedback {
     actions!(
         feedback,
         [
-            /// Opens email client to send feedback to Zed support.
+            /// Opens email client to send feedback to /void support.
             EmailZed,
             /// Opens the bug report form.
             FileBugReport,
@@ -701,10 +701,10 @@ pub mod outline {
 }
 
 actions!(
-    zed_predict_onboarding,
+    void_predict_onboarding,
     [
-        /// Opens the Zed Predict onboarding modal.
-        OpenZedPredictOnboarding
+        /// Opens the /void Predict onboarding modal.
+        OpenVoidPredictOnboarding
     ]
 );
 actions!(

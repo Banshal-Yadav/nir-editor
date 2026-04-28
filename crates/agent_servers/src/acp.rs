@@ -549,7 +549,7 @@ pub async fn connect(
 
 const MINIMUM_SUPPORTED_VERSION: acp::ProtocolVersion = acp::ProtocolVersion::V1;
 
-/// Build a `Client` connection over `transport` with Zed's full
+/// Build a `Client` connection over `transport` with /void's full
 /// agent→client handler set wired up.
 ///
 /// All incoming requests and notifications are forwarded to the foreground
@@ -1846,7 +1846,7 @@ pub mod test_support {
 
     impl crate::AgentServer for FakeAcpAgentServer {
         fn logo(&self) -> ui::IconName {
-            ui::IconName::ZedAgent
+            ui::IconName::VoidAgent
         }
 
         fn agent_id(&self) -> AgentId {

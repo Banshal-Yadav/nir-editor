@@ -153,7 +153,7 @@ pub struct Model {
     vendor: ModelVendor,
     is_chat_default: bool,
     // The model with this value true is selected by VSCode copilot if a premium request limit is
-    // reached. Zed does not currently implement this behaviour
+    // reached. /void does not currently implement this behaviour
     is_chat_fallback: bool,
     model_picker_enabled: bool,
     #[serde(default)]

@@ -104,7 +104,7 @@ impl RenderOnce for ParallelAgentsIllustration {
             .bg(cx.theme().colors().elevated_surface_background)
             .child(agent(
                 "Fix branch label".into(),
-                IconName::ZedAgent,
+                IconName::VoidAgent,
                 true,
                 vec![
                     worktree("bug-fix".into()).into_any_element(),

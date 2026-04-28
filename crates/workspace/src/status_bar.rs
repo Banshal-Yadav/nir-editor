@@ -8,7 +8,7 @@ use gpui::{
 };
 use std::any::TypeId;
 use theme::CLIENT_SIDE_DECORATION_ROUNDING;
-use ui::{Divider, Indicator, Tooltip, prelude::*};
+use ui::{Divider, Indicator, Tooltip, ContextMenu, PopoverMenu, IconButton, prelude::*};
 
 pub trait StatusItemView: Render {
     /// Event callback that is triggered when the active pane item changes.
@@ -29,6 +29,7 @@ trait StatusItemViewHandle: Send {
         cx: &mut App,
     );
     fn item_type(&self) -> TypeId;
+    fn item_type_name(&self) -> &'static str;
 }
 
 #[derive(Default)]
@@ -111,11 +112,25 @@ impl Render for StatusBar {
 }
 
 impl StatusBar {
+    fn is_essential(type_name: &str) -> bool {
+        type_name.contains("BranchIndicator")
+            || type_name.contains("ActiveBufferLanguage")
+            || type_name.contains("CursorPosition")
+    }
+
     fn render_left_tools(
         &self,
         sidebar: &SidebarStatus,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
+        let essential_left_items = self.left_items.iter().filter_map(|item| {
+            if Self::is_essential(item.item_type_name()) {
+                Some(item.to_any())
+            } else {
+                None
+            }
+        });
+
         h_flex()
             .gap_1()
             .min_w_0()
@@ -124,7 +139,7 @@ impl StatusBar {
                 sidebar.show_toggle && !sidebar.open && sidebar.side == SidebarSide::Left,
                 |this| this.child(self.render_sidebar_toggle(sidebar, cx)),
             )
-            .children(self.left_items.iter().map(|item| item.to_any()))
+            .children(essential_left_items)
     }
 
     fn render_right_tools(
@@ -132,11 +147,41 @@ impl StatusBar {
         sidebar: &SidebarStatus,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
+        let mut essential_right_items = Vec::new();
+        let mut overflow_items = Vec::new();
+
+        for item in &self.left_items {
+            if !Self::is_essential(item.item_type_name()) {
+                overflow_items.push(item.to_any());
+            }
+        }
+        for item in self.right_items.iter().rev() {
+            if Self::is_essential(item.item_type_name()) {
+                essential_right_items.push(item.to_any());
+            } else {
+                overflow_items.push(item.to_any());
+            }
+        }
+
+        let has_overflow = !overflow_items.is_empty();
+        let overflow_menu = PopoverMenu::new("status-bar-overflow")
+            .trigger(IconButton::new("overflow-trigger", IconName::Ellipsis))
+            .menu(move |window, cx| {
+                let overflow_items = overflow_items.clone();
+                Some(ContextMenu::build(window, cx, move |mut menu, _, _| {
+                    for item in overflow_items {
+                        menu = menu.custom_row(move |_, _| item.clone().into_any_element());
+                    }
+                    menu
+                }))
+            });
+
         h_flex()
             .flex_shrink_0()
             .gap_1()
             .overflow_x_hidden()
-            .children(self.right_items.iter().rev().map(|item| item.to_any()))
+            .children(essential_right_items)
+            .when(has_overflow, |this| this.child(overflow_menu))
             .when(
                 sidebar.show_toggle && !sidebar.open && sidebar.side == SidebarSide::Right,
                 |this| this.child(self.render_sidebar_toggle(sidebar, cx)),
@@ -349,6 +394,10 @@ impl<T: StatusItemView> StatusItemViewHandle for Entity<T> {
 
     fn item_type(&self) -> TypeId {
         TypeId::of::<T>()
+    }
+
+    fn item_type_name(&self) -> &'static str {
+        std::any::type_name::<T>()
     }
 }
 

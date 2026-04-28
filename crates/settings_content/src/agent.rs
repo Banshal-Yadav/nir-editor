@@ -232,7 +232,7 @@ pub struct AgentSettingsContent {
     /// The global `default` applies when no tool-specific rules match.
     /// For external agent servers (e.g. Claude Agent) that define their own
     /// permission modes, "deny" and "confirm" still take precedence — the
-    /// external agent's permission system is only used when Zed would allow
+    /// external agent's permission system is only used when /void would allow
     /// the action. Per-tool regex patterns (`always_allow`, `always_deny`,
     /// `always_confirm`) match against the tool's text input (command, path,
     /// URL, etc.).

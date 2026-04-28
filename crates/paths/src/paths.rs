@@ -83,7 +83,7 @@ pub fn set_custom_data_dir(dir: &str) -> &'static PathBuf {
     })
 }
 
-/// Returns the path to the configuration directory used by Zed.
+/// Returns the path to the configuration directory used by /void.
 pub fn config_dir() -> &'static PathBuf {
     CONFIG_DIR.get_or_init(|| {
         if let Some(custom_dir) = CUSTOM_DATA_DIR.get() {
@@ -105,7 +105,7 @@ pub fn config_dir() -> &'static PathBuf {
     })
 }
 
-/// Returns the path to the data directory used by Zed.
+/// Returns the path to the data directory used by /void.
 pub fn data_dir() -> &'static PathBuf {
     CURRENT_DATA_DIR.get_or_init(|| {
         if let Some(custom_dir) = CUSTOM_DATA_DIR.get() {
@@ -152,7 +152,7 @@ pub fn state_dir() -> &'static PathBuf {
     })
 }
 
-/// Returns the path to the temp directory used by Zed.
+/// Returns the path to the temp directory used by /void.
 pub fn temp_dir() -> &'static PathBuf {
     static TEMP_DIR: OnceLock<PathBuf> = OnceLock::new();
     TEMP_DIR.get_or_init(|| {
@@ -199,7 +199,7 @@ pub fn logs_dir() -> &'static PathBuf {
     })
 }
 
-/// Returns the path to the Zed server directory on this SSH host.
+/// Returns the path to the /void server directory on this SSH host.
 pub fn remote_server_state_dir() -> &'static PathBuf {
     static REMOTE_SERVER_STATE: OnceLock<PathBuf> = OnceLock::new();
     REMOTE_SERVER_STATE.get_or_init(|| data_dir().join("server_state"))
@@ -337,7 +337,7 @@ pub fn prompts_dir() -> &'static PathBuf {
 ///
 /// # Arguments
 ///
-/// * `dev_mode` - If true, assumes the current working directory is the Zed repository.
+/// * `dev_mode` - If true, assumes the current working directory is the /void repository.
 pub fn prompt_overrides_dir(repo_path: Option<&Path>) -> PathBuf {
     if let Some(path) = repo_path {
         let dev_path = path.join("assets").join("prompts");
@@ -374,7 +374,7 @@ pub fn embeddings_dir() -> &'static PathBuf {
 
 /// Returns the path to the languages directory.
 ///
-/// This is where language servers are downloaded to for languages built-in to Zed.
+/// This is where language servers are downloaded to for languages built-in to /void.
 pub fn languages_dir() -> &'static PathBuf {
     static LANGUAGES_DIR: OnceLock<PathBuf> = OnceLock::new();
     LANGUAGES_DIR.get_or_init(|| data_dir().join("languages"))
@@ -382,7 +382,7 @@ pub fn languages_dir() -> &'static PathBuf {
 
 /// Returns the path to the debug adapters directory
 ///
-/// This is where debug adapters are downloaded to for DAPs that are built-in to Zed.
+/// This is where debug adapters are downloaded to for DAPs that are built-in to /void.
 pub fn debug_adapters_dir() -> &'static PathBuf {
     static DEBUG_ADAPTERS_DIR: OnceLock<PathBuf> = OnceLock::new();
     DEBUG_ADAPTERS_DIR.get_or_init(|| data_dir().join("debug_adapters"))

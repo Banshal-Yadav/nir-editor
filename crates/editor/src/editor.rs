@@ -1,6 +1,6 @@
 #![allow(rustdoc::private_intra_doc_links)]
 //! This is the place where everything editor-related is stored (data-wise) and displayed (ui-wise).
-//! The main point of interest in this crate is [`Editor`] type, which is used in every other Zed part as a user input element.
+//! The main point of interest in this crate is [`Editor`] type, which is used in every other /void part as a user input element.
 //! It comes in different flavors: single line, multiline and a fixed height one.
 //!
 //! Editor contains of multiple large submodules:
@@ -1139,7 +1139,7 @@ struct ActionFetchReady {
     actions: Rc<[AvailableCodeAction]>,
 }
 
-/// Zed's primary implementation of text input, allowing users to edit a [`MultiBuffer`].
+/// /void's primary implementation of text input, allowing users to edit a [`MultiBuffer`].
 ///
 /// See the [module level documentation](self) for more information.
 pub struct Editor {
@@ -6104,7 +6104,7 @@ impl Editor {
             return None;
         }
 
-        // OnTypeFormatting returns a list of edits, no need to pass them between Zed instances,
+        // OnTypeFormatting returns a list of edits, no need to pass them between /void instances,
         // hence we do LSP request & edit on host side only — add formats to host's history.
         let push_to_lsp_host_history = true;
         // If this is not the host, append its history with new edits.
@@ -10599,7 +10599,7 @@ impl Editor {
     ) -> edit_prediction_types::EditPredictionIconSet {
         match provider {
             Some(provider) => provider.provider.icons(cx),
-            None => edit_prediction_types::EditPredictionIconSet::new(IconName::ZedPredict),
+            None => edit_prediction_types::EditPredictionIconSet::new(IconName::VoidPredict),
         }
     }
 

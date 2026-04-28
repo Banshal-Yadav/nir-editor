@@ -1,6 +1,6 @@
 #![allow(rustdoc::private_intra_doc_links)]
 //! This is the place where everything editor-related is stored (data-wise) and displayed (ui-wise).
-//! The main point of interest in this crate is [`Editor`] type, which is used in every other Zed part as a user input element.
+//! The main point of interest in this crate is [`Editor`] type, which is used in every other /void part as a user input element.
 //! It comes in different flavors: single line, multiline and a fixed height one.
 //!
 //! Editor contains of multiple large submodules:
@@ -825,7 +825,7 @@ struct PhantomBreakpointIndicator {
     is_active: bool,
     collides_with_existing_breakpoint: bool,
 }
-/// Zed's primary implementation of text input, allowing users to edit a [`MultiBuffer`].
+/// /void's primary implementation of text input, allowing users to edit a [`MultiBuffer`].
 ///
 /// See the [module level documentation](self) for more information.
 pub struct Editor {
@@ -4554,7 +4554,7 @@ impl Editor {
             return None;
         }
 
-        // OnTypeFormatting returns a list of edits, no need to pass them between Zed instances,
+        // OnTypeFormatting returns a list of edits, no need to pass them between /void instances,
         // hence we do LSP request & edit on host side only — add formats to host's history.
         let push_to_lsp_host_history = true;
         // If this is not the host, append its history with new edits.
@@ -7891,7 +7891,7 @@ impl Editor {
                 el.bg(status_colors.error_background)
                     .border_color(status_colors.error.opacity(0.6))
                     .pl_2()
-                    .child(Icon::new(IconName::ZedPredictError).color(Color::Error))
+                    .child(Icon::new(IconName::VoidPredictError).color(Color::Error))
                     .cursor_default()
                     .hoverable_tooltip(move |_window, cx| {
                         cx.new(|_| MissingEditPredictionKeybindingTooltip).into()
@@ -7966,7 +7966,7 @@ impl Editor {
                         cx.stop_propagation();
                         this.report_editor_event("Edit Prediction Provider ToS Clicked", None, cx);
                         window.dispatch_action(
-                            zed_actions::OpenZedPredictOnboarding.boxed_clone(),
+                            zed_actions::OpenVoidPredictOnboarding.boxed_clone(),
                             cx,
                         );
                     }))
@@ -7974,7 +7974,7 @@ impl Editor {
                         h_flex()
                             .flex_1()
                             .gap_2()
-                            .child(Icon::new(IconName::ZedPredict))
+                            .child(Icon::new(IconName::VoidPredict))
                             .child(Label::new("Accept Terms of Service"))
                             .child(div().w_full())
                             .child(
@@ -7995,7 +7995,7 @@ impl Editor {
                 .h_full()
                 .flex_1()
                 .gap_2()
-                .child(Icon::new(IconName::ZedPredict))
+                .child(Icon::new(IconName::VoidPredict))
         }
 
         let completion = match &self.active_inline_completion {
@@ -8020,12 +8020,12 @@ impl Editor {
                                     use text::ToPoint as _;
                                     if target.text_anchor.to_point(&snapshot).row > cursor_point.row
                                     {
-                                        Icon::new(IconName::ZedPredictDown)
+                                        Icon::new(IconName::VoidPredictDown)
                                     } else {
-                                        Icon::new(IconName::ZedPredictUp)
+                                        Icon::new(IconName::VoidPredictUp)
                                     }
                                 }
-                                InlineCompletion::Edit { .. } => Icon::new(IconName::ZedPredict),
+                                InlineCompletion::Edit { .. } => Icon::new(IconName::VoidPredict),
                             }))
                             .child(
                                 h_flex()
@@ -8210,9 +8210,9 @@ impl Editor {
                     .flex_1()
                     .child(
                         if target.text_anchor.to_point(&snapshot).row > cursor_point.row {
-                            Icon::new(IconName::ZedPredictDown)
+                            Icon::new(IconName::VoidPredictDown)
                         } else {
-                            Icon::new(IconName::ZedPredictUp)
+                            Icon::new(IconName::VoidPredictUp)
                         },
                     )
                     .child(Label::new("Jump to Edit")),
@@ -8248,7 +8248,7 @@ impl Editor {
                     render_relative_row_jump("", cursor_point.row, first_edit_row)
                         .into_any_element()
                 } else {
-                    Icon::new(IconName::ZedPredict).into_any_element()
+                    Icon::new(IconName::VoidPredict).into_any_element()
                 };
 
                 Some(

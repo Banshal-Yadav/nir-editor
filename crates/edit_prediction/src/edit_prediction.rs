@@ -86,7 +86,7 @@ use crate::example_spec::ExampleSpec;
 use crate::license_detection::LicenseDetectionWatcher;
 use crate::mercury::Mercury;
 pub use crate::metrics::{KeptRateResult, compute_kept_rate};
-use crate::onboarding_modal::ZedPredictModal;
+use crate::onboarding_modal::VoidPredictModal;
 pub use crate::prediction::EditPrediction;
 pub use crate::prediction::EditPredictionId;
 use crate::prediction::EditPredictionResult;
@@ -111,7 +111,7 @@ const CHANGE_GROUPING_LINE_SPAN: u32 = 8;
 const EDIT_HISTORY_DIFF_SIZE_LIMIT: usize = 2048 * 3; // ~2048 tokens or ~50% of typical prompt budget
 const COLLABORATOR_EDIT_LOCALITY_CONTEXT_TOKENS: usize = 512;
 const LAST_CHANGE_GROUPING_TIME: Duration = Duration::from_secs(1);
-const ZED_PREDICT_DATA_COLLECTION_CHOICE: &str = "zed_predict_data_collection_choice";
+const ZED_PREDICT_DATA_COLLECTION_CHOICE: &str = "void_predict_data_collection_choice";
 const REJECT_REQUEST_DEBOUNCE: Duration = Duration::from_secs(15);
 const EDIT_PREDICTION_SETTLED_EVENT: &str = "Edit Prediction Settled";
 const EDIT_PREDICTION_SETTLED_TTL: Duration = Duration::from_secs(60 * 5);
@@ -931,11 +931,11 @@ impl EditPredictionStore {
                 edit_prediction_types::EditPredictionIconSet::new(IconName::Inception)
             }
             EditPredictionModel::Zeta => {
-                edit_prediction_types::EditPredictionIconSet::new(IconName::ZedPredict)
-                    .with_disabled(IconName::ZedPredictDisabled)
-                    .with_up(IconName::ZedPredictUp)
-                    .with_down(IconName::ZedPredictDown)
-                    .with_error(IconName::ZedPredictError)
+                edit_prediction_types::EditPredictionIconSet::new(IconName::VoidPredict)
+                    .with_disabled(IconName::VoidPredictDisabled)
+                    .with_up(IconName::VoidPredictUp)
+                    .with_down(IconName::VoidPredictDown)
+                    .with_error(IconName::VoidPredictError)
             }
             EditPredictionModel::Fim { .. } => {
                 let settings = &all_language_settings(None, cx).edit_predictions;
@@ -3001,10 +3001,10 @@ pub struct ZedUpdateRequiredError {
     minimum_version: Version,
 }
 
-struct ZedPredictUpsell;
+struct VoidPredictUpsell;
 
 fn is_upsell_dismissed(cx: &App) -> bool {
-    // To make this backwards compatible with older versions of Zed, we
+    // To make this backwards compatible with older versions of /void, we
     // check if the user has seen the previous Edit Prediction Onboarding
     // before, by checking the data collection choice which was written to
     // the database once the user clicked on "Accept and Enable"
@@ -3017,12 +3017,12 @@ fn is_upsell_dismissed(cx: &App) -> bool {
         return true;
     }
 
-    kvp.read_kvp(ZedPredictUpsell::KEY)
+    kvp.read_kvp(VoidPredictUpsell::KEY)
         .log_err()
         .is_some_and(|s| s.is_some())
 }
 
-impl Dismissable for ZedPredictUpsell {
+impl Dismissable for VoidPredictUpsell {
     const KEY: &'static str = "dismissed-edit-predict-upsell";
 
     fn dismissed(cx: &App) -> bool {
@@ -3037,8 +3037,8 @@ pub fn should_show_upsell_modal(cx: &App) -> bool {
 pub fn init(cx: &mut App) {
     cx.observe_new(move |workspace: &mut Workspace, _, _cx| {
         workspace.register_action(
-            move |workspace, _: &zed_actions::OpenZedPredictOnboarding, window, cx| {
-                ZedPredictModal::toggle(
+            move |workspace, _: &zed_actions::OpenVoidPredictOnboarding, window, cx| {
+                VoidPredictModal::toggle(
                     workspace,
                     workspace.user_store().clone(),
                     workspace.client().clone(),

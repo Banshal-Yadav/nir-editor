@@ -615,7 +615,7 @@ impl ThreadsArchiveView {
                     .and_then(|store| store.read(cx).agent_icon(&thread.agent_id));
 
                 let icon = if thread.agent_id.as_ref() == agent::VOID_AGENT_ID.as_ref() {
-                    IconName::ZedAgent
+                    IconName::VoidAgent
                 } else {
                     IconName::Sparkle
                 };

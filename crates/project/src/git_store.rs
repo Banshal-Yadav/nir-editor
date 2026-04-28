@@ -333,7 +333,7 @@ struct CommitDataHandler {
     pending_requests: HashSet<Oid>,
 }
 
-/// Represents the handler of a git cat-file --batch process within Zed
+/// Represents the handler of a git cat-file --batch process within /void
 /// It's used to lazily fetch commit data as needed (whatever a user is viewing)
 enum CommitDataHandlerState {
     /// The handler is open and processing requests
@@ -7708,7 +7708,7 @@ impl Repository {
         self.send_job(None, move |git_repo, _cx| async move {
             match git_repo {
                 // TODO: Correctly handle remote repositories, where the user
-                // that's running the Zed remote may not own the `.git/`
+                // that's running the /void remote may not own the `.git/`
                 // directory. For now we just return `GitAccess::Yes` so that
                 // remoting continues working as expected.
                 RepositoryState::Remote(..) => GitAccess::Yes,

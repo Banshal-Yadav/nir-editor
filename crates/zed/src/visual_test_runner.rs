@@ -3,8 +3,8 @@
 
 //! Visual Test Runner
 //!
-//! This binary runs visual regression tests for Zed's UI. It captures screenshots
-//! of real Zed windows and compares them against baseline images.
+//! This binary runs visual regression tests for /void's UI. It captures screenshots
+//! of real /void windows and compares them against baseline images.
 //!
 //! **Note: This tool is macOS-only** because it uses `VisualTestAppContext` which
 //! depends on the macOS Metal renderer for accurate screenshot capture.
@@ -131,7 +131,7 @@ mod constants {
     /// Baseline images are stored relative to this file
     pub const BASELINE_DIR: &str = "crates/zed/test_fixtures/visual_tests";
 
-    /// Embedded test image (Zed app icon) for visual tests.
+    /// Embedded test image (/void app icon) for visual tests.
     pub const EMBEDDED_TEST_IMAGE: &[u8] = include_bytes!("../resources/app-icon.png");
 
     /// Threshold for image comparison (0.0 to 1.0)
@@ -160,7 +160,7 @@ fn run_visual_tests(project_path: PathBuf, update_baseline: bool) -> Result<()> 
     });
 
     // Initialize settings store with real default settings (not test settings)
-    // Test settings use Courier font, but we want the real Zed fonts for visual tests
+    // Test settings use Courier font, but we want the real /void fonts for visual tests
     cx.update(|cx| {
         settings::init(cx);
     });
@@ -173,7 +173,7 @@ fn run_visual_tests(project_path: PathBuf, update_baseline: bool) -> Result<()> 
         AppState::set_global(app_state.clone(), cx);
     });
 
-    // Initialize all Zed subsystems
+    // Initialize all /void subsystems
     cx.update(|cx| {
         gpui_tokio::init(cx);
         theme_settings::init(theme::LoadThemes::JustBase, cx);
@@ -1978,7 +1978,7 @@ impl StubAgentServer {
 #[cfg(target_os = "macos")]
 impl AgentServer for StubAgentServer {
     fn logo(&self) -> ui::IconName {
-        ui::IconName::ZedAssistant
+        ui::IconName::VoidAssistant
     }
 
     fn agent_id(&self) -> AgentId {
@@ -2943,7 +2943,7 @@ impl gpui::Render for ThreadItemBranchNameTestView {
             .child(
                 container().child(
                     ThreadItem::new("ti-main-branch", "Request for Long Classic Poem")
-                        .icon(IconName::ZedAgent)
+                        .icon(IconName::VoidAgent)
                         .timestamp("2d")
                         .worktrees(vec![ThreadItemWorktreeInfo {
                             worktree_name: Some("zed".into()),
@@ -2960,7 +2960,7 @@ impl gpui::Render for ThreadItemBranchNameTestView {
             .child(
                 container().child(
                     ThreadItem::new("ti-main-no-branch", "Simple greeting thread")
-                        .icon(IconName::ZedAgent)
+                        .icon(IconName::VoidAgent)
                         .timestamp("3d")
                         .worktrees(vec![ThreadItemWorktreeInfo {
                             worktree_name: Some("zed".into()),
@@ -2992,7 +2992,7 @@ impl gpui::Render for ThreadItemBranchNameTestView {
             .child(
                 container().child(
                     ThreadItem::new("ti-manual-linked", "Robust Git Worktree Rollback")
-                        .icon(IconName::ZedAgent)
+                        .icon(IconName::VoidAgent)
                         .timestamp("40m")
                         .worktrees(vec![ThreadItemWorktreeInfo {
                             worktree_name: Some("focal-arrow".into()),
@@ -3047,7 +3047,7 @@ impl gpui::Render for ThreadItemBranchNameTestView {
             .child(
                 container().child(
                     ThreadItem::new("ti-main-full", "Main worktree with everything")
-                        .icon(IconName::ZedAgent)
+                        .icon(IconName::VoidAgent)
                         .timestamp("5m")
                         .added(23)
                         .removed(8)

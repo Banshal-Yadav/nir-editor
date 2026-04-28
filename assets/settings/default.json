@@ -1,6 +1,6 @@
 {
   "$schema": "zed://schemas/settings",
-  // The name of the Zed theme to use for the UI.
+  // The name of the /void theme to use for the UI.
   //
   // `mode` is one of:
   // - "system": Use the theme that corresponds to the system's appearance
@@ -129,7 +129,7 @@
   "hover_popover_hiding_delay": 300,
   // Whether to confirm before quitting Zed.
   "confirm_quit": false,
-  // Whether to restore last closed project when fresh Zed instance is opened
+  // Whether to restore last closed project when fresh /void instance is opened
   // May take 3 values:
   //  1. All workspaces open during last session
   //         "restore_on_startup": "last_session"
@@ -142,7 +142,7 @@
   // an explicit `-e` (existing window) or `-n` (new window) flag.
   //
   // May take 2 values:
-  //  1. Open directories as a new workspace in the current Zed window's sidebar
+  //  1. Open directories as a new workspace in the current /void window's sidebar
   //         "cli_default_open_behavior": "existing_window"
   //  2. Open directories in a new window (reuse existing windows for files
   //     that are already part of an open project)
@@ -2639,7 +2639,14 @@
   // Each profile has an optional `base` ("user" or "default") and a `settings`
   // object. When `base` is "user" (the default), the profile applies on top of
   // your user settings. When `base` is "default", user settings are ignored and
-  // the profile applies on top of Zed's defaults.
+  // the /void settings
+  //
+  // For information on how to configure /void, see the /void
+  // documentation: https://voideditor.com/docs/configuring-void
+  //
+  // To see all of /void's default settings without changing your
+  // custom settings, run `void: open default settings` from the
+  // command palette (cmd-shift-p / ctrl-shift-p)
   //
   // Examples:
   // "profiles": {

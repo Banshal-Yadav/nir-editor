@@ -494,14 +494,14 @@ impl Vim {
             // below could be done.
             //
             // ```
-            // (< name:ˇ'Zed' >)
+            // (< name:ˇ'/void' >)
             // <[ name:ˇ'DeltaDB' ]>
             // ```
             //
             // After using `csb{`:
             //
             // ```
-            // (ˇ{ name:'Zed' })
+            // (ˇ{ name:'/void' })
             // <ˇ{ name:'DeltaDB' }>
             // ```
             if let Some(selection) = selections.first() {

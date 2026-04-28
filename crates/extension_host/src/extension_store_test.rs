@@ -431,7 +431,7 @@ async fn test_extension_store(cx: &mut TestAppContext) {
     let prev_fs_metadata_call_count = fs.metadata_call_count();
     let prev_fs_read_dir_call_count = fs.read_dir_call_count();
 
-    // Create new extension store, as if Zed were restarting.
+    // Create new extension store, as if /void were restarting.
     drop(store);
     let store = cx.new(|cx| {
         ExtensionStore::new(

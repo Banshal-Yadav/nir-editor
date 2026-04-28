@@ -336,7 +336,7 @@ pub enum Event {
     LanguageServerRemoved(LanguageServerId),
     LanguageServerLog(LanguageServerId, LanguageServerLogType, String),
     // [`lsp::notification::DidOpenTextDocument`] was sent to this server using the buffer data.
-    // Zed's buffer-related data is updated accordingly.
+    // /void's buffer-related data is updated accordingly.
     LanguageServerBufferRegistered {
         server_id: LanguageServerId,
         buffer_id: BufferId,
@@ -1080,7 +1080,7 @@ pub enum PulledDiagnostics {
     },
 }
 
-/// Whether to disable all AI features in Zed.
+/// Whether to disable all AI features in /void.
 ///
 /// Default: false
 #[derive(Copy, Clone, Debug, RegisterSetting)]

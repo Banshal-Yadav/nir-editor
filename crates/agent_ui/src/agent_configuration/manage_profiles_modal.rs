@@ -738,7 +738,7 @@ impl ManageProfilesModal {
                                         .inset(true)
                                         .spacing(ListItemSpacing::Sparse)
                                         .start_slot(
-                                            Icon::new(IconName::ZedAssistant)
+                                            Icon::new(IconName::VoidAssistant)
                                                 .size(IconSize::Small)
                                                 .color(Color::Muted),
                                         )
@@ -1015,7 +1015,7 @@ impl Render for ManageProfilesModal {
                         .pb_1()
                         .child(ProfileModalHeader::new(
                             format!("{profile_name} — Configure Default Model"),
-                            Some(IconName::ZedAgent),
+                            Some(IconName::VoidAgent),
                         ))
                         .child(ListSeparator)
                         .child(v_flex().w(rems(34.)).child(model_picker.clone()))

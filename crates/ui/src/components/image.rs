@@ -19,8 +19,8 @@ pub enum VectorName {
     ProUserStamp,
     StudentStamp,
     VoidLogo,
-    ZedLogo,
-    ZedXCopilot,
+    
+    VoidXCopilot,
 }
 
 impl VectorName {
@@ -159,8 +159,8 @@ impl Component for Vector {
                     example_group_with_title(
                         "Different Vectors",
                         vec![single_example(
-                            "Zed X Copilot",
-                            Vector::square(VectorName::ZedXCopilot, rems_from_px(100.))
+                            "Void X Copilot",
+                            Vector::square(VectorName::VoidXCopilot, rems_from_px(100.))
                                 .into_any_element(),
                         )],
                     ),
