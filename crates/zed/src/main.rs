@@ -143,30 +143,28 @@ fn fail_to_open_window(e: anyhow::Error, _cx: &mut App) {
         process::exit(1);
     }
 
-    // Maybe unify this with gpui::platform::linux::platform::ResultExt::notify_err(..)?
+    // Maybe unify this with gpui::platform::linux::platform::ResultExt::notify_err(..)
     #[cfg(any(target_os = "linux", target_os = "freebsd"))]
     {
         use ashpd::desktop::notification::{Notification, NotificationProxy, Priority};
 
         let notification_id = "dev.void.Oops";
-        proxy
-            .add_notification(
-                notification_id,
-                Notification::new("/void failed to launch")
-                    .body(Some(
-                        format!(
-                            "{e:?}. See /void docs for troubleshooting steps."
-                        )
-                        .as_str(),
-                    ))
-                    .priority(Priority::High)
-                        .icon(ashpd::desktop::Icon::with_names(&[
-                            "dialog-question-symbolic",
-                        ])),
-                )
-                .await
-                .ok();
-
+        let body = format!("{e:?}. See /void docs for troubleshooting steps.");
+        _cx.background_spawn(async move {
+            if let Ok(proxy) = NotificationProxy::new().await {
+                proxy
+                    .add_notification(
+                        notification_id,
+                        Notification::new("/void failed to launch")
+                            .body(Some(body.as_str()))
+                            .priority(Priority::High)
+                            .icon(ashpd::desktop::Icon::with_names(&[
+                                "dialog-question-symbolic",
+                            ])),
+                    )
+                    .await
+                    .ok();
+            }
             process::exit(1);
         })
         .detach();
