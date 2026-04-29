@@ -1999,6 +1999,131 @@ impl MultiWorkspace {
             })
         }
     }
+
+    fn render_activity_bar(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        use std::hash::{Hash, Hasher};
+        use std::collections::hash_map::DefaultHasher;
+
+        let active_workspace = self.workspace();
+        
+        let mut avatars = Vec::new();
+        for workspace in self.workspaces() {
+            let is_active = workspace == active_workspace;
+            
+            // Get project name
+            let project_name = workspace.read(cx).project().read(cx).worktree_root_names(cx).next().map(|n| n.to_string()).unwrap_or_else(|| "P".to_string());
+            let first_letter = project_name.chars().next().unwrap_or('P').to_ascii_uppercase();
+            
+            // Hash the project name to get a stable color
+            let hash = {
+                let mut hasher = DefaultHasher::new();
+                project_name.hash(&mut hasher);
+                hasher.finish()
+            };
+            
+            // Generate a color from the hash
+            let hue = (hash % 360) as f32 / 360.0;
+            let avatar_color = gpui::hsla(hue, 0.6, 0.5, 1.0);
+            
+            let workspace_clone = workspace.clone();
+            
+            let workspace_id = workspace_clone.entity_id().as_u64();
+            avatars.push(
+                div()
+                    .id(("workspace_avatar", workspace_id))
+                    .w_full()
+                    .h(px(40.))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .relative()
+                    .when(is_active, |el| {
+                        // Amber left border
+                        el.child(
+                            div()
+                                .absolute()
+                                .left_0()
+                                .top_0()
+                                .bottom_0()
+                                .w(px(2.))
+                                .bg(gpui::rgb(0xffb000))
+                        )
+                    })
+                    .child(
+                        div()
+                            .size(px(32.))
+                            .rounded_md()
+                            .bg(avatar_color)
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .text_color(gpui::white())
+                            .child(first_letter.to_string())
+                    )
+                    .cursor_pointer()
+                    .on_click(cx.listener(move |this: &mut Self, _, window, cx| {
+                        this.activate(workspace_clone.clone(), None, window, cx);
+                    }))
+            );
+        }
+        
+        div()
+            .w(px(48.))
+            .h_full()
+            .flex()
+            .flex_col()
+            .bg(cx.theme().colors().panel_background)
+            .border_r_1()
+            .border_color(cx.theme().colors().border)
+            .child(
+                v_flex()
+                    .flex_1()
+                    .gap_2()
+                    .py_2()
+                    .children(avatars)
+                    .child(
+                        // "+" button to open folder picker
+                        div()
+                            .id("activity_plus")
+                            .w_full()
+                            .h(px(40.))
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .child(
+                                ui::Icon::new(ui::IconName::Plus)
+                                    .color(ui::Color::Muted)
+                            )
+                            .cursor_pointer()
+                            .on_click(cx.listener(|_, _, window, cx| {
+                                window.dispatch_action(Box::new(crate::Open::default()), cx);
+                            }))
+                    )
+            )
+            .child(
+                // Settings gear
+                v_flex()
+                    .gap_2()
+                    .py_2()
+                    .child(
+                        div()
+                            .id("activity_settings")
+                            .w_full()
+                            .h(px(40.))
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .child(
+                                ui::Icon::new(ui::IconName::Settings)
+                                    .color(ui::Color::Muted)
+                            )
+                            .cursor_pointer()
+                            .on_click(cx.listener(|_, _, window, cx| {
+                                window.dispatch_action(Box::new(zed_actions::OpenSettings), cx);
+                            }))
+                    )
+            )
+    }
 }
 
 impl Render for MultiWorkspace {
@@ -2166,6 +2291,7 @@ impl Render for MultiWorkspace {
                     },
                 )
                 .children(left_sidebar)
+                .child(self.render_activity_bar(cx))
                 .child(
                     div()
                         .flex()
