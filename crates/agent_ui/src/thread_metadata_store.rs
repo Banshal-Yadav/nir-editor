@@ -616,6 +616,15 @@ impl ThreadMetadataStore {
             })
     }
 
+    /// Returns threads for the given workspace, filtering to only threads
+    /// associated with that workspace's project group paths.
+    pub fn entries_for_workspace<'a>(
+        &'a self,
+        path_list: &'a PathList,
+    ) -> impl Iterator<Item = &'a ThreadMetadata> + 'a {
+        self.entries_for_path(path_list, None)
+    }
+
     fn reload(&mut self, cx: &mut Context<Self>) -> Shared<Task<()>> {
         let db = self.db.clone();
         self.reload_task.take();
