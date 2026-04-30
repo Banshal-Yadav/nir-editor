@@ -34,7 +34,7 @@ fn file_bug_report_url(specs: &SystemSpecs) -> String {
 
 fn email_zed_url(specs: &SystemSpecs) -> String {
     format!(
-        concat!("mailto:hi@zed.dev", "?", "body={}"),
+        concat!("mailto:void-feedback@placeholder.com", "?", "body={}"),
         email_body(specs)
     )
 }
