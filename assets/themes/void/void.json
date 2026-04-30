@@ -152,91 +152,33 @@
           }
         ],
         "syntax": {
-          "attribute": {
-            "color": "#a3a3a3ff"
-          },
-          "boolean": {
-            "color": "#ffb000ff"
-          },
-          "comment": {
-            "color": "#555555ff"
-          },
-          "constant": {
-            "color": "#ffb000ff"
-          },
-          "constructor": {
-            "color": "#d4d4d4ff"
-          },
-          "embedded": {
-            "color": "#d4d4d4ff"
-          },
-          "emphasis": {
-            "color": "#ffb000ff"
-          },
-          "emphasis.strong": {
-            "color": "#ffb000ff",
-            "font_weight": 700
-          },
-          "enum": {
-            "color": "#d4d4d4ff"
-          },
-          "function": {
-            "color": "#e5e5e5ff"
-          },
-          "keyword": {
-            "color": "#888888ff"
-          },
-          "label": {
-            "color": "#a3a3a3ff"
-          },
-          "link_text": {
-            "color": "#ffb000ff",
-            "font_style": "italic"
-          },
-          "link_uri": {
-            "color": "#888888ff"
-          },
-          "number": {
-            "color": "#ffb000ff"
-          },
-          "operator": {
-            "color": "#888888ff"
-          },
-          "predictive": {
-            "color": "#555555ff",
-            "font_style": "italic"
-          },
-          "primary": {
-            "color": "#d4d4d4ff"
-          },
-          "property": {
-            "color": "#a3a3a3ff"
-          },
-          "punctuation": {
-            "color": "#555555ff"
-          },
-          "punctuation.bracket": {
-            "color": "#888888ff"
-          },
-          "punctuation.delimiter": {
-            "color": "#555555ff"
-          },
-          "string": {
-            "color": "#a3a3a3ff"
-          },
-          "tag": {
-            "color": "#888888ff"
-          },
-          "title": {
-            "color": "#e5e5e5ff",
-            "font_weight": 700
-          },
-          "type": {
-            "color": "#d4d4d4ff"
-          },
-          "variable": {
-            "color": "#d4d4d4ff"
-          }
+          "attribute": { "color": "#a3a3a3ff" },
+          "boolean": { "color": "#ffb000ff" },
+          "comment": { "color": "#555555ff", "font_style": "italic" },
+          "constant": { "color": "#ffb000ff" },
+          "constructor": { "color": "#e5e5e5ff" },
+          "embedded": { "color": "#e5e5e5ff" },
+          "emphasis": { "color": "#ffb000ff" },
+          "emphasis.strong": { "color": "#ffb000ff", "font_weight": 700 },
+          "enum": { "color": "#34d399ff" },
+          "function": { "color": "#e5e5e5ff" },
+          "keyword": { "color": "#ffb000ff" },
+          "label": { "color": "#a3a3a3ff" },
+          "link_text": { "color": "#7dd3fcff", "font_style": "italic" },
+          "link_uri": { "color": "#7dd3fcff" },
+          "number": { "color": "#ffb000ff" },
+          "operator": { "color": "#ffb000ff" },
+          "predictive": { "color": "#555555ff", "font_style": "italic" },
+          "primary": { "color": "#e5e5e5ff" },
+          "property": { "color": "#a3a3a3ff" },
+          "punctuation": { "color": "#555555ff" },
+          "punctuation.bracket": { "color": "#666666ff" },
+          "punctuation.delimiter": { "color": "#555555ff" },
+          "string": { "color": "#7dd3fcff" },
+          "tag": { "color": "#ffb000ff" },
+          "title": { "color": "#e5e5e5ff", "font_weight": 700 },
+          "type": { "color": "#34d399ff" },
+          "variable": { "color": "#e5e5e5ff" }
         }
       }
     }
