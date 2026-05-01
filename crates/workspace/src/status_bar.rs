@@ -182,11 +182,25 @@ impl StatusBar {
             .overflow_x_hidden()
             .children(essential_right_items)
             .when(has_overflow, |this| this.child(overflow_menu))
+            .child(self.render_status_tool("Agent", IconName::VoidAgent, cx))
+            .child(self.render_status_tool("Project", IconName::FileTree, cx))
             .child(self.render_tools_menu(cx))
             .when(
                 sidebar.show_toggle && !sidebar.open && sidebar.side == SidebarSide::Right,
                 |this| this.child(self.render_sidebar_toggle(sidebar, cx)),
             )
+    }
+
+    fn render_status_tool(&self, label: &'static str, icon: IconName, cx: &mut Context<Self>) -> impl IntoElement {
+        h_flex()
+            .gap_1()
+            .px_2()
+            .py_0p5()
+            .rounded_md()
+            .cursor_pointer()
+            .hover(|el| el.bg(cx.theme().colors().element_hover))
+            .child(Icon::new(icon).size(IconSize::Small).color(Color::Muted))
+            .child(Label::new(label).size(LabelSize::Small).color(Color::Muted))
     }
 
     fn render_tools_menu(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -210,8 +224,6 @@ impl StatusBar {
                             .gap_2()
                             .justify_center()
                             .child(self.render_tool_item("Search", IconName::MagnifyingGlass, window, cx))
-                            .child(self.render_tool_item("Agent", IconName::AiVoid, window, cx))
-                            .child(self.render_tool_item("Project", IconName::FileTree, window, cx))
                             .child(self.render_tool_item("Terminal", IconName::Terminal, window, cx))
                             .child(self.render_tool_item("Settings", IconName::Settings, window, cx))
                     )
