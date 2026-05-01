@@ -193,15 +193,13 @@ impl StatusBar {
     }
 
     fn render_status_tool(&self, label: &'static str, icon: IconName, cx: &mut Context<Self>) -> impl IntoElement {
-        h_flex()
-            .gap_1()
-            .px_2()
-            .py_0p5()
-            .rounded_md()
-            .cursor_pointer()
-            .hover(|el| el.bg(cx.theme().colors().element_hover))
-            .child(Icon::new(icon).size(IconSize::Small).color(cx.theme().colors().text_muted.into()))
-            .child(Label::new(label).size(LabelSize::Small).color(cx.theme().colors().text_muted.into()))
+        Button::new(label, label)
+            .style(ButtonStyle::Subtle)
+            .label_size(LabelSize::Small)
+            .start_icon(Icon::new(icon).size(IconSize::Small).color(Color::Muted))
+            .on_click(|_, _, _| {
+                // Future: trigger relevant tool actions
+            })
     }
 
     fn render_tools_menu(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
@@ -451,18 +449,21 @@ impl ToolsMenu {
         &self,
         label: &'static str,
         icon: IconName,
-        cx: &mut Context<Self>,
+        _cx: &mut Context<Self>,
     ) -> impl IntoElement {
         v_flex()
             .gap_1()
-            .p_2()
-            .w_20()
             .items_center()
-            .rounded_md()
-            .cursor_pointer()
-            .hover(|el| el.bg(cx.theme().colors().element_hover))
-            .child(Icon::new(icon).size(IconSize::Medium))
-            .child(Label::new(label).size(LabelSize::XSmall).color(cx.theme().colors().text_muted.into()))
+            .child(
+                IconButton::new(label, icon)
+                    .icon_size(IconSize::Medium)
+                    .style(ButtonStyle::Subtle)
+            )
+            .child(
+                Label::new(label)
+                    .size(LabelSize::XSmall)
+                    .color(Color::Muted)
+            )
     }
 }
 
