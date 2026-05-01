@@ -1,10 +1,11 @@
 use crate::{
-    ItemHandle, MultiWorkspace, Pane, SidebarSide, ToggleWorkspaceSidebar,
+    ItemHandle, MultiWorkspace, NewSearch, NewTerminal, Pane, SidebarSide, ToggleWorkspaceSidebar,
     sidebar_side_context_menu,
 };
+use zed_actions::OpenSettings;
 use gpui::{
     Anchor, AnyView, App, Context, Decorations, DismissEvent, Entity, EventEmitter, FocusHandle,
-    Focusable, IntoElement, ParentElement, Render, Styled, Subscription, ViewContext, WeakEntity,
+    Focusable, IntoElement, ManagedView, ParentElement, Render, Styled, Subscription, WeakEntity,
     Window,
 };
 use std::any::TypeId;
@@ -107,8 +108,8 @@ impl Render for StatusBar {
                     .border_b(px(1.0))
                     .border_color(cx.theme().colors().status_bar_background),
             })
-            .child(self.render_left_tools(&sidebar, cx))
-            .child(self.render_right_tools(&sidebar, cx))
+            .child(self.render_left_tools(&sidebar, window, cx))
+            .child(self.render_right_tools(&sidebar, window, cx))
     }
 }
 
@@ -122,6 +123,7 @@ impl StatusBar {
     fn render_left_tools(
         &self,
         sidebar: &SidebarStatus,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let essential_left_items = self.left_items.iter().filter_map(|item| {
@@ -138,7 +140,7 @@ impl StatusBar {
             .overflow_x_hidden()
             .when(
                 sidebar.show_toggle && !sidebar.open && sidebar.side == SidebarSide::Left,
-                |this| this.child(self.render_sidebar_toggle(sidebar, cx)),
+                |this| this.child(self.render_sidebar_toggle(sidebar, window, cx)),
             )
             .children(essential_left_items)
     }
@@ -146,6 +148,7 @@ impl StatusBar {
     fn render_right_tools(
         &self,
         sidebar: &SidebarStatus,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let mut essential_right_items = Vec::new();
@@ -183,22 +186,27 @@ impl StatusBar {
             .overflow_x_hidden()
             .children(essential_right_items)
             .when(has_overflow, |this| this.child(overflow_menu))
-            .child(self.render_status_tool("Agent", IconName::VoidAgent, cx))
-            .child(self.render_status_tool("Project", IconName::FileTree, cx))
+            .child(self.render_status_tool("Agent", IconName::VoidAgent))
+            .child(self.render_status_tool("Project", IconName::FileTree))
             .child(self.render_tools_menu(window, cx))
             .when(
                 sidebar.show_toggle && !sidebar.open && sidebar.side == SidebarSide::Right,
-                |this| this.child(self.render_sidebar_toggle(sidebar, cx)),
+                |this| this.child(self.render_sidebar_toggle(sidebar, window, cx)),
             )
     }
 
-    fn render_status_tool(&self, label: &'static str, icon: IconName, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_status_tool(&self, label: &'static str, icon: IconName) -> impl IntoElement {
+        let action: Box<dyn gpui::Action> = match label {
+            "Agent" => Box::new(ToggleWorkspaceSidebar),
+            "Project" => Box::new(crate::ToggleFileFinder::default()),
+            _ => Box::new(ToggleWorkspaceSidebar),
+        };
         Button::new(label, label)
             .style(ButtonStyle::Subtle)
             .label_size(LabelSize::Small)
             .start_icon(Icon::new(icon).size(IconSize::Small).color(Color::Muted))
-            .on_click(|_, _, _| {
-                // Future: trigger relevant tool actions
+            .on_click(move |_, window, cx| {
+                window.dispatch_action(action.boxed_clone(), cx);
             })
     }
 
@@ -210,7 +218,7 @@ impl StatusBar {
                     .tooltip(move |window, cx| Tooltip::text("Tools")(window, cx))
             )
             .menu(move |_window, cx| {
-                Some(cx.new_view(|cx| ToolsMenu::new(cx)))
+                Some(cx.new(|cx| ToolsMenu::new(cx)))
             })
     }
 
@@ -218,6 +226,7 @@ impl StatusBar {
     fn render_sidebar_toggle(
         &self,
         sidebar: &SidebarStatus,
+        _window: &mut Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let on_right = sidebar.side == SidebarSide::Right;
@@ -439,7 +448,7 @@ struct ToolsMenu {
 }
 
 impl ToolsMenu {
-    fn new(cx: &mut ViewContext<Self>) -> Self {
+    fn new(cx: &mut Context<Self>) -> Self {
         Self {
             focus_handle: cx.focus_handle(),
         }
@@ -449,8 +458,16 @@ impl ToolsMenu {
         &self,
         label: &'static str,
         icon: IconName,
-        _cx: &mut Context<Self>,
+        cx: &mut Context<Self>,
     ) -> impl IntoElement {
+        let action: Box<dyn gpui::Action> = match label {
+            "Search" => Box::new(NewSearch),
+            "Terminal" => Box::new(NewTerminal::default()),
+            "Settings" => Box::new(OpenSettings),
+            _ => Box::new(NewSearch),
+        };
+
+        let view = cx.entity().downgrade();
         v_flex()
             .gap_1()
             .items_center()
@@ -458,11 +475,15 @@ impl ToolsMenu {
                 IconButton::new(label, icon)
                     .icon_size(IconSize::Medium)
                     .style(ButtonStyle::Subtle)
+                    .on_click(move |_, window, cx| {
+                        window.dispatch_action(action.boxed_clone(), cx);
+                        view.update(cx, |_, cx| cx.emit(DismissEvent)).ok();
+                    }),
             )
             .child(
                 Label::new(label)
                     .size(LabelSize::XSmall)
-                    .color(Color::Muted)
+                    .color(Color::Muted),
             )
     }
 }
