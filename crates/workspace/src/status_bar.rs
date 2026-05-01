@@ -3,8 +3,9 @@ use crate::{
     sidebar_side_context_menu,
 };
 use gpui::{
-    Anchor, AnyView, App, Context, Decorations, Entity, IntoElement, ParentElement, Render, Styled,
-    Subscription, WeakEntity, Window,
+    Anchor, AnyView, App, Context, Decorations, DismissEvent, Entity, EventEmitter, FocusHandle,
+    Focusable, IntoElement, ParentElement, Render, Styled, Subscription, ViewContext, WeakEntity,
+    Window,
 };
 use std::any::TypeId;
 use theme::CLIENT_SIDE_DECORATION_ROUNDING;
@@ -184,7 +185,7 @@ impl StatusBar {
             .when(has_overflow, |this| this.child(overflow_menu))
             .child(self.render_status_tool("Agent", IconName::VoidAgent, cx))
             .child(self.render_status_tool("Project", IconName::FileTree, cx))
-            .child(self.render_tools_menu(cx))
+            .child(self.render_tools_menu(window, cx))
             .when(
                 sidebar.show_toggle && !sidebar.open && sidebar.side == SidebarSide::Right,
                 |this| this.child(self.render_sidebar_toggle(sidebar, cx)),
@@ -199,62 +200,22 @@ impl StatusBar {
             .rounded_md()
             .cursor_pointer()
             .hover(|el| el.bg(cx.theme().colors().element_hover))
-            .child(Icon::new(icon).size(IconSize::Small).color(Color::Muted))
-            .child(Label::new(label).size(LabelSize::Small).color(Color::Muted))
+            .child(Icon::new(icon).size(IconSize::Small).color(cx.theme().colors().text_muted.into()))
+            .child(Label::new(label).size(LabelSize::Small).color(cx.theme().colors().text_muted.into()))
     }
 
-    fn render_tools_menu(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_tools_menu(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         PopoverMenu::new("status-bar-tools")
             .trigger(
                 IconButton::new("tools-trigger", IconName::Ellipsis)
                     .icon_size(IconSize::Small)
-                    .tooltip(|_, cx| Tooltip::text("Tools", cx))
+                    .tooltip(move |window, cx| Tooltip::text("Tools")(window, cx))
             )
-            .menu(move |window, cx| {
-                Some(div()
-                    .bg(cx.theme().colors().elevated_surface_background)
-                    .border_1()
-                    .border_color(cx.theme().colors().border)
-                    .rounded_lg()
-                    .p_2()
-                    .w(px(240.))
-                    .child(
-                        h_flex()
-                            .flex_wrap()
-                            .gap_2()
-                            .justify_center()
-                            .child(self.render_tool_item("Search", IconName::MagnifyingGlass, window, cx))
-                            .child(self.render_tool_item("Terminal", IconName::Terminal, window, cx))
-                            .child(self.render_tool_item("Settings", IconName::Settings, window, cx))
-                    )
-                    .into_any_element())
+            .menu(move |_window, cx| {
+                Some(cx.new_view(|cx| ToolsMenu::new(cx)))
             })
     }
 
-    fn render_tool_item(
-        &self,
-        label: &'static str,
-        icon: IconName,
-        _window: &mut Window,
-        _cx: &mut App,
-    ) -> impl IntoElement {
-        div()
-            .w(px(64.))
-            .h(px(64.))
-            .flex()
-            .flex_col()
-            .items_center()
-            .justify_center()
-            .rounded_md()
-            .hover(|el| el.bg(gpui::white().alpha(0.05)))
-            .cursor_pointer()
-            .child(Icon::new(icon).size(IconSize::Medium).color(Color::Default))
-            .child(
-                Label::new(label)
-                    .size(LabelSize::Small)
-                    .color(Color::Muted)
-            )
-    }
 
     fn render_sidebar_toggle(
         &self,
@@ -474,3 +435,63 @@ impl From<&dyn StatusItemViewHandle> for AnyView {
         val.to_any()
     }
 }
+
+struct ToolsMenu {
+    focus_handle: FocusHandle,
+}
+
+impl ToolsMenu {
+    fn new(cx: &mut ViewContext<Self>) -> Self {
+        Self {
+            focus_handle: cx.focus_handle(),
+        }
+    }
+
+    fn render_tool_item(
+        &self,
+        label: &'static str,
+        icon: IconName,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        v_flex()
+            .gap_1()
+            .p_2()
+            .w_20()
+            .items_center()
+            .rounded_md()
+            .cursor_pointer()
+            .hover(|el| el.bg(cx.theme().colors().element_hover))
+            .child(Icon::new(icon).size(IconSize::Medium))
+            .child(Label::new(label).size(LabelSize::XSmall).color(cx.theme().colors().text_muted.into()))
+    }
+}
+
+impl Render for ToolsMenu {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        div()
+            .track_focus(&self.focus_handle)
+            .bg(cx.theme().colors().elevated_surface_background)
+            .border_1()
+            .border_color(cx.theme().colors().border)
+            .rounded_lg()
+            .p_2()
+            .w(px(240.))
+            .child(
+                h_flex()
+                    .flex_wrap()
+                    .gap_2()
+                    .justify_center()
+                    .child(self.render_tool_item("Search", IconName::MagnifyingGlass, cx))
+                    .child(self.render_tool_item("Terminal", IconName::Terminal, cx))
+                    .child(self.render_tool_item("Settings", IconName::Settings, cx))
+            )
+    }
+}
+
+impl EventEmitter<DismissEvent> for ToolsMenu {}
+impl Focusable for ToolsMenu {
+    fn focus_handle(&self, _cx: &App) -> FocusHandle {
+        self.focus_handle.clone()
+    }
+}
+impl ManagedView for ToolsMenu {}
