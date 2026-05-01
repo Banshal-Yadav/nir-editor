@@ -1,4 +1,4 @@
-"""Harbor agent wrapper for Zed's eval-cli binary.
+"""Harbor agent wrapper for /void's eval-cli binary.
 
 Usage:
     # Build eval-cli locally first:
@@ -6,13 +6,13 @@ Usage:
 
     # Run via Harbor with a local binary:
     harbor run -d "dataset@version" \
-        --agent-import-path zed_eval.agent:VoidAgent \
+        --agent-import-path void_eval.agent:VoidAgent \
         --ae binary_path=/path/to/target/release/eval-cli \
         --agent-model anthropic/claude-sonnet-4-6-latest
 
     # Or with a download URL (for CI):
     harbor run -d "dataset@version" \
-        --agent-import-path zed_eval.agent:VoidAgent \
+        --agent-import-path void_eval.agent:VoidAgent \
         --ae download_url=https://example.com/eval-cli \
         --agent-model anthropic/claude-sonnet-4-6-latest
 """
@@ -28,10 +28,10 @@ from harbor.models.agent.context import AgentContext
 
 
 class VoidAgent(BaseInstalledAgent):
-    """Runs Zed's headless AI agent (eval-cli) to solve tasks.
+    """Runs /void's headless AI agent (eval-cli) to solve tasks.
 
     The eval-cli binary boots a headless GPUI application and uses the same
-    NativeAgent + AcpThread pipeline as the production Zed editor, driving
+    NativeAgent + AcpThread pipeline as the production /void editor, driving
     the full agentic loop (tool calls, subagents, retries) without a GUI.
     """
 
@@ -49,7 +49,7 @@ class VoidAgent(BaseInstalledAgent):
 
     @staticmethod
     def name() -> str:
-        return "zed"
+        return "void"
 
     async def _detect_workdir(self, environment: BaseEnvironment) -> str:
         """Detect the repo working directory inside the container.
@@ -186,7 +186,7 @@ class VoidAgent(BaseInstalledAgent):
             self.logger.warning("Node.js installation failed (non-fatal): %s", exc)
 
     async def _install_lsps(self, environment: BaseEnvironment) -> None:
-        """Pre-install language servers so Zed doesn't download them at runtime.
+        """Pre-install language servers so /void doesn't download them at runtime.
 
         Each LSP is installed independently so one failure doesn't block the rest.
         """
@@ -203,12 +203,12 @@ class VoidAgent(BaseInstalledAgent):
         lsp_installs = [
             (
                 "basedpyright",
-                'DIR="$ZED_DATA_DIR/languages/basedpyright"; '
+                'DIR="$VOID_DATA_DIR/languages/basedpyright"; '
                 'mkdir -p "$DIR" && npm install --prefix "$DIR" --save-exact basedpyright',
             ),
             (
                 "typescript-language-server",
-                'DIR="$ZED_DATA_DIR/languages/typescript-language-server"; '
+                'DIR="$VOID_DATA_DIR/languages/typescript-language-server"; '
                 'mkdir -p "$DIR" && npm install --prefix "$DIR" --save-exact typescript typescript-language-server',
             ),
             (
@@ -228,7 +228,7 @@ class VoidAgent(BaseInstalledAgent):
                 await self.exec_as_agent(
                     environment,
                     command=(
-                        'ZED_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zed"; '
+                        'VOID_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/void"; '
                         + cmd
                     ),
                 )
@@ -243,8 +243,8 @@ class VoidAgent(BaseInstalledAgent):
                 environment,
                 command=(
                     "set -euo pipefail; "
-                    'ZED_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/zed"; '
-                    'ESLINT_DIR="$ZED_DATA_DIR/languages/eslint/vscode-eslint-2.4.4"; '
+                    'VOID_DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/void"; '
+                    'ESLINT_DIR="$VOID_DATA_DIR/languages/eslint/vscode-eslint-2.4.4"; '
                     'mkdir -p "$ESLINT_DIR"; '
                     'curl -fsSL "https://github.com/zed-industries/vscode-eslint/archive/refs/tags/release/2.4.4.tar.gz" '
                     '| tar -xz -C "$ESLINT_DIR"; '

@@ -42,7 +42,7 @@ pub fn init(cx: &mut App) -> Arc<AgentCliAppState> {
     cx.set_global(settings_store);
 
     let user_agent = format!(
-        "Zed Agent CLI/{} ({}; {})",
+        "/void Agent CLI/{} ({}; {})",
         app_version,
         std::env::consts::OS,
         std::env::consts::ARCH
