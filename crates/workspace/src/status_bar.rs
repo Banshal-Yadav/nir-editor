@@ -516,4 +516,3 @@ impl Focusable for ToolsMenu {
         self.focus_handle.clone()
     }
 }
-impl ManagedView for ToolsMenu {}
