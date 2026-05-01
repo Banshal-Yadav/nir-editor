@@ -27,7 +27,7 @@ use client::{Client, UserStore, zed_urls};
 use cloud_api_types::Plan;
 
 use gpui::{
-    Action, Anchor, Animation, AnimationExt, AnyElement, App, Context, Element, Entity, Focusable,
+    Action, Anchor, Animation, AnimationExt, AnyElement, App, Context, Element, Entity,
     InteractiveElement, IntoElement, MouseButton, ParentElement, Render,
     StatefulInteractiveElement, Styled, Subscription, WeakEntity, Window, actions, div,
     pulsating_between,
@@ -271,7 +271,7 @@ impl Render for TitleBar {
                     | client::Status::Authenticated
                     | client::Status::Connecting
             );
-        let is_signed_out_or_auth_error = user.is_none()
+        let _is_signed_out_or_auth_error = user.is_none()
             && matches!(
                 status,
                 client::Status::SignedOut | client::Status::AuthenticationError
@@ -446,7 +446,7 @@ impl TitleBar {
         this
     }
 
-    fn worktree_count(&self, cx: &App) -> usize {
+    fn _worktree_count(&self, cx: &App) -> usize {
         self.project.read(cx).visible_worktrees(cx).count()
     }
 

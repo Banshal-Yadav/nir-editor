@@ -1,46 +1,53 @@
-# Zed
+# <img src="./assets/images/void_logo.svg" alt="/void Logo" width="60" style="vertical-align: middle; margin-right: 12px;" /> <span style="font-size: 1.5em; vertical-align: middle;">/void</span>
 
-[![Zed](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/zed-industries/zed/main/assets/badge/v0.json)](https://zed.dev)
-[![CI](https://github.com/zed-industries/zed/actions/workflows/run_tests.yml/badge.svg)](https://github.com/zed-industries/zed/actions/workflows/run_tests.yml)
+### *The space between thought and execution.*
 
-Welcome to Zed, a high-performance, multiplayer code editor from the creators of [Atom](https://github.com/atom/atom) and [Tree-sitter](https://github.com/tree-sitter/tree-sitter).
+/void is a high-performance, AI-native development environment designed for those who demand absolute control and zero distraction. It is not just an editor; it is a specialized workspace for the decentralized, AI-first era of software engineering.
 
 ---
 
-### Installation
+## 🌌 The Philosophy of the Void
 
-On macOS, Linux, and Windows you can [download Zed directly](https://zed.dev/download) or install Zed via your local package manager ([macOS](https://zed.dev/docs/installation#macos)/[Linux](https://zed.dev/docs/linux#installing-via-a-package-manager)/[Windows](https://zed.dev/docs/windows#package-managers)).
+The best tools don't just help you work; they disappear while you use them. /void is built on the belief that a development environment should be a minimal, lightning-fast canvas where your intelligence is amplified by a native AI core.
 
-Other platforms are not yet available:
+- **Deep Integration**: AI isn't a plugin; it's a first-class citizen embedded in the GPU-accelerated core.
+- **Zero Latency**: Every frame is rendered on the GPU at 120fps+, ensuring that your tool never slows down your thinking.
+- **Contextual Awareness**: A unified data layer that understands your projects, threads, and knowledge as a single, coherent whole.
 
-- Web ([tracking issue](https://github.com/zed-industries/zed/issues/5396))
+## ⚡ Pillars of /void
 
-### Developing Zed
+### 1. Native Intelligence
+Integrated "Agent" threads leverage local and remote models to help you navigate complex codebases, manage personal data, and automate repetitive tasks without leaving your workspace.
 
-- [Building Zed for macOS](./docs/src/development/macos.md)
-- [Building Zed for Linux](./docs/src/development/linux.md)
-- [Building Zed for Windows](./docs/src/development/windows.md)
+### 2. GPU-Accelerated Core
+Built on the **GPUI** framework, /void delivers the performance of a native terminal with the rich interactivity of a modern UI. No Electron, no bloat—just raw performance.
 
-### Contributing
+### 3. Total Sovereignty
+/void is designed for a decentralized future. Your data remains yours, and your workspace is optimized for personal agency and local-first workflows.
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for ways you can contribute to Zed.
+## 🛠️ Crafting /void
 
-Also... we're hiring! Check out our [jobs](https://zed.dev/jobs) page for open roles.
+### Prerequisites
+- **Rust** (Latest Stable)
+- Platform-specific dependencies (Clang, etc.)
 
-### Licensing
+### Build
+```bash
+git clone https://github.com/void-editor/void
+cd void
+cargo run --release
+```
 
-License information for third party dependencies must be correctly provided for CI to pass.
+Detailed guides for [Windows](./docs/src/development/windows.md), [macOS](./docs/src/development/macos.md), and [Linux](./docs/src/development/linux.md).
 
-We use [`cargo-about`](https://github.com/EmbarkStudios/cargo-about) to automatically comply with open source licenses. If CI is failing, check the following:
+## ✨ Aesthetics
+Choose your environment:
+- **Antigravity**: A high-contrast, obsidian-inspired interface.
+- **Claude**: A refined, warm-toned workspace for deep focus.
+- **Gemini**: A vibrant, modern aesthetic for creative engineering.
 
-- Is it showing a `no license specified` error for a crate you've created? If so, add `publish = false` under `[package]` in your crate's Cargo.toml.
-- Is the error `failed to satisfy license requirements` for a dependency? If so, first determine what license the project has and whether this system is sufficient to comply with this license's requirements. If you're unsure, ask a lawyer. Once you've verified that this system is acceptable add the license's SPDX identifier to the `accepted` array in `script/licenses/zed-licenses.toml`.
-- Is `cargo-about` unable to find the license for a dependency? If so, add a clarification field at the end of `script/licenses/zed-licenses.toml`, as specified in the [cargo-about book](https://embarkstudios.github.io/cargo-about/cli/generate/config.html#crate-configuration).
+---
 
-## Sponsorship
-
-Zed is developed by **Zed Industries, Inc.**, a for-profit company.
-
-If you’d like to financially support the project, you can do so via GitHub Sponsors.
-Sponsorships go directly to Zed Industries and are used as general company revenue.
-There are no perks or entitlements associated with sponsorship.
+<p align="center">
+  <i>/void is built on the foundations of <a href="https://github.com/zed-industries/zed">Zed</a>.</i>
+</p>

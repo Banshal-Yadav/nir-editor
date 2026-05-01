@@ -5,7 +5,7 @@ use crate::{
 use zed_actions::OpenSettings;
 use gpui::{
     Anchor, AnyView, App, Context, Decorations, DismissEvent, Entity, EventEmitter, FocusHandle,
-    Focusable, IntoElement, ManagedView, ParentElement, Render, Styled, Subscription, WeakEntity,
+    Focusable, IntoElement, ParentElement, Render, Styled, Subscription, WeakEntity,
     Window,
 };
 use std::any::TypeId;
@@ -210,7 +210,7 @@ impl StatusBar {
             })
     }
 
-    fn render_tools_menu(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_tools_menu(&self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         PopoverMenu::new("status-bar-tools")
             .trigger(
                 IconButton::new("tools-trigger", IconName::Ellipsis)

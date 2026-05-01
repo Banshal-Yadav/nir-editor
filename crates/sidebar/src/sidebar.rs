@@ -1025,7 +1025,7 @@ impl Sidebar {
 
                 _ => IconName::VoidMark,
             };
-            let mut icon_from_external_svg = agent_server_store
+            let icon_from_external_svg = agent_server_store
                 .as_ref()
                 .and_then(|store| store.read(cx).agent_icon(&agent_id));
 
