@@ -2,7 +2,7 @@ use anyhow::Result;
 use fs::Fs;
 
 use gpui::{
-    AnyView, App, Context, DragMoveEvent, Entity, EntityId, EventEmitter, FocusHandle, Focusable,
+    AnyView, App, Context, Decorations, DragMoveEvent, Entity, EntityId, EventEmitter, FocusHandle, Focusable,
     ManagedView, MouseButton, Pixels, Render, Subscription, Task, Tiling, WeakEntity, Window,
     WindowId, actions, deferred, px,
 };
@@ -22,6 +22,7 @@ use zed_actions::agents_sidebar::ToggleThreadSwitcher;
 use agent_settings::AgentSettings;
 use settings::SidebarDockPosition;
 use ui::{ContextMenu, right_click_menu};
+use theme;
 
 const SIDEBAR_RESIZE_HANDLE_SIZE: Pixels = px(6.0);
 
@@ -2000,7 +2001,7 @@ impl MultiWorkspace {
         }
     }
 
-    fn render_activity_bar(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_activity_bar(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         use std::hash::{Hash, Hasher};
         use std::collections::hash_map::DefaultHasher;
 
@@ -2067,12 +2068,26 @@ impl MultiWorkspace {
             );
         }
         
+        let decorations = window.window_decorations();
+        let tiling = match decorations {
+            Decorations::Client { tiling } => tiling,
+            Decorations::Server => Tiling::default(),
+        };
+
         div()
             .w(px(48.))
             .h_full()
             .flex()
             .flex_col()
             .bg(cx.theme().colors().panel_background)
+            .when(
+                matches!(decorations, gpui::Decorations::Client { .. }) && !tiling.top && !tiling.left,
+                |div| div.rounded_tl(theme::CLIENT_SIDE_DECORATION_ROUNDING),
+            )
+            .when(
+                matches!(decorations, gpui::Decorations::Client { .. }) && !tiling.bottom && !tiling.left,
+                |div| div.rounded_bl(theme::CLIENT_SIDE_DECORATION_ROUNDING),
+            )
             .border_r_1()
             .border_color(cx.theme().colors().border)
             .child(
@@ -2290,8 +2305,8 @@ impl Render for MultiWorkspace {
                         ))
                     },
                 )
+                .child(self.render_activity_bar(window, cx))
                 .children(left_sidebar)
-                .child(self.render_activity_bar(cx))
                 .child(
                     div()
                         .flex()
@@ -2318,7 +2333,7 @@ impl Render for MultiWorkspace {
             window,
             cx,
             Tiling {
-                left: !sidebar_on_right && multi_workspace_enabled && self.sidebar_open(),
+                left: false,
                 right: sidebar_on_right && multi_workspace_enabled && self.sidebar_open(),
                 ..Tiling::default()
             },

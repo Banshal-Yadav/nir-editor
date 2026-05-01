@@ -182,9 +182,65 @@ impl StatusBar {
             .overflow_x_hidden()
             .children(essential_right_items)
             .when(has_overflow, |this| this.child(overflow_menu))
+            .child(self.render_tools_menu(cx))
             .when(
                 sidebar.show_toggle && !sidebar.open && sidebar.side == SidebarSide::Right,
                 |this| this.child(self.render_sidebar_toggle(sidebar, cx)),
+            )
+    }
+
+    fn render_tools_menu(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        PopoverMenu::new("status-bar-tools")
+            .trigger(
+                IconButton::new("tools-trigger", IconName::Ellipsis)
+                    .icon_size(IconSize::Small)
+                    .tooltip(|_, cx| Tooltip::text("Tools", cx))
+            )
+            .menu(move |window, cx| {
+                Some(div()
+                    .bg(cx.theme().colors().elevated_surface_background)
+                    .border_1()
+                    .border_color(cx.theme().colors().border)
+                    .rounded_lg()
+                    .p_2()
+                    .w(px(240.))
+                    .child(
+                        h_flex()
+                            .flex_wrap()
+                            .gap_2()
+                            .justify_center()
+                            .child(self.render_tool_item("Search", IconName::MagnifyingGlass, window, cx))
+                            .child(self.render_tool_item("Agent", IconName::AiVoid, window, cx))
+                            .child(self.render_tool_item("Project", IconName::FileTree, window, cx))
+                            .child(self.render_tool_item("Terminal", IconName::Terminal, window, cx))
+                            .child(self.render_tool_item("Settings", IconName::Settings, window, cx))
+                    )
+                    .into_any_element())
+            })
+    }
+
+    fn render_tool_item(
+        &self,
+        label: &'static str,
+        icon: IconName,
+        _window: &mut Window,
+        _cx: &mut App,
+    ) -> impl IntoElement {
+        div()
+            .w(px(64.))
+            .h(px(64.))
+            .flex()
+            .flex_col()
+            .items_center()
+            .justify_center()
+            .rounded_md()
+            .hover(|el| el.bg(gpui::white().alpha(0.05)))
+            .cursor_pointer()
+            .child(Icon::new(icon).size(IconSize::Medium).color(Color::Default))
+            .child(
+                Label::new(label)
+                    .size(LabelSize::Small)
+                    .color(Color::Muted)
             )
     }
 
