@@ -2968,7 +2968,7 @@ impl AgentPanel {
                                 .when(is_agent_selected(Agent::NativeAgent), |this| {
                                     this.action(Box::new(NewExternalAgentThread { agent: None }))
                                 })
-                                .icon(IconName::VoidAgent)
+                                .custom_icon_svg("images/void_logo.svg")
                                 .icon_color(Color::Muted)
                                 .handler({
                                     let workspace = workspace.clone();
@@ -3196,9 +3196,12 @@ impl AgentPanel {
                 Icon::from_external_svg(icon_path)
                     .size(IconSize::Small)
                     .color(icon_color)
-            } else {
-                let icon_name = selected_agent_builtin_icon.unwrap_or(IconName::VoidAgent);
+            } else if let Some(icon_name) = selected_agent_builtin_icon {
                 Icon::new(icon_name).size(IconSize::Small).color(icon_color)
+            } else {
+                Icon::from_external_svg("images/void_logo.svg".into())
+                    .size(IconSize::Small)
+                    .color(icon_color)
             };
 
             let agent_selector_button = Button::new("agent-selector-trigger", selected_agent_label)

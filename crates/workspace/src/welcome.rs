@@ -17,7 +17,7 @@ use menu::{SelectNext, SelectPrevious};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use settings::Settings;
-use ui::{ButtonLike, Divider, DividerColor, KeyBinding, prelude::*};
+use ui::{ButtonLike, Divider, DividerColor, KeyBinding, Vector, VectorName, prelude::*};
 use util::ResultExt;
 use zed_actions::{
     Extensions, OpenKeymap, OpenOnboarding, OpenSettings, assistant::ToggleFocus, command_palette,
@@ -151,8 +151,9 @@ impl RenderOnce for VoidLogo {
         let cursor_color = cx.theme().colors().text_accent;
 
         h_flex()
-            .gap_2()
+            .gap_4()
             .items_center()
+            .child(Vector::square(VectorName::VoidLogo, rems(2.5)))
             .child(
                 Headline::new("/void")
                     .size(HeadlineSize::Large)

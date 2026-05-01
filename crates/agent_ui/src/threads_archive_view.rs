@@ -609,10 +609,14 @@ impl ThreadsArchiveView {
                 let timestamp =
                     format_history_entry_timestamp(thread.created_at.unwrap_or(thread.updated_at));
 
-                let icon_from_external_svg = self
+                let mut icon_from_external_svg = self
                     .agent_server_store
                     .upgrade()
                     .and_then(|store| store.read(cx).agent_icon(&thread.agent_id));
+
+                if thread.agent_id.as_ref() == agent::VOID_AGENT_ID.as_ref() && icon_from_external_svg.is_none() {
+                    icon_from_external_svg = Some("images/void_logo.svg".into());
+                }
 
                 let icon = if thread.agent_id.as_ref() == agent::VOID_AGENT_ID.as_ref() {
                     IconName::VoidAgent
