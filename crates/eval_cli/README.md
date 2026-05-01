@@ -76,7 +76,7 @@ Build for Linux first, then pass the binary path:
 crates/eval_cli/script/build-linux
 
 harbor run -d "swebench_verified@latest" \
-  --agent-import-path zed_eval.agent:ZedAgent \
+  --agent-import-path zed_eval.agent:VoidAgent \
   --ae binary_path=target/eval-cli \
   -m anthropic/claude-sonnet-4-6-latest
 ```
@@ -90,7 +90,7 @@ For CI or when the binary is hosted somewhere:
 
 ```
 harbor run -d "swebench_verified@latest" \
-  --agent-import-path zed_eval.agent:ZedAgent \
+  --agent-import-path zed_eval.agent:VoidAgent \
   --ak download_url=https://example.com/eval-cli \
   -m anthropic/claude-sonnet-4-6-latest
 ```
@@ -101,7 +101,7 @@ Pass `EVAL_CLI_TIMEOUT` via `--ae`:
 
 ```
 harbor run -d "swebench_verified@latest" \
-  --agent-import-path zed_eval.agent:ZedAgent \
+  --agent-import-path zed_eval.agent:VoidAgent \
   --ak binary_path=target/eval-cli \
   --ae EVAL_CLI_TIMEOUT=600 \
   -m anthropic/claude-sonnet-4-6-latest

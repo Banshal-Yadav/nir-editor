@@ -6,13 +6,13 @@ Usage:
 
     # Run via Harbor with a local binary:
     harbor run -d "dataset@version" \
-        --agent-import-path zed_eval.agent:ZedAgent \
+        --agent-import-path zed_eval.agent:VoidAgent \
         --ae binary_path=/path/to/target/release/eval-cli \
         --agent-model anthropic/claude-sonnet-4-6-latest
 
     # Or with a download URL (for CI):
     harbor run -d "dataset@version" \
-        --agent-import-path zed_eval.agent:ZedAgent \
+        --agent-import-path zed_eval.agent:VoidAgent \
         --ae download_url=https://example.com/eval-cli \
         --agent-model anthropic/claude-sonnet-4-6-latest
 """
@@ -27,7 +27,7 @@ from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
 
-class ZedAgent(BaseInstalledAgent):
+class VoidAgent(BaseInstalledAgent):
     """Runs Zed's headless AI agent (eval-cli) to solve tasks.
 
     The eval-cli binary boots a headless GPUI application and uses the same

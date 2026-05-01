@@ -1517,7 +1517,7 @@ impl ConversationView {
                     } else {
                         "New message"
                     },
-                    IconName::VoidAssistant,
+                    IconName::VoidMark,
                     window,
                     cx,
                 );

@@ -2968,8 +2968,8 @@ impl AgentPanel {
                                 .when(is_agent_selected(Agent::NativeAgent), |this| {
                                     this.action(Box::new(NewExternalAgentThread { agent: None }))
                                 })
-                                .icon(IconName::VoidAgent)
-                                .icon_color(Color::Muted)
+                                .icon(IconName::VoidMark)
+                                .icon_color(Color::Accent)
                                 .handler({
                                     let workspace = workspace.clone();
                                     move |window, cx| {
@@ -3199,9 +3199,9 @@ impl AgentPanel {
             } else if let Some(icon_name) = selected_agent_builtin_icon {
                 Icon::new(icon_name).size(IconSize::Small).color(icon_color)
             } else {
-                Icon::new(IconName::VoidAgent)
+                Icon::new(IconName::VoidMark)
                     .size(IconSize::Small)
-                    .color(icon_color)
+                    .color(Color::Accent)
             };
 
             let agent_selector_button = Button::new("agent-selector-trigger", selected_agent_label)

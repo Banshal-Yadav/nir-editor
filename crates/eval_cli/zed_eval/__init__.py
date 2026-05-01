@@ -1,3 +1,3 @@
-from zed_eval.agent import ZedAgent
+from zed_eval.agent import VoidAgent
 
-__all__ = ["ZedAgent"]
+__all__ = ["VoidAgent"]

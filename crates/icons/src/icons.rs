@@ -279,6 +279,7 @@ pub enum IconName {
     VoidAgent,
     VoidAgentTwo,
     VoidAssistant,
+    VoidMark,
     VoidPredict,
     VoidPredictDisabled,
     VoidPredictDown,
