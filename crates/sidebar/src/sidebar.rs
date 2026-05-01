@@ -1029,10 +1029,6 @@ impl Sidebar {
                 .as_ref()
                 .and_then(|store| store.read(cx).agent_icon(&agent_id));
 
-            if matches!(agent, Agent::NativeAgent) && icon_from_external_svg.is_none() {
-                icon_from_external_svg = Some("images/void_logo.svg".into());
-            }
-
             (icon, icon_from_external_svg)
         };
 

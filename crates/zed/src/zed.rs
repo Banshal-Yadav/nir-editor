@@ -78,7 +78,7 @@ use std::{
 use terminal_view::terminal_panel::{self, TerminalPanel};
 use theme::{ActiveTheme, SystemAppearance, ThemeRegistry, deserialize_icon_theme};
 use theme_settings::{ThemeSettings, load_user_theme};
-use ui::{Navigable, NavigableEntry, PopoverMenuHandle, TintColor, prelude::*};
+use ui::{Navigable, NavigableEntry, PopoverMenuHandle, TintColor, Vector, VectorName, prelude::*};
 use util::markdown::MarkdownString;
 use util::rel_path::RelPath;
 use util::{ResultExt, asset_str, maybe};
@@ -663,7 +663,7 @@ fn show_software_emulation_warning_if_needed(
     window: &mut Window,
     cx: &mut Context<Workspace>,
 ) {
-    if specs.is_software_emulated && std::env::var("ZED_ALLOW_EMULATED_GPU").is_err() {
+    if specs.is_software_emulated && std::env::var("VOID_ALLOW_EMULATED_GPU").is_err() {
         let (graphics_api, docs_url, open_url) = if cfg!(target_os = "windows") {
             (
                 "DirectX",
@@ -685,7 +685,7 @@ fn show_software_emulation_warning_if_needed(
             will result in awful performance.
 
             For troubleshooting see: {}
-            Set ZED_ALLOW_EMULATED_GPU=1 env var to permanently override.
+            Set VOID_ALLOW_EMULATED_GPU=1 env var to permanently override.
             "#},
             graphics_api, specs.device_name, docs_url
         );
@@ -1089,7 +1089,7 @@ fn register_actions(
                         Toast::new(
                             NotificationId::unique::<RegisterZedScheme>(),
                             format!(
-                                "zed:// links will now open in {}.",
+                                "void:// links will now open in {}.",
                                 ReleaseChannel::global(cx).display_name()
                             ),
                         ),
@@ -1099,7 +1099,7 @@ fn register_actions(
                 Ok(())
             })
             .detach_and_prompt_err(
-                "Error registering zed:// scheme",
+                "Error registering void:// scheme",
                 window,
                 cx,
                 |_, _, _| None,
@@ -1342,26 +1342,10 @@ fn initialize_pane(
 }
 
 fn open_about_window(cx: &mut App) {
-    fn about_window_icon(release_channel: ReleaseChannel) -> Arc<Image> {
-        let bytes = match release_channel {
-            ReleaseChannel::Dev => include_bytes!("../resources/app-icon-dev.png").as_slice(),
-            ReleaseChannel::Nightly => {
-                include_bytes!("../resources/app-icon-nightly.png").as_slice()
-            }
-            ReleaseChannel::Preview => {
-                include_bytes!("../resources/app-icon-preview.png").as_slice()
-            }
-            ReleaseChannel::Stable => include_bytes!("../resources/app-icon.png").as_slice(),
-        };
-
-        Arc::new(Image::from_bytes(ImageFormat::Png, bytes.to_vec()))
-    }
-
     struct AboutWindow {
         focus_handle: FocusHandle,
         ok_entry: NavigableEntry,
         copy_entry: NavigableEntry,
-        app_icon: Arc<Image>,
         message: SharedString,
         commit: Option<SharedString>,
         full_version: SharedString,
@@ -1389,7 +1373,6 @@ fn open_about_window(cx: &mut App) {
                 focus_handle: cx.focus_handle(),
                 ok_entry: NavigableEntry::focusable(cx),
                 copy_entry: NavigableEntry::focusable(cx),
-                app_icon: about_window_icon(release_channel),
                 message,
                 commit,
                 full_version,
@@ -1437,7 +1420,11 @@ fn open_about_window(cx: &mut App) {
                             .w_full()
                             .gap_2()
                             .items_center()
-                            .child(img(self.app_icon.clone()).size_16().flex_none())
+                            .child(
+                                Vector::square(VectorName::VoidLogo, rems_from_px(64.))
+                                    .color(Color::Default)
+                                    .flex_none(),
+                            )
                             .child(Headline::new(self.message.clone()))
                             .when_some(self.commit.clone(), |this, commit| {
                                 this.child(

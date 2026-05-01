@@ -2968,7 +2968,7 @@ impl AgentPanel {
                                 .when(is_agent_selected(Agent::NativeAgent), |this| {
                                     this.action(Box::new(NewExternalAgentThread { agent: None }))
                                 })
-                                .custom_icon_svg("images/void_logo.svg")
+                                .icon(IconName::VoidAgent)
                                 .icon_color(Color::Muted)
                                 .handler({
                                     let workspace = workspace.clone();
@@ -3199,7 +3199,7 @@ impl AgentPanel {
             } else if let Some(icon_name) = selected_agent_builtin_icon {
                 Icon::new(icon_name).size(IconSize::Small).color(icon_color)
             } else {
-                Icon::from_external_svg("images/void_logo.svg".into())
+                Icon::new(IconName::VoidAgent)
                     .size(IconSize::Small)
                     .color(icon_color)
             };
