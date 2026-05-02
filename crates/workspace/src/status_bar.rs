@@ -1,16 +1,14 @@
 use crate::{
-    ItemHandle, MultiWorkspace, NewSearch, NewTerminal, Pane, SidebarSide, ToggleWorkspaceSidebar,
+    ItemHandle, MultiWorkspace, Pane, SidebarSide, ToggleWorkspaceSidebar,
     sidebar_side_context_menu,
 };
-use zed_actions::OpenSettings;
 use gpui::{
-    Anchor, AnyView, App, Context, Decorations, DismissEvent, Entity, EventEmitter, FocusHandle,
-    Focusable, IntoElement, ParentElement, Render, Styled, Subscription, WeakEntity,
-    Window,
+    Anchor, AnyView, App, Context, Decorations, Entity, IntoElement, ParentElement, Render, Styled,
+    Subscription, WeakEntity, Window,
 };
 use std::any::TypeId;
 use theme::CLIENT_SIDE_DECORATION_ROUNDING;
-use ui::{Divider, Indicator, Tooltip, ContextMenu, PopoverMenu, IconButton, prelude::*};
+use ui::{Divider, Indicator, Tooltip, prelude::*};
 
 pub trait StatusItemView: Render {
     /// Event callback that is triggered when the active pane item changes.
@@ -206,17 +204,17 @@ impl StatusBar {
                 Button::new("toggle-workspace-sidebar", "[/]")
                     .style(ButtonStyle::Subtle)
                     .label_size(LabelSize::Small)
-                    .selected(is_active)
-                    .when(has_notifications, |this| {
+                    .selected_label(is_active)
+                    .when(has_notifications, |this: Button| {
                         this.indicator(Indicator::dot().color(Color::Accent))
                             .indicator_border_color(Some(indicator_border))
                     })
                     .tooltip(move |_, cx| {
                         Tooltip::for_action("Open Threads Sidebar", &ToggleWorkspaceSidebar, cx)
                     })
-                .on_click(move |_, window, cx| {
+                .on_click(move |_, window: &mut Window, cx: &mut App| {
                     if let Some(multi_workspace) = window.root::<MultiWorkspace>().flatten() {
-                        multi_workspace.update(cx, |multi_workspace, cx| {
+                        multi_workspace.update(cx, |multi_workspace: &mut MultiWorkspace, cx| {
                             multi_workspace.toggle_sidebar(window, cx);
                         });
                     }
