@@ -268,7 +268,7 @@ pub enum IconOrSvg {
 
 impl Default for IconOrSvg {
     fn default() -> Self {
-        Self::Icon(IconName::VoidAssistant)
+        Self::Icon(IconName::VoidAgentToggle)
     }
 }
 

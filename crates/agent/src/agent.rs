@@ -2361,7 +2361,7 @@ mod internal_tests {
                     name: "Fake".into(),
                     description: None,
                     icon: Some(acp_thread::AgentModelIcon::Named(
-                        ui::IconName::VoidAssistant
+                        ui::IconName::VoidAgentToggle
                     )),
                     is_latest: false,
                     cost: None,

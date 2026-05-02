@@ -2519,7 +2519,8 @@ impl Panel for AgentPanel {
     }
 
     fn icon(&self, _window: &Window, cx: &App) -> Option<IconName> {
-        (self.enabled(cx) && AgentSettings::get_global(cx).button).then_some(IconName::VoidAssistant)
+        (self.enabled(cx) && AgentSettings::get_global(cx).button)
+            .then_some(IconName::VoidAgentToggle)
     }
 
     fn icon_tooltip(&self, _window: &Window, _cx: &App) -> Option<&'static str> {
@@ -2968,8 +2969,8 @@ impl AgentPanel {
                                 .when(is_agent_selected(Agent::NativeAgent), |this| {
                                     this.action(Box::new(NewExternalAgentThread { agent: None }))
                                 })
-                                .icon(IconName::VoidMark)
-                                .icon_color(Color::Accent)
+                                .icon(IconName::Slash)
+                                .icon_color(Color::Muted)
                                 .handler({
                                     let workspace = workspace.clone();
                                     move |window, cx| {
@@ -3199,9 +3200,9 @@ impl AgentPanel {
             } else if let Some(icon_name) = selected_agent_builtin_icon {
                 Icon::new(icon_name).size(IconSize::Small).color(icon_color)
             } else {
-                Icon::new(IconName::VoidMark)
+                Icon::new(IconName::Slash)
                     .size(IconSize::Small)
-                    .color(Color::Accent)
+                    .color(Color::Muted)
             };
 
             let agent_selector_button = Button::new("agent-selector-trigger", selected_agent_label)
