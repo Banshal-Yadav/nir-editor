@@ -201,12 +201,19 @@ impl StatusBar {
                 Anchor::TopLeft
             })
             .trigger(move |is_active, _window, _cx| {
-                IconButton::new("toggle-workspace-sidebar", IconName::VoidAgentToggle)
-                    .style(ButtonStyle::Subtle)
-                    .toggle_state(is_active)
-                    .tooltip(move |_, cx| {
-                        Tooltip::for_action("Open Threads Sidebar", &ToggleWorkspaceSidebar, cx)
-                    })
+                IconButton::new(
+                    "toggle-workspace-sidebar",
+                    if on_right {
+                        IconName::ThreadsSidebarRightClosed
+                    } else {
+                        IconName::ThreadsSidebarLeftClosed
+                    },
+                )
+                .style(ButtonStyle::Subtle)
+                .toggle_state(is_active)
+                .tooltip(move |_, cx| {
+                    Tooltip::for_action("Open Threads Sidebar", &ToggleWorkspaceSidebar, cx)
+                })
                 .on_click(move |_, window: &mut Window, cx: &mut App| {
                     if let Some(multi_workspace) = window.root::<MultiWorkspace>().flatten() {
                         multi_workspace.update(cx, |multi_workspace: &mut MultiWorkspace, cx| {
