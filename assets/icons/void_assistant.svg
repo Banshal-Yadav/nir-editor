@@ -1,4 +1,30 @@
-<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M10 2L5 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  <path d="M11 13H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<svg width="16" height="16" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(0, 2)">
+    <text x="51" y="54"
+      font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+      font-weight="900"
+      font-size="38"
+      fill="currentColor"
+      fill-opacity="0.3"
+      text-anchor="middle"
+      dominant-baseline="middle"
+      letter-spacing="-2">[/]</text>
+    <text x="49" y="56"
+      font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+      font-weight="900"
+      font-size="38"
+      fill="currentColor"
+      fill-opacity="0.3"
+      text-anchor="middle"
+      dominant-baseline="middle"
+      letter-spacing="-2">[/]</text>
+    <text x="50" y="55"
+      font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+      font-weight="900"
+      font-size="38"
+      fill="currentColor"
+      text-anchor="middle"
+      dominant-baseline="middle"
+      letter-spacing="-2">[/]</text>
+  </g>
 </svg>
