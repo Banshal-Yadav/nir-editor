@@ -287,6 +287,7 @@ pub enum IconName {
     VoidPredictUp,
     VoidSrcCustom,
     VoidSrcExtension,
+    VoidAgentToggle,
 }
 
 impl IconName {
