@@ -204,11 +204,7 @@ impl StatusBar {
                 Button::new("toggle-workspace-sidebar", "[/]")
                     .style(ButtonStyle::Subtle)
                     .label_size(LabelSize::Small)
-                    .selected_label(is_active)
-                    .when(has_notifications, |this: Button| {
-                        this.indicator(Indicator::dot().color(Color::Accent))
-                            .indicator_border_color(Some(indicator_border))
-                    })
+                    .toggle(is_active)
                     .tooltip(move |_, cx| {
                         Tooltip::for_action("Open Threads Sidebar", &ToggleWorkspaceSidebar, cx)
                     })
