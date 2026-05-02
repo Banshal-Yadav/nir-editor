@@ -203,7 +203,7 @@ impl StatusBar {
             .trigger(move |is_active, _window, _cx| {
                 IconButton::new("toggle-workspace-sidebar", IconName::VoidAgentToggle)
                     .style(ButtonStyle::Subtle)
-                    .selected(is_active)
+                    .selected_icon(is_active)
                     .tooltip(move |_, cx| {
                         Tooltip::for_action("Open Threads Sidebar", &ToggleWorkspaceSidebar, cx)
                     })
