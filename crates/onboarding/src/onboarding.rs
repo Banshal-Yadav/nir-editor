@@ -5,7 +5,7 @@ use fs::Fs;
 use gpui::{
     Action, AnyElement, App, AppContext, AsyncWindowContext, Context, Entity, EventEmitter,
     FocusHandle, Focusable, Global, IntoElement, KeyContext, Render, ScrollHandle, SharedString,
-    Subscription, Task, WeakEntity, Window, actions,
+    Subscription, Task, WeakEntity, Window, actions, rgba,
 };
 use notifications::status_toast::StatusToast;
 use schemars::JsonSchema;
@@ -318,8 +318,8 @@ impl Render for Onboarding {
                                                             .size(HeadlineSize::Small),
                                                     )
                                                     .child(
-                                                        Label::new("The void awaits")
-                                                            .color(Color::Muted)
+                                                        Label::new("think. build. ship.")
+                                                            .color(Color::Custom(rgba(0x555555ff)))
                                                             .size(LabelSize::Small)
                                                             .italic(),
                                                     ),

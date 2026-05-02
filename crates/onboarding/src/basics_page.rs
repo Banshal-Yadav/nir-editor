@@ -5,7 +5,7 @@ use client::{Client, UserStore, zed_urls};
 use cloud_api_types::Plan;
 use collections::HashMap;
 use fs::Fs;
-use gpui::{Action, Animation, AnimationExt, App, Entity, IntoElement, pulsating_between};
+use gpui::{Action, Animation, AnimationExt, App, Entity, IntoElement, pulsating_between, rgba};
 use project::agent_server_store::AllAgentServersSettings;
 use project::project_settings::ProjectSettings;
 use project::{AgentRegistryStore, RegistryAgent};
@@ -613,6 +613,98 @@ fn render_ai_section(user_store: &Entity<UserStore>, cx: &mut App) -> impl IntoE
         .child(grid)
 }
 
+fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
+    let colors = cx.theme().colors();
+    let amber_border = Color::Custom(rgba(0xffb000ff));
+
+    let render_item = |id: &'static str,
+                       label: &'static str,
+                       badge: &'static str,
+                       description: &'static str,
+                       button_label: &'static str,
+                       url: &'static str,
+                       highlight: bool| {
+        v_flex()
+            .id(id)
+            .w_full()
+            .border_1()
+            .border_color(if highlight {
+                amber_border
+            } else {
+                Color::Custom(colors.border_variant)
+            })
+            .rounded_sm()
+            .p_1p5()
+            .gap_1()
+            .child(
+                h_flex()
+                    .gap_1()
+                    .items_center()
+                    .child(Label::new(label))
+                    .child(
+                        Label::new(badge)
+                            .size(LabelSize::XSmall)
+                            .color(Color::Muted),
+                    ),
+            )
+            .child(
+                Label::new(description)
+                    .size(LabelSize::Small)
+                    .color(Color::Muted),
+            )
+            .child(
+                Button::new(format!("{id}-button"), button_label)
+                    .style(ButtonStyle::Outlined)
+                    .size(ButtonSize::Small)
+                    .label_size(LabelSize::Small)
+                    .on_click(move |_, _, cx| cx.open_url(url)),
+            )
+    };
+
+    let grid = div()
+        .w_full()
+        .mt_1p5()
+        .grid()
+        .grid_cols(3)
+        .gap_2()
+        .child(render_item(
+            "ai-setup-openrouter",
+            "/void Agent",
+            "free tier available",
+            "100+ models — Claude, GPT, Gemini, Llama. Get a free API key in 30 seconds.",
+            "Get free key",
+            "https://openrouter.ai/keys",
+            true,
+        ))
+        .child(render_item(
+            "ai-setup-ollama",
+            "Ollama",
+            "offline • free",
+            "Run models locally — completely private, no internet. Llama, Mistral, Qwen.",
+            "Install",
+            "https://ollama.ai",
+            false,
+        ))
+        .child(render_item(
+            "ai-setup-lm-studio",
+            "LM Studio",
+            "offline • free",
+            "GUI for local models — beginner friendly. Download, pick a model, done.",
+            "Install",
+            "https://lmstudio.ai",
+            false,
+        ));
+
+    v_flex()
+        .gap_0p5()
+        .child(Label::new("AI Setup"))
+        .child(
+            Label::new("Connect a provider for fast, high quality results.")
+                .color(Color::Muted),
+        )
+        .child(grid)
+}
+
 pub(crate) fn render_basics_page(user_store: &Entity<UserStore>, cx: &mut App) -> impl IntoElement {
     let mut tab_index = 0;
 
@@ -622,6 +714,7 @@ pub(crate) fn render_basics_page(user_store: &Entity<UserStore>, cx: &mut App) -
         .child(render_theme_section(&mut tab_index, cx))
         .child(render_base_keymap_section(&mut tab_index, cx))
         .child(render_ai_section(user_store, cx))
+        .child(render_ai_setup_section(cx))
         .child(render_import_settings_section(&mut tab_index, cx))
         .child(render_vim_mode_switch(&mut tab_index, cx))
         .child(render_worktree_auto_trust_switch(&mut tab_index, cx))

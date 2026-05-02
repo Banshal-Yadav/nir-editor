@@ -234,6 +234,12 @@ enum ListEntry {
     Thread(ThreadEntry),
 }
 
+impl From<ThreadEntry> for ListEntry {
+    fn from(thread: ThreadEntry) -> Self {
+        ListEntry::Thread(thread)
+    }
+}
+
 #[cfg(test)]
 impl ListEntry {
     fn session_id(&self) -> Option<&acp::SessionId> {
@@ -1020,10 +1026,10 @@ impl Sidebar {
         let resolve_agent_icon = |agent_id: &AgentId| -> (IconName, Option<SharedString>) {
             let agent = Agent::from(agent_id.clone());
             let icon = match agent {
-                Agent::NativeAgent => IconName::VoidMark,
+                Agent::NativeAgent => IconName::Slash,
                 Agent::Custom { .. } => IconName::Terminal,
 
-                _ => IconName::VoidMark,
+                _ => IconName::Slash,
             };
             let icon_from_external_svg = agent_server_store
                 .as_ref()
@@ -1556,6 +1562,7 @@ impl Sidebar {
         has_active_draft: bool,
         cx: &mut Context<Self>,
     ) -> AnyElement {
+        log::info!("render_project_header label: {}", label);
         let host = key.host();
 
         let id_prefix = if is_sticky { "sticky-" } else { "" };
@@ -4566,7 +4573,7 @@ impl Sidebar {
             .border_color(cx.theme().colors().border)
             .child(self.render_sidebar_toggle_button(cx))
             .child(
-                IconButton::new("history", IconName::Clock)
+                IconButton::new("history", IconName::VoidAgent)
                     .icon_size(IconSize::Small)
                     .toggle_state(is_archive)
                     .tooltip(move |_, cx| {

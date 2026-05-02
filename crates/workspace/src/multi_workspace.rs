@@ -2145,7 +2145,7 @@ impl MultiWorkspace {
                             .items_center()
                             .justify_center()
                             .child(
-                                ui::Icon::new(ui::IconName::Settings)
+                                ui::Icon::new(ui::IconName::Sliders)
                                     .color(ui::Color::Muted)
                             )
                             .cursor_pointer()
