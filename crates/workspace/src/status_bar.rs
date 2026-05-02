@@ -8,7 +8,7 @@ use gpui::{
 };
 use std::any::TypeId;
 use theme::CLIENT_SIDE_DECORATION_ROUNDING;
-use ui::{Divider, Indicator, Tooltip, prelude::*};
+use ui::{Divider, Tooltip, prelude::*};
 
 pub trait StatusItemView: Render {
     /// Event callback that is triggered when the active pane item changes.
@@ -204,7 +204,7 @@ impl StatusBar {
                 Button::new("toggle-workspace-sidebar", "[/]")
                     .style(ButtonStyle::Subtle)
                     .label_size(LabelSize::Small)
-                    .toggle(is_active)
+                    .toggle_state(is_active)
                     .tooltip(move |_, cx| {
                         Tooltip::for_action("Open Threads Sidebar", &ToggleWorkspaceSidebar, cx)
                     })
