@@ -167,60 +167,18 @@ impl StatusBar {
             }
         }
 
-        let has_overflow = !overflow_items.is_empty();
-        let overflow_menu = PopoverMenu::new("status-bar-overflow")
-            .trigger(IconButton::new("overflow-trigger", IconName::Ellipsis))
-            .menu(move |window, cx| {
-                let overflow_items = overflow_items.clone();
-                Some(ContextMenu::build(window, cx, move |mut menu, _, _| {
-                    for item in overflow_items {
-                        menu = menu.custom_row(move |_, _| item.clone().into_any_element());
-                    }
-                    menu
-                }))
-            });
-
         h_flex()
             .flex_shrink_0()
             .gap_1()
             .overflow_x_hidden()
             .children(essential_right_items)
-            .when(has_overflow, |this| this.child(overflow_menu))
-            .child(self.render_status_tool("Agent", IconName::VoidAgent))
-            .child(self.render_status_tool("Project", IconName::FileTree))
-            .child(self.render_tools_menu(window, cx))
+            .children(overflow_items)
             .when(
                 sidebar.show_toggle && !sidebar.open && sidebar.side == SidebarSide::Right,
                 |this| this.child(self.render_sidebar_toggle(sidebar, window, cx)),
             )
     }
 
-    fn render_status_tool(&self, label: &'static str, icon: IconName) -> impl IntoElement {
-        let action: Box<dyn gpui::Action> = match label {
-            "Agent" => Box::new(ToggleWorkspaceSidebar),
-            "Project" => Box::new(crate::ToggleFileFinder::default()),
-            _ => Box::new(ToggleWorkspaceSidebar),
-        };
-        Button::new(label, label)
-            .style(ButtonStyle::Subtle)
-            .label_size(LabelSize::Small)
-            .start_icon(Icon::new(icon).size(IconSize::Small).color(Color::Muted))
-            .on_click(move |_, window, cx| {
-                window.dispatch_action(action.boxed_clone(), cx);
-            })
-    }
-
-    fn render_tools_menu(&self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-        PopoverMenu::new("status-bar-tools")
-            .trigger(
-                IconButton::new("tools-trigger", IconName::Ellipsis)
-                    .icon_size(IconSize::Small)
-                    .tooltip(move |window, cx| Tooltip::text("Tools")(window, cx))
-            )
-            .menu(move |_window, cx| {
-                Some(cx.new(|cx| ToolsMenu::new(cx)))
-            })
-    }
 
 
     fn render_sidebar_toggle(
@@ -244,23 +202,18 @@ impl StatusBar {
             } else {
                 Anchor::TopLeft
             })
-            .trigger(move |_is_active, _window, _cx| {
-                IconButton::new(
-                    "toggle-workspace-sidebar",
-                    if on_right {
-                        IconName::ThreadsSidebarRightClosed
-                    } else {
-                        IconName::ThreadsSidebarLeftClosed
-                    },
-                )
-                .icon_size(IconSize::Small)
-                .when(has_notifications, |this| {
-                    this.indicator(Indicator::dot().color(Color::Accent))
-                        .indicator_border_color(Some(indicator_border))
-                })
-                .tooltip(move |_, cx| {
-                    Tooltip::for_action("Open Threads Sidebar", &ToggleWorkspaceSidebar, cx)
-                })
+            .trigger(move |is_active, _window, _cx| {
+                Button::new("toggle-workspace-sidebar", "[/]")
+                    .style(ButtonStyle::Subtle)
+                    .label_size(LabelSize::Small)
+                    .selected(is_active)
+                    .when(has_notifications, |this| {
+                        this.indicator(Indicator::dot().color(Color::Accent))
+                            .indicator_border_color(Some(indicator_border))
+                    })
+                    .tooltip(move |_, cx| {
+                        Tooltip::for_action("Open Threads Sidebar", &ToggleWorkspaceSidebar, cx)
+                    })
                 .on_click(move |_, window, cx| {
                     if let Some(multi_workspace) = window.root::<MultiWorkspace>().flatten() {
                         multi_workspace.update(cx, |multi_workspace, cx| {
@@ -443,76 +396,3 @@ impl From<&dyn StatusItemViewHandle> for AnyView {
     }
 }
 
-struct ToolsMenu {
-    focus_handle: FocusHandle,
-}
-
-impl ToolsMenu {
-    fn new(cx: &mut Context<Self>) -> Self {
-        Self {
-            focus_handle: cx.focus_handle(),
-        }
-    }
-
-    fn render_tool_item(
-        &self,
-        label: &'static str,
-        icon: IconName,
-        cx: &mut Context<Self>,
-    ) -> impl IntoElement {
-        let action: Box<dyn gpui::Action> = match label {
-            "Search" => Box::new(NewSearch),
-            "Terminal" => Box::new(NewTerminal::default()),
-            "Settings" => Box::new(OpenSettings),
-            _ => Box::new(NewSearch),
-        };
-
-        let view = cx.entity().downgrade();
-        v_flex()
-            .gap_1()
-            .items_center()
-            .child(
-                IconButton::new(label, icon)
-                    .icon_size(IconSize::Medium)
-                    .style(ButtonStyle::Subtle)
-                    .on_click(move |_, window, cx| {
-                        window.dispatch_action(action.boxed_clone(), cx);
-                        view.update(cx, |_, cx| cx.emit(DismissEvent)).ok();
-                    }),
-            )
-            .child(
-                Label::new(label)
-                    .size(LabelSize::XSmall)
-                    .color(Color::Muted),
-            )
-    }
-}
-
-impl Render for ToolsMenu {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        div()
-            .track_focus(&self.focus_handle)
-            .bg(cx.theme().colors().elevated_surface_background)
-            .border_1()
-            .border_color(cx.theme().colors().border)
-            .rounded_lg()
-            .p_2()
-            .w(px(240.))
-            .child(
-                h_flex()
-                    .flex_wrap()
-                    .gap_2()
-                    .justify_center()
-                    .child(self.render_tool_item("Search", IconName::MagnifyingGlass, cx))
-                    .child(self.render_tool_item("Terminal", IconName::Terminal, cx))
-                    .child(self.render_tool_item("Settings", IconName::Settings, cx))
-            )
-    }
-}
-
-impl EventEmitter<DismissEvent> for ToolsMenu {}
-impl Focusable for ToolsMenu {
-    fn focus_handle(&self, _cx: &App) -> FocusHandle {
-        self.focus_handle.clone()
-    }
-}
