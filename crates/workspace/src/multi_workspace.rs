@@ -21,7 +21,7 @@ use zed_actions::agents_sidebar::ToggleThreadSwitcher;
 
 use agent_settings::AgentSettings;
 use settings::SidebarDockPosition;
-use ui::{ContextMenu, right_click_menu};
+use ui::{ContextMenu, right_click_menu, Vector, VectorName};
 use theme;
 
 const SIDEBAR_RESIZE_HANDLE_SIZE: Pixels = px(6.0);
@@ -2024,7 +2024,10 @@ impl MultiWorkspace {
             
             // Generate a color from the hash
             let hue = (hash % 360) as f32 / 360.0;
-            let avatar_color = gpui::hsla(hue, 0.6, 0.5, 1.0);
+            // Muted colors: 15-25% saturation, 18-25% lightness
+            let saturation = 0.15 + (hash % 11) as f32 * 0.01;
+            let lightness = 0.18 + (hash % 8) as f32 * 0.01;
+            let avatar_color = gpui::hsla(hue, saturation, lightness, 1.0);
             
             let workspace_clone = workspace.clone();
             
@@ -2038,18 +2041,21 @@ impl MultiWorkspace {
                     .items_center()
                     .justify_center()
                     .relative()
-                    .when(is_active, |el| {
-                        // Amber left border
-                        el.child(
-                            div()
-                                .absolute()
-                                .left_0()
-                                .top_0()
-                                .bottom_0()
-                                .w(px(2.))
-                                .bg(gpui::rgb(0xffb000))
-                        )
-                    })
+                    .child(
+                        div()
+                            .absolute()
+                            .left_0()
+                            .top_0()
+                            .bottom_0()
+                            .when(is_active, |el| {
+                                // Active project: amber left border #e8a825, 3px
+                                el.w(px(3.)).bg(gpui::rgb(0xe8a825))
+                            })
+                            .when(!is_active, |el| {
+                                // Inactive project: subtle border #2a2a2a, 1px
+                                el.w(px(1.)).bg(gpui::rgb(0x2a2a2a))
+                            })
+                    )
                     .child(
                         div()
                             .size(px(32.))
@@ -2058,7 +2064,7 @@ impl MultiWorkspace {
                             .flex()
                             .items_center()
                             .justify_center()
-                            .text_color(gpui::white())
+                            .text_color(gpui::rgb(0xe8a825)) // Text: always #e8a825 amber
                             .child(first_letter.to_string())
                     )
                     .cursor_pointer()
@@ -2095,6 +2101,16 @@ impl MultiWorkspace {
                     .flex_1()
                     .gap_2()
                     .py_2()
+                    .child(
+                        div()
+                            .pt(px(12.))
+                            .w_full()
+                            .flex()
+                            .justify_center()
+                            .child(
+                                Vector::square(VectorName::VoidLogo, rems_from_px(28.))
+                            )
+                    )
                     .children(avatars)
                     .child(
                         // "+" button to open folder picker
