@@ -8,8 +8,8 @@ use agent_settings::AgentSettings;
 use chrono::{DateTime, Utc};
 use git::Clone as GitClone;
 use gpui::{
-    px, rgba, App, AppContext, Context, EventEmitter, FocusHandle, FocusableView, FontWeight,
-    Model, Point, Render, View, ViewContext, VisualContext, WeakEntity, point,
+    px, rgba, App, AppContext, Context, EventEmitter, FocusHandle, Focusable, FontWeight,
+    Entity, Render, WeakEntity, point,
     Action, actions, Task, Window,
 };
 use menu::{SelectNext, SelectPrevious};
@@ -17,7 +17,7 @@ use menu::{SelectNext, SelectPrevious};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use settings::Settings;
-use ui::{ButtonLike, Divider, DividerColor, KeyBinding, Vector, VectorName, prelude::*};
+use ui::{ButtonLike, Divider, KeyBinding, Vector, VectorName, prelude::*};
 use util::ResultExt;
 use zed_actions::{
     Extensions, OpenKeymap, OpenOnboarding, OpenSettings, assistant::ToggleFocus, command_palette,
