@@ -624,16 +624,15 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
                        button_label: &'static str,
                        url: &'static str,
                        highlight: bool| {
+        let amber_tint = rgba(0xffb0000d).into();
+
         v_flex()
             .id(id)
             .w_full()
             .border_1()
-            .border_color(if highlight {
-                amber_border
-            } else {
-                colors.border_variant
-            })
-            .rounded_sm()
+            .border_color(colors.border_variant)
+            .when(highlight, |this| this.bg(amber_tint))
+            .rounded_md()
             .p_1p5()
             .gap_1()
             .child(
@@ -654,9 +653,11 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
             )
             .child(
                 Button::new(format!("{id}-button"), button_label)
-                    .style(ButtonStyle::Outlined)
+                    .style(ButtonStyle::Subtle)
+                    .when(highlight, |this| this.color(Color::Accent))
                     .size(ButtonSize::Compact)
                     .label_size(LabelSize::Small)
+                    .rounded_full()
                     .on_click(move |_, _, cx| cx.open_url(url)),
             )
     };
@@ -674,7 +675,7 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
             "100+ models — Claude, GPT, Gemini, Llama. Get a free API key in 30 seconds.",
             "Get free key",
             "https://openrouter.ai/keys",
-            false,
+            true,
         ))
         .child(render_item(
             "ai-setup-ollama",

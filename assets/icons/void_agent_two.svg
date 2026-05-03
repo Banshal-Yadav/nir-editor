@@ -1,30 +1,19 @@
 <svg width="16" height="16" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
   <g transform="translate(0, 2)">
-    <text x="51" y="54"
-      font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-      font-weight="900"
-      font-size="38"
-      fill="currentColor"
-      fill-opacity="0.3"
-      text-anchor="middle"
-      dominant-baseline="middle"
-      letter-spacing="-2">[/]</text>
-    <text x="49" y="56"
-      font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-      font-weight="900"
-      font-size="38"
-      fill="currentColor"
-      fill-opacity="0.3"
-      text-anchor="middle"
-      dominant-baseline="middle"
-      letter-spacing="-2">[/]</text>
     <text x="50" y="55"
       font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
       font-weight="900"
-      font-size="38"
+      font-size="60"
       fill="currentColor"
       text-anchor="middle"
       dominant-baseline="middle"
-      letter-spacing="-2">[/]</text>
+      letter-spacing="-6">[/]</text>
+    <text x="95" y="90"
+      font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+      font-weight="900"
+      font-size="30"
+      fill="currentColor"
+      text-anchor="middle"
+      dominant-baseline="middle">2</text>
   </g>
 </svg>

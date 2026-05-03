@@ -54,16 +54,17 @@ impl SectionHeader {
 impl RenderOnce for SectionHeader {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         h_flex()
-            .px_1()
+            .px_2()
+            .py_0p5()
             .mb_2()
-            .gap_2()
+            .bg(cx.theme().colors().border_variant)
             .child(
                 Label::new(self.title.to_ascii_uppercase())
                     .buffer_font(cx)
-                    .color(Color::Muted)
+                    .color(Color::Default)
+                    .weight(FontWeight::ExtraBold)
                     .size(LabelSize::XSmall),
             )
-            .child(Divider::horizontal().color(DividerColor::BorderVariant))
     }
 }
 
@@ -98,28 +99,34 @@ impl RenderOnce for SectionButton {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let id = format!("onb-button-{}-{}", self.label, self.tab_index);
         let action_ref: &dyn Action = &*self.action;
+        let colors = cx.theme().colors();
 
         ButtonLike::new(id)
             .tab_index(self.tab_index as isize)
             .full_width()
-            .size(ButtonSize::Medium)
+            .h_20()
+            .p_4()
+            .rounded_none()
+            .border_0()
+            .bg(colors.panel_background)
+            .hover(|s| s.bg(Color::Accent).color(Color::Black))
             .child(
-                h_flex()
+                v_flex()
                     .w_full()
+                    .h_full()
                     .justify_between()
                     .child(
-                        h_flex()
-                            .gap_2()
-                            .child(
-                                Icon::new(self.icon)
-                                    .color(Color::Muted)
-                                    .size(IconSize::Small),
-                            )
-                            .child(Label::new(self.label)),
+                        Label::new(self.label.to_ascii_uppercase())
+                            .weight(FontWeight::ExtraBold)
+                            .size(LabelSize::Small),
                     )
                     .child(
-                        KeyBinding::for_action_in(action_ref, &self.focus_handle, cx)
-                            .size(rems_from_px(12.)),
+                        h_flex()
+                            .justify_end()
+                            .child(
+                                KeyBinding::for_action_in(action_ref, &self.focus_handle, cx)
+                                    .size(rems_from_px(10.)),
+                            ),
                     ),
             )
             .on_click(move |_, window, cx| {
@@ -153,25 +160,34 @@ impl RenderOnce for VoidLogo {
         h_flex()
             .gap_4()
             .items_center()
-            .child(Vector::square(VectorName::VoidLogo, rems(2.5)))
             .child(
-                Headline::new("/void")
-                    .size(HeadlineSize::Large)
-                    .color(Color::Default),
+                div()
+                    .border_3()
+                    .border_color(Color::Default)
+                    .p_2()
+                    .child(Vector::square(VectorName::VoidLogo, rems(3.5)))
+            )
+            .child(
+                v_flex()
+                    .child(
+                        Headline::new("/void")
+                            .size(HeadlineSize::XLarge)
+                            .weight(FontWeight::ExtraBold)
+                            .color(Color::Default),
+                    )
             )
             .child(
                 // Blinking cursor bar
                 div()
                     .id("void-cursor-blink")
-                    .w(px(3.))
-                    .h(rems(1.8))
+                    .w(px(4.))
+                    .h(rems(2.5))
                     .bg(cursor_color)
-                    .rounded_sm()
+                    .rounded_none()
                     .with_animation(
                         "cursor-blink",
                         Animation::new(Duration::from_millis(1000)).repeat(),
                         |this, delta| {
-                            // Step function: visible for first half, hidden for second half
                             let opacity = if delta < 0.5 { 1.0 } else { 0.0 };
                             this.opacity(opacity)
                         },
@@ -244,23 +260,23 @@ const CONTENT: (Section<4>, Section<3>) = (
         ],
     },
     Section {
-        title: "Configure",
+        title: "Configuration",
         entries: [
             SectionEntry {
                 icon: IconName::Settings,
-                title: "Open Settings",
+                title: "Settings",
                 action: &OpenSettings,
                 visibility_guard: SectionVisibility::Always,
             },
             SectionEntry {
                 icon: IconName::Keyboard,
-                title: "Customize Keymaps",
+                title: "Keymaps",
                 action: &OpenKeymap,
                 visibility_guard: SectionVisibility::Always,
             },
             SectionEntry {
                 icon: IconName::Blocks,
-                title: "Explore Extensions",
+                title: "Extensions",
                 action: &Extensions {
                     category_filter: None,
                     id: None,
@@ -281,11 +297,20 @@ impl<const COLS: usize> Section<COLS> {
         v_flex()
             .min_w_full()
             .child(SectionHeader::new(self.title))
-            .children(
-                self.entries
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(index, entry)| entry.render(index_offset + index, focus)),
+            .child(
+                div()
+                    .grid()
+                    .grid_cols(2)
+                    .gap_px()
+                    .bg(Color::Default)
+                    .border_3()
+                    .border_color(Color::Default)
+                    .children(
+                        self.entries
+                            .iter()
+                            .enumerate()
+                            .filter_map(|(index, entry)| entry.render(index_offset + index, focus)),
+                    ),
             )
     }
 }
@@ -393,40 +418,39 @@ impl WelcomePage {
 
         v_flex()
             .w_full()
-            .p_2()
-            .rounded_md()
-            .border_1()
-            .border_color(color.border_variant)
-            .bg(linear_gradient(
-                360.,
-                linear_color_stop(color.panel_background, 1.0),
-                linear_color_stop(color.editor_background, 0.45),
-            ))
+            .p_6()
+            .rounded_none()
+            .border_3()
+            .border_color(Color::Default)
+            .bg(color.panel_background)
             .child(
                 h_flex()
                     .gap_1p5()
                     .child(
                         Icon::new(IconName::AiAnthropic)
-                            .color(Color::Muted)
+                            .color(Color::Accent)
                             .size(IconSize::Small),
                     )
-                    .child(Label::new("Collaborate with Agents")),
+                    .child(
+                        Label::new("AGENT_PROTOCOL_ENABLED")
+                            .weight(FontWeight::ExtraBold)
+                            .size(LabelSize::Small),
+                    ),
             )
             .child(
                 Label::new(description)
-                    .size(LabelSize::Small)
+                    .size(LabelSize::XSmall)
                     .color(Color::Muted)
-                    .mb_2(),
+                    .mb_4(),
             )
             .child(
                 Button::new("open-agent", "Open Agent Panel")
                     .full_width()
                     .tab_index(tab_index as isize)
-                    .style(ButtonStyle::Outlined)
-                    .key_binding(
-                        KeyBinding::for_action_in(&ToggleFocus, &self.focus_handle, cx)
-                            .size(rems_from_px(12.)),
-                    )
+                    .style(ButtonStyle::Filled)
+                    .rounded_none()
+                    .border_2()
+                    .border_color(Color::Black)
                     .on_click(move |_, window, cx| {
                         focus.dispatch_action(&ToggleWorkspaceSidebar, window, cx);
                         focus.dispatch_action(&ToggleFocus, window, cx);
@@ -513,26 +537,34 @@ impl Render for WelcomePage {
             .child(
                 v_flex()
                     .id("welcome-content")
-                    .p_8()
                     .max_w_128()
-                    .size_full()
-                    .gap_6()
-                    .justify_center()
-                    .overflow_y_scroll()
+                    .p_0()
+                    .border_3()
+                    .border_color(Color::Default)
+                    .shadow(Some(vec![gpui::BoxShadow {
+                        color: rgba(0x000000ff).into(),
+                        offset: px(20.).into(),
+                        blur_radius: px(0.).into(),
+                        spread_radius: px(0.).into(),
+                    }]))
+                    .bg(cx.theme().colors().panel_background)
                     .child(
-                        h_flex()
-                            .w_full()
-                            .justify_center()
-                            .mb_4()
-                            .gap_4()
-                            .child(VoidLogo::new(cx))
+                        v_flex()
+                            .p_8()
+                            .gap_8()
                             .child(
-                                v_flex().child(Label::new("think. build. ship.")
-                                    .size(LabelSize::Small)
-                                    .color(Color::Muted)
-                                    .italic()),
-                            ),
-                    )
+                                h_flex()
+                                    .w_full()
+                                    .justify_between()
+                                    .items_center()
+                                    .child(VoidLogo::new(cx))
+                                    .child(
+                                        Label::new("THINK. BUILD. SHIP.")
+                                            .weight(FontWeight::ExtraBold)
+                                            .size(LabelSize::Small)
+                                            .color(Color::Accent),
+                                    ),
+                            )
                     .child(first_section.render(Default::default(), &self.focus_handle))
                     .child(second_section)
                     .when(ai_enabled && !showing_recent_projects, |this| {
@@ -554,6 +586,7 @@ impl Render for WelcomePage {
                         )
                     }),
             )
+        )
     }
 }
 
