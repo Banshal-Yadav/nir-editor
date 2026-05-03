@@ -4,9 +4,7 @@ use crate::{
     item::{Item, ItemEvent},
     persistence::WorkspaceDb,
 };
-use agent_settings::AgentSettings;
 use chrono::{DateTime, Utc};
-use std::time::Duration;
 use gpui::{
     px, rgba, App, AppContext, Context, EventEmitter, FocusHandle, Focusable, FontWeight,
     Entity, Render, WeakEntity, point,
@@ -16,7 +14,6 @@ use menu::{SelectNext, SelectPrevious};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use settings::Settings;
 use ui::{ButtonLike, KeyBinding, prelude::*};
 use util::ResultExt;
 use zed_actions::{
@@ -165,17 +162,17 @@ impl RenderOnce for VoidLogo {
             .child(
                 Label::new("[/]")
                     .weight(FontWeight::EXTRA_BOLD)
-                    .size(LabelSize::XLarge)
+                    .size(LabelSize::Large)
                     .color(Color::Accent)
             )
             .child(
                 Label::new("void")
                     .weight(FontWeight::EXTRA_BOLD)
-                    .size(LabelSize::XLarge)
+                    .size(LabelSize::Large)
             )
             .child(
                 Label::new("▊")
-                    .size(LabelSize::XLarge)
+                    .size(LabelSize::Large)
                     .color(Color::Accent)
                     .with_animation("void-cursor", cursor_animation, |label, delta| {
                         label.opacity(delta)
@@ -497,6 +494,8 @@ impl Render for WelcomePage {
             None
         };
 
+        let has_second_section = rendered_second_section.is_some();
+
         h_flex()
             .key_context("Welcome")
             .track_focus(&self.focus_handle(cx))
@@ -572,7 +571,7 @@ impl Render for WelcomePage {
                                                 .child(section)
                                         )
                                     })
-                                    .when(rendered_second_section.is_none(), |this| {
+                                    .when(!has_second_section, |this| {
                                         this.child(
                                             div()
                                                 .border_r_1()
