@@ -70,6 +70,7 @@ impl RenderOnce for SectionHeader {
 #[derive(IntoElement)]
 struct SectionButton {
     label: SharedString,
+    description: SharedString,
     #[allow(dead_code)]
     icon: IconName,
     action: Box<dyn Action>,
@@ -80,6 +81,7 @@ struct SectionButton {
 impl SectionButton {
     fn new(
         label: impl Into<SharedString>,
+        description: impl Into<SharedString>,
         icon: IconName,
         action: &dyn Action,
         tab_index: usize,
@@ -87,6 +89,7 @@ impl SectionButton {
     ) -> Self {
         Self {
             label: label.into(),
+            description: description.into(),
             icon,
             action: action.boxed_clone(),
             tab_index,
@@ -104,20 +107,31 @@ impl RenderOnce for SectionButton {
         ButtonLike::new(id)
             .tab_index(self.tab_index as isize)
             .full_width()
-            .h_20()
-            .px_4()
             .child(
-                h_flex()
+                v_flex()
                     .w_full()
-                    .justify_between()
-                    .items_center()
+                    .p_4()
+                    .gap_2()
                     .child(
                         Label::new(self.label.to_ascii_uppercase())
                             .weight(FontWeight::EXTRA_BOLD)
                             .size(LabelSize::Small),
                     )
                     .child(
-                        KeyBinding::for_action_in(action_ref, &self.focus_handle, cx),
+                        Label::new(self.description.clone())
+                            .size(LabelSize::XSmall)
+                            .color(Color::Muted),
+                    )
+                    .child(
+                        div()
+                            .border_1()
+                            .border_color(cx.theme().colors().border)
+                            .px_2()
+                            .py_1()
+                            .w_fit()
+                            .child(
+                                KeyBinding::for_action_in(action_ref, &self.focus_handle, cx),
+                            ),
                     ),
             )
             .on_click(move |_, window, cx| {
@@ -149,35 +163,17 @@ impl RenderOnce for VoidLogo {
         let cursor_color = Color::Accent.color(cx);
 
         h_flex()
-            .gap_4()
             .items_center()
             .child(
-                Vector::square(VectorName::VoidLogo, rems(4.5))
+                Label::new("[/]")
+                    .weight(FontWeight::EXTRA_BOLD)
+                    .size(LabelSize::XLarge)
+                    .color(Color::Accent)
             )
             .child(
-                v_flex()
-                    .child(
-                        Label::new("/void")
-                            .size(LabelSize::Small)
-                            .weight(FontWeight::EXTRA_BOLD)
-                    )
-            )
-            .child(
-                // Blinking cursor bar
-                div()
-                    .id("void-cursor-blink")
-                    .w(px(4.))
-                    .h(rems(2.5))
-                    .bg(cursor_color)
-                    .rounded_none()
-                    .with_animation(
-                        "cursor-blink",
-                        Animation::new(Duration::from_millis(1000)).repeat(),
-                        |this, delta| {
-                            let opacity = if delta < 0.5 { 1.0 } else { 0.0 };
-                            this.opacity(opacity)
-                        },
-                    ),
+                Label::new("void")
+                    .weight(FontWeight::EXTRA_BOLD)
+                    .size(LabelSize::XLarge)
             )
     }
 }
@@ -197,6 +193,7 @@ impl SectionVisibility {
 struct SectionEntry {
     icon: IconName,
     title: &'static str,
+    description: &'static str,
     action: &'static dyn Action,
     visibility_guard: SectionVisibility,
 }
@@ -206,6 +203,7 @@ impl SectionEntry {
         self.visibility_guard.is_visible().then(|| {
             SectionButton::new(
                 self.title,
+                self.description,
                 self.icon,
                 self.action,
                 button_index,
@@ -215,32 +213,22 @@ impl SectionEntry {
     }
 }
 
-const CONTENT: (Section<4>, Section<3>) = (
+const CONTENT: (Section<2>, Section<2>) = (
     Section {
         title: "Get Started",
         entries: [
             SectionEntry {
                 icon: IconName::Plus,
                 title: "New File",
+                description: "Initialize empty buffer",
                 action: &NewFile,
                 visibility_guard: SectionVisibility::Always,
             },
             SectionEntry {
                 icon: IconName::FolderOpen,
                 title: "Open Project",
+                description: "Load workspace from disk",
                 action: &Open::DEFAULT,
-                visibility_guard: SectionVisibility::Always,
-            },
-            SectionEntry {
-                icon: IconName::CloudDownload,
-                title: "Clone Repository",
-                action: &GitClone,
-                visibility_guard: SectionVisibility::Always,
-            },
-            SectionEntry {
-                icon: IconName::ListCollapse,
-                title: "Open Command Palette",
-                action: &command_palette::Toggle,
                 visibility_guard: SectionVisibility::Always,
             },
         ],
@@ -251,22 +239,15 @@ const CONTENT: (Section<4>, Section<3>) = (
             SectionEntry {
                 icon: IconName::Settings,
                 title: "Settings",
+                description: "Configure system prefs",
                 action: &OpenSettings,
                 visibility_guard: SectionVisibility::Always,
             },
             SectionEntry {
                 icon: IconName::Keyboard,
                 title: "Keymaps",
+                description: "Modify input bindings",
                 action: &OpenKeymap,
-                visibility_guard: SectionVisibility::Always,
-            },
-            SectionEntry {
-                icon: IconName::Blocks,
-                title: "Extensions",
-                action: &Extensions {
-                    category_filter: None,
-                    id: None,
-                },
                 visibility_guard: SectionVisibility::Always,
             },
         ],
@@ -404,45 +385,44 @@ impl WelcomePage {
 
         v_flex()
             .w_full()
-            .p_6()
-            .rounded_none()
-            .border_3()
+            .p_8()
+            .border_1()
             .border_color(cx.theme().colors().border)
             .child(
-                h_flex()
-                    .gap_1p5()
-                    .child(
-                        Icon::new(IconName::AiAnthropic)
-                            .color(Color::Accent)
-                            .size(IconSize::Small),
-                    )
-                    .child(
-                        Label::new("AGENT_PROTOCOL_ENABLED")
-                            .weight(FontWeight::EXTRA_BOLD)
-                            .size(LabelSize::Small),
-                    ),
-            )
-            .child(
-                Label::new(description)
-                    .size(LabelSize::XSmall)
-                    .color(Color::Muted)
+                Label::new("AGENT_PROTOCOL_ENABLED")
+                    .weight(FontWeight::EXTRA_BOLD)
+                    .size(LabelSize::Small)
                     .mb_4(),
             )
             .child(
+                Label::new("Deploy parallel threads to solve complex tasks. Multi-agent orchestration and automated worktree isolation are active.")
+                    .size(LabelSize::XSmall)
+                    .color(Color::Muted)
+                    .mb_6(),
+            )
+            .child(
                 ButtonLike::new("open-agent")
-                    .full_width()
                     .tab_index(tab_index as isize)
                     .on_click(move |_, window, cx| {
                         focus.dispatch_action(&ToggleWorkspaceSidebar, window, cx);
                         focus.dispatch_action(&ToggleFocus, window, cx);
                     })
                     .child(
-                        h_flex()
-                            .justify_center()
+                        div()
+                            .bg(rgba(0xffb000ff)) // Exact Void Amber
+                            .px_6()
+                            .py_3()
+                            .shadow(vec![gpui::BoxShadow {
+                                color: rgba(0x000000ff).into(),
+                                offset: point(px(6.), px(6.)),
+                                blur_radius: px(0.),
+                                spread_radius: px(0.),
+                            }])
                             .child(
                                 Label::new("OPEN AGENT PANEL")
                                     .weight(FontWeight::EXTRA_BOLD)
-                                    .size(LabelSize::Small),
+                                    .size(LabelSize::Small)
+                                    .color(gpui::black()),
                             ),
                     ),
             )
@@ -525,10 +505,12 @@ impl Render for WelcomePage {
             .bg(cx.theme().colors().editor_background)
             .justify_center()
             .child(
-                v_flex()
-                    .id("welcome-content")
-                    .max_w_128()
-                    .p_0()
+                div()
+                    .id("welcome-container")
+                    .mt_20()
+                    .w(rems(36.))
+                    .border_1()
+                    .border_color(cx.theme().colors().border)
                     .shadow(vec![gpui::BoxShadow {
                         color: rgba(0x000000ff).into(),
                         offset: point(px(20.), px(20.)),
@@ -537,43 +519,116 @@ impl Render for WelcomePage {
                     }])
                     .child(
                         v_flex()
-                            .p_8()
-                            .gap_8()
                             .child(
                                 h_flex()
                                     .w_full()
-                                    .justify_between()
-                                    .items_center()
-                                    .child(VoidLogo::new(cx))
+                                    .h(rems(12.))
+                                    .border_b_1()
+                                    .border_color(cx.theme().colors().border)
                                     .child(
-                                        Label::new("THINK. BUILD. SHIP.")
-                                            .weight(FontWeight::EXTRA_BOLD)
-                                            .size(LabelSize::Small)
-                                            .color(Color::Accent),
-                                    ),
+                                        h_flex()
+                                            .w_full()
+                                            .px_8()
+                                            .justify_between()
+                                            .items_center()
+                                            .child(VoidLogo::new(cx))
+                                            .child(
+                                                div()
+                                                    .pr_12()
+                                                    .style(|s| {
+                                                        s.transform.rotate = Some(gpui::Degrees(90.));
+                                                    })
+                                                    .child(
+                                                        Label::new("THINK. BUILD. SHIP.")
+                                                            .weight(FontWeight::EXTRA_BOLD)
+                                                            .size(LabelSize::Small)
+                                                            .color(Color::Accent),
+                                                    ),
+                                            ),
+                                    )
                             )
-                    .child(first_section.render(Default::default(), &self.focus_handle, cx))
-                    .child(second_section)
-                    .when(ai_enabled && !showing_recent_projects, |this| {
-                        let agent_tab_index = next_tab_index;
-                        next_tab_index += 1;
-                        this.child(self.render_agent_card(agent_tab_index, cx))
-                    })
-                    .when(!self.fallback_to_recent_projects, |this| {
-                        this.child(
-                            v_flex().gap_4().child(Divider::horizontal()).child(
-                                Button::new("welcome-exit", "Return to Onboarding")
-                                    .tab_index(next_tab_index as isize)
-                                    .full_width()
-                                    .style(ButtonStyle::Subtle)
-                                    .on_click(|_, window, cx| {
-                                        window.dispatch_action(OpenOnboarding.boxed_clone(), cx);
-                                    }),
-                            ),
-                        )
-                    }),
+                            .child(
+                                div()
+                                    .grid()
+                                    .grid_cols(2)
+                                    .child(
+                                        div()
+                                            .border_r_1()
+                                            .border_b_1()
+                                            .border_color(cx.theme().colors().border)
+                                            .child(first_section.entries[0].render(0, &self.focus_handle).unwrap())
+                                    )
+                                    .child(
+                                        div()
+                                            .border_b_1()
+                                            .border_color(cx.theme().colors().border)
+                                            .child(first_section.entries[1].render(1, &self.focus_handle).unwrap())
+                                    )
+                                    .child(
+                                        div()
+                                            .border_r_1()
+                                            .border_b_1()
+                                            .border_color(cx.theme().colors().border)
+                                            .child(second_section.entries[0].render(2, &self.focus_handle).unwrap())
+                                    )
+                                    .child(
+                                        div()
+                                            .border_b_1()
+                                            .border_color(cx.theme().colors().border)
+                                            .child(second_section.entries[1].render(3, &self.focus_handle).unwrap())
+                                    )
+                            )
+                            .child(
+                                div()
+                                    .p_8()
+                                    .child(self.render_agent_card(next_tab_index, cx))
+                            )
+                            .child(
+                                div()
+                                    .border_t_1()
+                                    .border_color(cx.theme().colors().border)
+                                    .grid()
+                                    .grid_cols(3)
+                                    .child(
+                                        div()
+                                            .border_r_1()
+                                            .border_color(cx.theme().colors().border)
+                                            .p_4()
+                                            .w_full()
+                                            .flex()
+                                            .justify_center()
+                                            .child(
+                                                Label::new("CLONE_REPO")
+                                                    .size(LabelSize::XSmall)
+                                            )
+                                    )
+                                    .child(
+                                        div()
+                                            .border_r_1()
+                                            .border_color(cx.theme().colors().border)
+                                            .p_4()
+                                            .w_full()
+                                            .flex()
+                                            .justify_center()
+                                            .child(
+                                                Label::new("COMMAND_PALETTE")
+                                                    .size(LabelSize::XSmall)
+                                            )
+                                    )
+                                    .child(
+                                        div()
+                                            .p_4()
+                                            .w_full()
+                                            .flex()
+                                            .justify_center()
+                                            .child(
+                                                Label::new("EXIT_TO_ONBOARDING")
+                                                    .size(LabelSize::XSmall)
+                                            )
+                                    )
+                            )
+                    )
             )
-        )
     }
 }
 
