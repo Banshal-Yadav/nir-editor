@@ -21,7 +21,7 @@ use zed_actions::{
 };
 // New imports for bottom‑row buttons
 use git::Clone as GitClone;
-use command_palette::Toggle as ToggleCommandPalette;
+use zed_actions::command_palette::Toggle as ToggleCommandPalette;
 use zed_actions::OpenOnboarding;
 
 #[derive(PartialEq, Clone, Debug, Deserialize, Serialize, JsonSchema, Action)]
@@ -155,7 +155,7 @@ impl VoidLogo {
 }
 
 impl RenderOnce for VoidLogo {
-    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
         let cursor_animation = Animation::new(std::time::Duration::from_secs(1))
             .repeat()
             .with_easing(pulsating_between(0.3, 1.0));
