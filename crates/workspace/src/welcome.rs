@@ -104,22 +104,20 @@ impl RenderOnce for SectionButton {
         ButtonLike::new(id)
             .tab_index(self.tab_index as isize)
             .full_width()
+            .h_20()
+            .px_4()
             .child(
-                v_flex()
+                h_flex()
                     .w_full()
-                    .h_full()
                     .justify_between()
+                    .items_center()
                     .child(
                         Label::new(self.label.to_ascii_uppercase())
                             .weight(FontWeight::EXTRA_BOLD)
                             .size(LabelSize::Small),
                     )
                     .child(
-                        h_flex()
-                            .justify_end()
-                            .child(
-                                KeyBinding::for_action_in(action_ref, &self.focus_handle, cx),
-                            ),
+                        KeyBinding::for_action_in(action_ref, &self.focus_handle, cx),
                     ),
             )
             .on_click(move |_, window, cx| {
@@ -154,11 +152,7 @@ impl RenderOnce for VoidLogo {
             .gap_4()
             .items_center()
             .child(
-                div()
-                    .border_3()
-                    .border_color(cx.theme().colors().border)
-                    .p_2()
-                    .child(Vector::square(VectorName::VoidLogo, rems(3.5)))
+                Vector::square(VectorName::VoidLogo, rems(4.5))
             )
             .child(
                 v_flex()
@@ -573,7 +567,7 @@ impl Render for WelcomePage {
                                 Button::new("welcome-exit", "Return to Onboarding")
                                     .tab_index(next_tab_index as isize)
                                     .full_width()
-                                    .size(ButtonSize::None)
+                                    .style(ButtonStyle::Subtle)
                                     .on_click(|_, window, cx| {
                                         window.dispatch_action(OpenOnboarding.boxed_clone(), cx);
                                     }),
