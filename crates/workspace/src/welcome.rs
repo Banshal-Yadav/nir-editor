@@ -6,10 +6,11 @@ use crate::{
 };
 use agent_settings::AgentSettings;
 use chrono::{DateTime, Utc};
+use std::time::Duration;
 use gpui::{
     px, rgba, App, AppContext, Context, EventEmitter, FocusHandle, Focusable, FontWeight,
     Entity, Render, WeakEntity, point,
-    Action, actions, Task, Window,
+    Action, actions, Task, Window, Animation, AnimationExt, pulsating_between,
 };
 use menu::{SelectNext, SelectPrevious};
 
@@ -155,7 +156,9 @@ impl VoidLogo {
 
 impl RenderOnce for VoidLogo {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let _cursor_color = Color::Accent.color(cx);
+        let cursor_animation = Animation::new(std::time::Duration::from_secs(1))
+            .repeat()
+            .with_easing(pulsating_between(0.3, 1.0));
 
         h_flex()
             .items_center()
@@ -169,6 +172,14 @@ impl RenderOnce for VoidLogo {
                 Label::new("void")
                     .weight(FontWeight::EXTRA_BOLD)
                     .size(LabelSize::XLarge)
+            )
+            .child(
+                Label::new("▊")
+                    .size(LabelSize::XLarge)
+                    .color(Color::Accent)
+                    .with_animation("void-cursor", cursor_animation, |label, delta| {
+                        label.opacity(delta)
+                    }),
             )
     }
 }
@@ -553,27 +564,31 @@ impl Render for WelcomePage {
                                             .border_color(cx.theme().colors().border)
                                             .child(first_section.entries[1].render(1, &self.focus_handle).unwrap())
                                     )
-                                    .child(
-                                        div()
-                                            .border_r_1()
-                                            .border_b_1()
-                                            .border_color(cx.theme().colors().border)
-                                            .child(second_section.entries[0].render(2, &self.focus_handle).unwrap())
-                                    )
-                                    .child(
-                                        div()
-                                            .border_b_1()
-                                            .border_color(cx.theme().colors().border)
-                                            .child(second_section.entries[1].render(3, &self.focus_handle).unwrap())
-                                    )
+                                    .when_some(rendered_second_section, |this, section| {
+                                        this.child(
+                                            div()
+                                                .col_span(2)
+                                                .border_b_1()
+                                                .border_color(cx.theme().colors().border)
+                                                .child(section)
+                                        )
+                                    })
+                                    .when(rendered_second_section.is_none(), |this| {
+                                        this.child(
+                                            div()
+                                                .border_r_1()
+                                                .border_b_1()
+                                                .border_color(cx.theme().colors().border)
+                                                .child(second_section.entries[0].render(2, &self.focus_handle).unwrap())
+                                        )
+                                        .child(
+                                            div()
+                                                .border_b_1()
+                                                .border_color(cx.theme().colors().border)
+                                                .child(second_section.entries[1].render(3, &self.focus_handle).unwrap())
+                                        )
+                                    })
                             )
-                            .when_some(rendered_second_section, |this, section| {
-                                this.child(
-                                    div()
-                                        .p_8()
-                                        .child(section)
-                                )
-                            })
                             .child(
                                 div()
                                     .p_8()
