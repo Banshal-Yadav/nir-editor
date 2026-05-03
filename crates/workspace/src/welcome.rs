@@ -529,8 +529,6 @@ impl Render for WelcomePage {
                     .id("welcome-content")
                     .max_w_128()
                     .p_0()
-                    .border_3()
-                    .border_color(cx.theme().colors().border)
                     .shadow(vec![gpui::BoxShadow {
                         color: rgba(0x000000ff).into(),
                         offset: point(px(20.), px(20.)),
