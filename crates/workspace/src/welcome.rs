@@ -476,7 +476,6 @@ impl Render for WelcomePage {
         let first_section_entries = first_section.entries.len();
         let mut next_tab_index = first_section_entries + second_section.entries.len();
 
-        let ai_enabled = AgentSettings::get_global(cx).enabled(cx);
 
         let recent_projects = self
             .recent_workspaces
@@ -535,16 +534,16 @@ impl Render for WelcomePage {
                                             .justify_between()
                                             .items_center()
                                             .child(VoidLogo::new(cx))
-                                                    .child(
-                                                        div()
-                                                            .pr_12()
-                                                            .child(
-                                                                Label::new("THINK. BUILD. SHIP.")
-                                                                    .weight(FontWeight::EXTRA_BOLD)
-                                                                    .size(LabelSize::Small)
-                                                                    .color(Color::Accent),
-                                                            )
-                                                    ),
+                                    .child(
+                                        div()
+                                            .pr_12()
+                                            .child(
+                                                Label::new("THINK. BUILD. SHIP.")
+                                                    .weight(FontWeight::EXTRA_BOLD)
+                                                    .size(LabelSize::Small)
+                                                    .color(Color::Accent),
+                                            )
+                                    ),
                                     )
                             )
                             .child(
