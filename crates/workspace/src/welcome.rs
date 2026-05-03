@@ -59,8 +59,7 @@ impl RenderOnce for SectionHeader {
             .mb_2()
             .bg(cx.theme().colors().border_variant)
             .child(
-                Label::new(self.title.to_ascii_uppercase())
-                    .buffer_font(cx)
+                Label::new(self.title.to_string())
                     .color(Color::Default)
                     .weight(FontWeight::EXTRA_BOLD)
                     .size(LabelSize::XSmall),
@@ -104,9 +103,7 @@ impl RenderOnce for SectionButton {
         ButtonLike::new(id)
             .tab_index(self.tab_index as isize)
             .full_width()
-            .rounded_none()
-            .border_0()
-            .bg(colors.panel_background)
+            .bg(cx.theme().colors().panel)
             .hover(move |s: &mut gpui::StyleRefinement| s.bg(cx.theme().colors().element_hover).text_color(gpui::black()))
             .child(
                 v_flex()
@@ -122,8 +119,7 @@ impl RenderOnce for SectionButton {
                         h_flex()
                             .justify_end()
                             .child(
-                                KeyBinding::for_action_in(action_ref, &self.focus_handle, cx)
-                                    .size(rems_from_px(10.)),
+                                KeyBinding::for_action_in(action_ref, &self.focus_handle, cx),
                             ),
                     ),
             )
@@ -153,7 +149,7 @@ impl RenderOnce for VoidLogo {
         use std::time::Duration;
         use gpui::{Animation, AnimationExt};
 
-        let cursor_color = cx.theme().colors().text_accent;
+        let cursor_color = Color::Accent.color(cx);
 
         h_flex()
             .gap_4()
@@ -419,7 +415,7 @@ impl WelcomePage {
             .rounded_none()
             .border_3()
             .border_color(cx.theme().colors().border)
-            .bg(color.panel_background)
+            .bg(cx.theme().colors().panel)
             .child(
                 h_flex()
                     .gap_1p5()
@@ -444,9 +440,6 @@ impl WelcomePage {
                 ButtonLike::new("open-agent")
                     .full_width()
                     .tab_index(tab_index as isize)
-                    .border_2()
-                    .border_color(gpui::black())
-                    .p_2()
                     .hover(move |s: &mut gpui::StyleRefinement| s.bg(accent_color).text_color(gpui::black()))
                     .on_click(move |_, window, cx| {
                         focus.dispatch_action(&ToggleWorkspaceSidebar, window, cx);
@@ -553,7 +546,7 @@ impl Render for WelcomePage {
                         blur_radius: px(0.),
                         spread_radius: px(0.),
                     }])
-                    .bg(cx.theme().colors().panel_background)
+                    .bg(cx.theme().colors().panel)
                     .child(
                         v_flex()
                             .p_8()
@@ -584,7 +577,7 @@ impl Render for WelcomePage {
                                 Button::new("welcome-exit", "Return to Onboarding")
                                     .tab_index(next_tab_index as isize)
                                     .full_width()
-                                    .label_size(LabelSize::XSmall)
+                                    .size(ButtonSize::None)
                                     .on_click(|_, window, cx| {
                                         window.dispatch_action(OpenOnboarding.boxed_clone(), cx);
                                     }),
