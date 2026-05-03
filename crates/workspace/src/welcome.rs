@@ -175,7 +175,7 @@ impl RenderOnce for VoidLogo {
                     .size(LabelSize::Large)
                     .color(Color::Accent)
                     .with_animation("void-cursor", cursor_animation, |label, delta| {
-                        label.opacity(delta)
+                        label.alpha(delta)
                     }),
             )
     }
@@ -425,7 +425,7 @@ impl WelcomePage {
                                 Label::new("OPEN AGENT PANEL")
                                     .weight(FontWeight::EXTRA_BOLD)
                                     .size(LabelSize::Small)
-                                    .color(gpui::black()),
+                                    .color(ui::Color::Custom(gpui::black())),
                             ),
                     ),
             )
@@ -455,8 +455,14 @@ impl WelcomePage {
             SerializedWorkspaceLocation::Remote(_) => (IconName::Server, name),
         };
 
+        let description = match location {
+            SerializedWorkspaceLocation::Local => paths.paths()[0].to_string_lossy().to_string(),
+            SerializedWorkspaceLocation::Remote(_) => "Remote Project".to_string(),
+        };
+
         SectionButton::new(
             title,
+            description,
             icon,
             &OpenRecentProject {
                 index: project_index,
