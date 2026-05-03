@@ -657,8 +657,7 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
                     .when(highlight, |this| this.color(Color::Accent))
                     .size(ButtonSize::Compact)
                     .label_size(LabelSize::Small)
-                    .rounded_full()
-                    .on_click(move |_, _, cx| cx.open_url(url)),
+                    .on_click(move |_, _, cx: &mut App| cx.open_url(url)),
             )
     };
 
