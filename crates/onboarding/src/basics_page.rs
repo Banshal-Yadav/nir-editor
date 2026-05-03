@@ -615,7 +615,7 @@ fn render_ai_section(user_store: &Entity<UserStore>, cx: &mut App) -> impl IntoE
 
 fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
     let colors = cx.theme().colors();
-    let amber_border = Color::Custom(rgba(0xffb000ff));
+    let amber_border = rgba(0xffb000ff).into();
 
     let render_item = |id: &'static str,
                        label: &'static str,
@@ -631,7 +631,7 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
             .border_color(if highlight {
                 amber_border
             } else {
-                Color::Custom(colors.border_variant)
+                colors.border_variant
             })
             .rounded_sm()
             .p_1p5()
@@ -655,7 +655,7 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
             .child(
                 Button::new(format!("{id}-button"), button_label)
                     .style(ButtonStyle::Outlined)
-                    .size(ButtonSize::Small)
+                    .size(ButtonSize::Compact)
                     .label_size(LabelSize::Small)
                     .on_click(move |_, _, cx| cx.open_url(url)),
             )

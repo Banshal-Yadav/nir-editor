@@ -319,7 +319,7 @@ impl Render for Onboarding {
                                                     )
                                                     .child(
                                                         Label::new("think. build. ship.")
-                                                            .color(Color::Custom(rgba(0x555555ff)))
+                                                            .color(Color::Custom(rgba(0x555555ff).into()))
                                                             .size(LabelSize::Small)
                                                             .italic(),
                                                     ),
