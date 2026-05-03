@@ -3200,7 +3200,7 @@ impl AgentPanel {
             } else if let Some(icon_name) = selected_agent_builtin_icon {
                 Icon::new(icon_name).size(IconSize::Small).color(icon_color)
             } else {
-                Icon::new(IconName::Slash)
+                Icon::new(IconName::VoidAgent)
                     .size(IconSize::Small)
                     .color(Color::Muted)
             };
