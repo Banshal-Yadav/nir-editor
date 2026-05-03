@@ -266,12 +266,6 @@ impl ListEntry {
     }
 }
 
-impl From<ThreadEntry> for ListEntry {
-    fn from(thread: ThreadEntry) -> Self {
-        ListEntry::Thread(thread)
-    }
-}
-
 #[derive(Default)]
 struct SidebarContents {
     entries: Vec<ListEntry>,
