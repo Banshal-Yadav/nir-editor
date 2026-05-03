@@ -3934,6 +3934,7 @@ impl Sidebar {
         ThreadItem::new(id, title)
             .base_bg(sidebar_bg)
             .icon(thread.icon)
+            .icon_size(IconSize::Medium)
             .status(thread.status)
             .is_remote(is_remote)
             .when_some(thread.icon_from_external_svg.clone(), |this, svg| {

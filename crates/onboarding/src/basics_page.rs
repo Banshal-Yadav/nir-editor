@@ -549,7 +549,7 @@ fn render_void_agent_button(user_store: &Entity<UserStore>, cx: &mut App) -> imp
     AgentSetupButton::new("void-agent-onboarding")
         .icon(
             Icon::new(IconName::VoidAgent)
-                .size(IconSize::XSmall)
+                .size(IconSize::Small)
                 .color(Color::Muted),
         )
         .name("/void Agent")

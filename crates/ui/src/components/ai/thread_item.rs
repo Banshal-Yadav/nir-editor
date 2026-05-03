@@ -35,6 +35,7 @@ pub struct ThreadItemWorktreeInfo {
 pub struct ThreadItem {
     id: ElementId,
     icon: IconName,
+    icon_size: IconSize,
     icon_color: Option<Color>,
     icon_visible: bool,
     custom_icon_from_external_svg: Option<SharedString>,
@@ -67,6 +68,7 @@ impl ThreadItem {
         Self {
             id: id.into(),
             icon: IconName::VoidAgent,
+            icon_size: IconSize::Small,
             icon_color: None,
             icon_visible: true,
             custom_icon_from_external_svg: None,
@@ -102,6 +104,11 @@ impl ThreadItem {
 
     pub fn icon(mut self, icon: IconName) -> Self {
         self.icon = icon;
+        self
+    }
+
+    pub fn icon_size(mut self, size: IconSize) -> Self {
+        self.icon_size = size;
         self
     }
 
@@ -272,9 +279,9 @@ impl RenderOnce for ThreadItem {
         let agent_icon = if let Some(custom_svg) = self.custom_icon_from_external_svg {
             Icon::from_external_svg(custom_svg)
                 .color(icon_color)
-                .size(IconSize::Small)
+                .size(self.icon_size)
         } else {
-            Icon::new(self.icon).color(icon_color).size(IconSize::Small)
+            Icon::new(self.icon).color(icon_color).size(self.icon_size)
         };
 
         let status_icon = if self.status == AgentThreadStatus::Error {
