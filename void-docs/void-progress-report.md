@@ -1,74 +1,47 @@
-﻿# /void Rebrand â€” Progress Report
+# /void Rebrand â€” Progress Report
 
 > Generated: 2026-04-28
 > Based on: void-docs audit + all changes applied this session
 
 ---
 
-## Summary
-
-| Category | Status |
-|----------|--------|
-| Build fix (`copilot_ui`) | âœ… Fixed |
-| App identity (display names, app IDs) | âœ… Fixed |
-| Filesystem paths (all platforms) | âœ… Fixed |
-| Package metadata & binary names | âœ… Fixed |
-| Windows platform classes | âœ… Previously done |
-| Agent ID | âœ… Previously done |
-| Telemetry disabled | âœ… Previously done |
-| Welcome screen strings | âœ… Previously done |
-| Logo / icon asset | ðŸ”´ Not started |
-| Menu items & help links | ðŸ”´ Not started |
-| Settings UI strings | ðŸ”´ Not started |
-| Onboarding UI strings | ðŸ”´ Not started |
-| zed.dev URLs (137 refs) | ðŸ”´ Not started |
-| API endpoints (cloud.zed.dev etc.) | ðŸ”´ Not started |
+## Current Status Overview
+- Build fix (copilot_ui): Fixed
+- App identity (display names): Fixed
+- Filesystem paths (all platforms): Fixed
+- Package metadata: Fixed
+- Welcome screen /void rebranding: Complete
+- Brutalist UI Overhaul: Complete
+- Logo / icon asset: Standardized [/] mark implemented
+- Menu items & help links: Ongoing
+- zed.dev URL replacement: Placeholder phase
 
 ---
 
 ## âœ… Done This Session
 
-### 1. `crates/release_channel/src/lib.rs`
+### 1. release_channel/lib.rs (Rebranding)
+- UI Title bar: "Void" / "Void Dev" / "Void Nightly"
+- App ID: "dev.void.Void"
+- Windows App ID: "Void-Editor-Dev"
+- Env Vars: VOID_RELEASE_CHANNEL, VOID_APP_VERSION
 
-What users see in the UI title bar and window:
-
-| Before | After |
-|--------|-------|
-| `"Zed"` / `"Zed Dev"` / `"Zed Nightly"` | `"Void"` / `"Void Dev"` / `"Void Nightly"` |
-| `"dev.zed.Zed"` (app ID / Wayland class) | `"dev.void.Void"` |
-| `"Zed-Editor-Dev"` (Windows app ID) | `"Void-Editor-Dev"` |
-| `ZED_RELEASE_CHANNEL` env var | `VOID_RELEASE_CHANNEL` |
-| `ZED_APP_VERSION` env var | `VOID_APP_VERSION` |
-
-### 2. `crates/paths/src/paths.rs`
-
-Filesystem directories the app reads/writes to:
-
-| Before | After |
-|--------|-------|
-| `Library/Application Support/Zed` (macOS) | `Library/Application Support/Void` |
-| `Library/Logs/Zed` (macOS) | `Library/Logs/Void` |
-| `.zed/` project local folder | `.void/` |
-| `.zed/settings.json` | `.void/settings.json` |
-| `.zed/tasks.json` | `.void/tasks.json` |
-| `.zed/debug.json` | `.void/debug.json` |
+### 2. paths/paths.rs (Data Dirs)
+- macOS App Support: Library/Application Support/Void
+- macOS Logs: Library/Logs/Void
+- Project folder: .void/
+- Settings: .void/settings.json
+- Tasks/Debug: .void/tasks.json, .void/debug.json
 
 Linux/Windows paths were already using `void` from a previous session.
 
-### 3. `crates/zed/Cargo.toml`
-
-Package metadata & macOS bundles:
-
-| Before | After |
-|--------|-------|
-| `name = "zed"` | `name = "void"` |
-| `version = "0.235.0"` | `version = "0.1.0"` |
-| `authors = ["Zed Team <hi@zed.dev>"]` | `authors = ["Void Team"]` |
-| `default-run = "zed"` | `default-run = "void"` |
-| Binary: `zed` | Binary: `void` |
-| Binary: `zed_visual_test_runner` | Binary: `void_visual_test_runner` |
-| Bundle IDs: `dev.zed.Zed*` | Bundle IDs: `dev.void.Void*` |
-| URL schemes: `zed://` | URL schemes: `void://` |
+### 3. zed/Cargo.toml (Metadata)
+- Package Name: void
+- Version: 0.1.0
+- Authors: Void Team
+- Binary: void
+- Bundle IDs: dev.void.Void*
+- URL Schemes: void://
 
 ### 4. Root `Cargo.toml` â€” Build Fix
 
@@ -84,15 +57,13 @@ referenced it as `copilot_ui.workspace = true` which caused build failure.
 
 ## âœ… Done Before This Session (Verified in void-docs)
 
-| What | File | Notes |
-|------|------|-------|
-| Windows class names | `gpui_windows/src/window.rs` | `"Void::Window"` |
-| Windows platform class | `gpui_windows/src/platform.rs` | `"Void::PlatformWindow"` |
-| Agent ID | `agent/src/agent.rs` | `VOID_AGENT_ID` |
-| Telemetry disabled | `assets/settings/default.json` | `diagnostics: false, metrics: false` |
-| Sign-in hidden | Multiple files | `show_sign_in: false` |
-| Welcome screen | `workspace/src/welcome.rs` | `"/void"`, `"The void awaits"` |
-| Linux/Windows data dirs | `paths.rs` | Already `.join("void")` |
+### 4. Verified Before This Session
+- Windows Class Names: Void::Window
+- Windows Platform: Void::PlatformWindow
+- Agent ID: VOID_AGENT_ID
+- Telemetry: Disabled via default settings
+- Welcome Screen: /void Branding
+- Linux/Windows Dirs: void-prefixed
 
 ---
 
@@ -100,32 +71,28 @@ referenced it as `copilot_ui.workspace = true` which caused build failure.
 
 ### HIGH â€” User-visible, must fix before ship
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Replace `VectorName::ZedLogo` | `welcome.rs:482`, `ui/src/components/image.rs` | Needs new SVG asset |
-| Menu "About Zed", help links | `zed/src/zed/app_menus.rs` | Whole menu section |
-| Onboarding UI strings | `onboarding/src/**` | "Welcome to Zed" etc. |
-| Settings UI strings | `settings_ui/src/page_data.rs` | Embedded "Zed" text |
-| Error messages (`zed.dev` links) | `main.rs:139`, `zed.rs:607` | Linux troubleshooting URLs |
+### High Priority Remaining
+- Menu "About Void": help links and about section
+- Onboarding Strings: "Welcome to /void"
+- Settings UI: Update remaining "Zed" descriptions
+- Troubleshooting URLs: Update to void placeholders
 
 ### MEDIUM â€” Runtime/functional impact
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Cloud API URLs | `http_client.rs:217-260` | `api.zed.dev`, `cloud.zed.dev` â€” will fail if cloud used |
-| Provider ID | `language_model_core/src/provider.rs:19` | `ZED_CLOUD_PROVIDER_ID = "zed.dev"` |
-| DB migration | `migrator.rs:1270` | `"provider": "zed.dev"` â€” misidentifies provider |
-| OpenRouter HTTP header | `open_router/src/open_router.rs:450,543` | `HTTP-Referer: https://zed.dev` |
-| Feedback email | `feedback.rs:37` | `hi@zed.dev` |
+### Medium Priority Remaining
+- Cloud API URLs: Transition away from api.zed.dev
+- Provider ID: Update ZED_CLOUD_PROVIDER_ID to void.dev
+- DB Migration: Update provider string in migrator
+- OpenRouter Headers: Update Referer to voideditor.com
+- Feedback Email: hi@zed.dev -> void-feedback@placeholder.com
 
 ### LOW â€” Cosmetic / can wait
 
-| Task | Location | Notes |
-|------|----------|-------|
-| 137 remaining `zed.dev` URL refs | See `void-remaining-urls.md` | Docs, test data, schema URLs |
-| `.zed_server` remote path | `paths.rs:36` | SSH server dir name |
-| Git default email | `git/repository.rs:3657` | `hi@zed.dev` test default |
-| UI website buttons | `ui/components/button_link.rs:95` | "zed.dev" label |
+### Low Priority Remaining
+- 130+ zed.dev URL refs: Update to void placeholders
+- .zed_server remote path: Change to .void_server
+- Git default email: hi@zed.dev -> void-feedback@placeholder.com
+- UI website buttons: zed.dev labels -> voideditor.com
 
 ---
 

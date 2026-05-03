@@ -8,10 +8,10 @@ use agent_settings::AgentSettings;
 use chrono::{DateTime, Utc};
 use git::Clone as GitClone;
 use gpui::{
-    Action, App, Context, Entity, EventEmitter, FocusHandle, Focusable, InteractiveElement,
-    ParentElement, Render, Styled, Task, Window, actions,
+    px, rgba, App, AppContext, Context, EventEmitter, FocusHandle, FocusableView, FontWeight,
+    Model, Point, Render, View, ViewContext, VisualContext, WeakEntity, point,
+    Action, actions, Task, Window,
 };
-use gpui::{WeakEntity, linear_color_stop, linear_gradient};
 use menu::{SelectNext, SelectPrevious};
 
 use schemars::JsonSchema;
@@ -62,7 +62,7 @@ impl RenderOnce for SectionHeader {
                 Label::new(self.title.to_ascii_uppercase())
                     .buffer_font(cx)
                     .color(Color::Default)
-                    .weight(FontWeight::ExtraBold)
+                    .font_weight(FontWeight::ExtraBold)
                     .size(LabelSize::XSmall),
             )
     }
@@ -104,12 +104,12 @@ impl RenderOnce for SectionButton {
         ButtonLike::new(id)
             .tab_index(self.tab_index as isize)
             .full_width()
-            .h_20()
+            .h(px(80.))
             .p_4()
             .rounded_none()
             .border_0()
             .bg(colors.panel_background)
-            .hover(|s| s.bg(Color::Accent).color(Color::Black))
+            .hover(move |s| s.bg(colors.accent).text_color(gpui::black()))
             .child(
                 v_flex()
                     .w_full()
@@ -117,7 +117,7 @@ impl RenderOnce for SectionButton {
                     .justify_between()
                     .child(
                         Label::new(self.label.to_ascii_uppercase())
-                            .weight(FontWeight::ExtraBold)
+                            .font_weight(FontWeight::ExtraBold)
                             .size(LabelSize::Small),
                     )
                     .child(
@@ -163,17 +163,16 @@ impl RenderOnce for VoidLogo {
             .child(
                 div()
                     .border_3()
-                    .border_color(Color::Default)
+                    .border_color(cx.theme().colors().border)
                     .p_2()
                     .child(Vector::square(VectorName::VoidLogo, rems(3.5)))
             )
             .child(
                 v_flex()
                     .child(
-                        Headline::new("/void")
-                            .size(HeadlineSize::XLarge)
-                            .weight(FontWeight::ExtraBold)
-                            .color(Color::Default),
+                        Label::new("/void")
+                            .text_size(rems(1.43))
+                            .font_weight(FontWeight::ExtraBold)
                     )
             )
             .child(
@@ -293,7 +292,7 @@ struct Section<const COLS: usize> {
 }
 
 impl<const COLS: usize> Section<COLS> {
-    fn render(self, index_offset: usize, focus: &FocusHandle) -> impl IntoElement {
+    fn render(self, index_offset: usize, focus: &FocusHandle, cx: &mut App) -> impl IntoElement {
         v_flex()
             .min_w_full()
             .child(SectionHeader::new(self.title))
@@ -302,9 +301,9 @@ impl<const COLS: usize> Section<COLS> {
                     .grid()
                     .grid_cols(2)
                     .gap_px()
-                    .bg(Color::Default)
+                    .bg(cx.theme().colors().background)
                     .border_3()
-                    .border_color(Color::Default)
+                    .border_color(cx.theme().colors().border)
                     .children(
                         self.entries
                             .iter()
@@ -421,7 +420,7 @@ impl WelcomePage {
             .p_6()
             .rounded_none()
             .border_3()
-            .border_color(Color::Default)
+            .border_color(cx.theme().colors().border)
             .bg(color.panel_background)
             .child(
                 h_flex()
@@ -433,7 +432,7 @@ impl WelcomePage {
                     )
                     .child(
                         Label::new("AGENT_PROTOCOL_ENABLED")
-                            .weight(FontWeight::ExtraBold)
+                            .font_weight(FontWeight::ExtraBold)
                             .size(LabelSize::Small),
                     ),
             )
@@ -444,17 +443,27 @@ impl WelcomePage {
                     .mb_4(),
             )
             .child(
-                Button::new("open-agent", "Open Agent Panel")
+                ButtonLike::new("open-agent")
                     .full_width()
                     .tab_index(tab_index as isize)
-                    .style(ButtonStyle::Filled)
-                    .rounded_none()
+                    .bg(cx.theme().colors().element_background)
                     .border_2()
-                    .border_color(Color::Black)
+                    .border_color(gpui::black())
+                    .p_2()
+                    .hover(move |s| s.bg(cx.theme().colors().accent))
                     .on_click(move |_, window, cx| {
                         focus.dispatch_action(&ToggleWorkspaceSidebar, window, cx);
                         focus.dispatch_action(&ToggleFocus, window, cx);
-                    }),
+                    })
+                    .child(
+                        h_flex()
+                            .justify_center()
+                            .child(
+                                Label::new("OPEN AGENT PANEL")
+                                    .font_weight(FontWeight::ExtraBold)
+                                    .size(LabelSize::Small),
+                            ),
+                    )
             )
     }
 
@@ -521,7 +530,7 @@ impl Render for WelcomePage {
                 .into_any_element()
         } else {
             second_section
-                .render(first_section_entries, &self.focus_handle)
+                .render(first_section_entries, &self.focus_handle, cx)
                 .into_any_element()
         };
 
@@ -540,13 +549,13 @@ impl Render for WelcomePage {
                     .max_w_128()
                     .p_0()
                     .border_3()
-                    .border_color(Color::Default)
-                    .shadow(Some(vec![gpui::BoxShadow {
-                        color: rgba(0x000000ff).into(),
-                        offset: px(20.).into(),
-                        blur_radius: px(0.).into(),
-                        spread_radius: px(0.).into(),
-                    }]))
+                    .border_color(cx.theme().colors().border)
+                    .shadow(vec![gpui::BoxShadow {
+                        color: rgba(0x000000ff),
+                        offset: point(px(20.), px(20.)),
+                        blur_radius: px(0.),
+                        spread_radius: px(0.),
+                    }])
                     .bg(cx.theme().colors().panel_background)
                     .child(
                         v_flex()
