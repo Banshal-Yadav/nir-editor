@@ -32,8 +32,10 @@ This document defines the core visual tokens and component styles for the /void 
 
 ## 4. AI Setup & Onboarding
 - Card Structure:
-    - Frame: 1px rounded-md border
-    - Featured Card Tint: rgba(0xffb0000d) (Amber at 5% opacity)
+    - AI Setup: Large padding (`p_4`), wider gap (`gap_2`), and 1px rounded-md border.
+    - Agent Setup: Medium padding (`p_3`).
+    - Featured Card Tint: rgba(0xffb0000d) (Amber at 5% opacity).
+    - Interaction: Border color shifts to `colors.border` on hover.
 - Call to Action:
     - Shape: Rounded-full (pill)
     - Style: Subtle
@@ -60,7 +62,30 @@ All agent icons use the `[/]` brand mark. To ensure consistency and specific "th
 - **Brutalist Buttons**: The high-level `Button` component enforces rounded corners. For sharp industrial corners, use `ButtonLike` with a `div()` child.
 - **Color Traits**: When using `.border_color()` or `.bg()`, use `cx.theme().colors()` or `gpui::rgba()` directly. The `ui::Color` enum often lacks the necessary `Into<Hsla>` traits for these methods.
 
-## 6. Layout Principles
-- No Tables: All documentation and simple UI lists must use bullet points
-- Case: Use SNAKE_CASE or UPPERCASE for technical labels to mimic config files
-- Geometry: Favor sharp rectangles over rounded corners (except for pill buttons)
+## 7. Technical Best Practices & Pitfalls
+
+To ensure the /void codebase remains stable and compilable, follow these technical guidelines when working with GPUI.
+
+### Avoid "API Hallucinations"
+GPUI's styling DSL is primarily generated via macros. **Do not assume an API exists just because it exists in CSS or other frameworks.**
+
+- **Non-existent Methods**:
+    - `.w_fit()`: Use `.w_auto()` or leave width unset (default is fit-to-content).
+    - `gpui::Degrees(n)`: This type does not exist. Use `gpui::Radians(f32)` for all rotations.
+- **Verification Strategy**:
+    - To check if a styling method (like `.p_4()` or `.w_full()`) exists, check `crates/gpui_macros/src/styles.rs` in the `box_prefixes` and `box_style_suffixes` functions.
+    - Use `rg -n "fn <method_name>"` in `crates/gpui/src/` to find actual trait implementations.
+
+### Working with `AnyElement`
+When using conditional rendering (`when`, `when_some`), be careful with variable types.
+- **Shadowing Danger**: Avoid naming a local `AnyElement` the same as a static or data-bearing struct (e.g., naming a rendered section `second_section` if `second_section` is also your data source). This leads to "field doesn't exist on AnyElement" errors.
+- **Conversion**: Use `.into_any_element()` only when necessary (e.g., for storing different element types in an `Option` or `Vec`).
+
+### Animation & Easing
+- **Blinking Effects**: Use `Animation::new(Duration)` with `pulsating_between(min, max)` easing for brand-consistent breathing animations.
+- **Visibility**: Use `.opacity(delta)` within the animator closure rather than trying to modify colors directly for better performance and stability.
+
+### Geometry
+- **Radians**: All rotation transforms require `gpui::Radians`.
+    - 90 degrees = `gpui::Radians(std::f32::consts::PI / 2.0)`
+    - 180 degrees = `gpui::Radians(std::f32::consts::PI)`
