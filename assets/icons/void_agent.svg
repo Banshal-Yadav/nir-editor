@@ -9,6 +9,6 @@
       stroke-width="3"
       text-anchor="middle"
       dominant-baseline="middle"
-      letter-spacing="-5">[/]</text>
+      letter-spacing="0">[/]</text>
   </g>
 </svg>
