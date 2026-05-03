@@ -103,8 +103,6 @@ impl RenderOnce for SectionButton {
         ButtonLike::new(id)
             .tab_index(self.tab_index as isize)
             .full_width()
-            .bg(cx.theme().colors().panel)
-            .hover(move |s: &mut gpui::StyleRefinement| s.bg(cx.theme().colors().element_hover).text_color(gpui::black()))
             .child(
                 v_flex()
                     .w_full()
@@ -165,7 +163,7 @@ impl RenderOnce for VoidLogo {
                 v_flex()
                     .child(
                         Label::new("/void")
-                            .size(rems(1.43))
+                            .size(LabelSize::Small)
                             .weight(FontWeight::EXTRA_BOLD)
                     )
             )
@@ -415,7 +413,6 @@ impl WelcomePage {
             .rounded_none()
             .border_3()
             .border_color(cx.theme().colors().border)
-            .bg(cx.theme().colors().panel)
             .child(
                 h_flex()
                     .gap_1p5()
@@ -440,7 +437,6 @@ impl WelcomePage {
                 ButtonLike::new("open-agent")
                     .full_width()
                     .tab_index(tab_index as isize)
-                    .hover(move |s: &mut gpui::StyleRefinement| s.bg(accent_color).text_color(gpui::black()))
                     .on_click(move |_, window, cx| {
                         focus.dispatch_action(&ToggleWorkspaceSidebar, window, cx);
                         focus.dispatch_action(&ToggleFocus, window, cx);
@@ -546,7 +542,6 @@ impl Render for WelcomePage {
                         blur_radius: px(0.),
                         spread_radius: px(0.),
                     }])
-                    .bg(cx.theme().colors().panel)
                     .child(
                         v_flex()
                             .p_8()
