@@ -633,8 +633,9 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
             .border_color(colors.border_variant)
             .when(highlight, |this| this.bg(amber_tint))
             .rounded_md()
-            .p_1p5()
-            .gap_1()
+            .p_4()
+            .gap_2()
+            .hover(|s| s.border_color(colors.border))
             .child(
                 h_flex()
                     .gap_1()

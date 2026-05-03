@@ -69,7 +69,7 @@ impl RenderOnce for AgentSetupButton {
         let has_top_section = self.icon.is_some() || self.name.is_some();
         let top_section = has_top_section.then(|| {
             h_flex()
-                .p_1p5()
+                .p_3()
                 .gap_1()
                 .justify_center()
                 .when_some(self.icon, |this, icon| this.child(icon))
