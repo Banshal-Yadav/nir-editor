@@ -104,11 +104,10 @@ impl RenderOnce for SectionButton {
         ButtonLike::new(id)
             .tab_index(self.tab_index as isize)
             .full_width()
-            .p_4()
             .rounded_none()
             .border_0()
             .bg(colors.panel_background)
-            .hover(move |s: &mut gpui::StyleRefinement| s.bg(colors.accent).text_color(gpui::black()))
+            .hover(move |s: &mut gpui::StyleRefinement| s.bg(cx.theme().colors().element_hover).text_color(gpui::black()))
             .child(
                 v_flex()
                     .w_full()
@@ -170,7 +169,7 @@ impl RenderOnce for VoidLogo {
                 v_flex()
                     .child(
                         Label::new("/void")
-                            .text_size(rems(1.43))
+                            .size(rems(1.43))
                             .weight(FontWeight::EXTRA_BOLD)
                     )
             )
@@ -412,7 +411,7 @@ impl WelcomePage {
         let color = cx.theme().colors();
         let description = "AGENT PROTOCOL: ACTIVATE. THINK. BUILD. SHIP.";
         let focus = self.focus_handle.clone();
-        let accent_color = cx.theme().colors().accent;
+        let accent_color = cx.theme().colors().border_focused;
 
         v_flex()
             .w_full()
@@ -445,11 +444,10 @@ impl WelcomePage {
                 ButtonLike::new("open-agent")
                     .full_width()
                     .tab_index(tab_index as isize)
-                    .bg(cx.theme().colors().element_background)
                     .border_2()
                     .border_color(gpui::black())
                     .p_2()
-                    .hover(move |s| s.bg(accent_color).text_color(gpui::black()))
+                    .hover(move |s: &mut gpui::StyleRefinement| s.bg(accent_color).text_color(gpui::black()))
                     .on_click(move |_, window, cx| {
                         focus.dispatch_action(&ToggleWorkspaceSidebar, window, cx);
                         focus.dispatch_action(&ToggleFocus, window, cx);
