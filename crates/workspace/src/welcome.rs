@@ -62,7 +62,7 @@ impl RenderOnce for SectionHeader {
                 Label::new(self.title.to_ascii_uppercase())
                     .buffer_font(cx)
                     .color(Color::Default)
-                    .font_weight(FontWeight::ExtraBold)
+                    .weight(FontWeight::EXTRA_BOLD)
                     .size(LabelSize::XSmall),
             )
     }
@@ -104,12 +104,11 @@ impl RenderOnce for SectionButton {
         ButtonLike::new(id)
             .tab_index(self.tab_index as isize)
             .full_width()
-            .h(px(80.))
             .p_4()
             .rounded_none()
             .border_0()
             .bg(colors.panel_background)
-            .hover(move |s| s.bg(colors.accent).text_color(gpui::black()))
+            .hover(move |s: &mut gpui::StyleRefinement| s.bg(colors.accent).text_color(gpui::black()))
             .child(
                 v_flex()
                     .w_full()
@@ -117,7 +116,7 @@ impl RenderOnce for SectionButton {
                     .justify_between()
                     .child(
                         Label::new(self.label.to_ascii_uppercase())
-                            .font_weight(FontWeight::ExtraBold)
+                            .weight(FontWeight::EXTRA_BOLD)
                             .size(LabelSize::Small),
                     )
                     .child(
@@ -172,7 +171,7 @@ impl RenderOnce for VoidLogo {
                     .child(
                         Label::new("/void")
                             .text_size(rems(1.43))
-                            .font_weight(FontWeight::ExtraBold)
+                            .weight(FontWeight::EXTRA_BOLD)
                     )
             )
             .child(
@@ -432,7 +431,7 @@ impl WelcomePage {
                     )
                     .child(
                         Label::new("AGENT_PROTOCOL_ENABLED")
-                            .font_weight(FontWeight::ExtraBold)
+                            .weight(FontWeight::EXTRA_BOLD)
                             .size(LabelSize::Small),
                     ),
             )
@@ -460,7 +459,7 @@ impl WelcomePage {
                             .justify_center()
                             .child(
                                 Label::new("OPEN AGENT PANEL")
-                                    .font_weight(FontWeight::ExtraBold)
+                                    .weight(FontWeight::EXTRA_BOLD)
                                     .size(LabelSize::Small),
                             ),
                     ),
@@ -551,7 +550,7 @@ impl Render for WelcomePage {
                     .border_3()
                     .border_color(cx.theme().colors().border)
                     .shadow(vec![gpui::BoxShadow {
-                        color: rgba(0x000000ff),
+                        color: rgba(0x000000ff).into(),
                         offset: point(px(20.), px(20.)),
                         blur_radius: px(0.),
                         spread_radius: px(0.),
@@ -569,12 +568,12 @@ impl Render for WelcomePage {
                                     .child(VoidLogo::new(cx))
                                     .child(
                                         Label::new("THINK. BUILD. SHIP.")
-                                            .weight(FontWeight::ExtraBold)
+                                            .weight(FontWeight::EXTRA_BOLD)
                                             .size(LabelSize::Small)
                                             .color(Color::Accent),
                                     ),
                             )
-                    .child(first_section.render(Default::default(), &self.focus_handle))
+                    .child(first_section.render(Default::default(), &self.focus_handle, cx))
                     .child(second_section)
                     .when(ai_enabled && !showing_recent_projects, |this| {
                         let agent_tab_index = next_tab_index;

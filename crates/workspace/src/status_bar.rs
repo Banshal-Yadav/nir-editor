@@ -186,8 +186,8 @@ impl StatusBar {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let on_right = sidebar.side == SidebarSide::Right;
-        let has_notifications = sidebar.has_notifications;
-        let indicator_border = cx.theme().colors().status_bar_background;
+        let _has_notifications = sidebar.has_notifications;
+        let _indicator_border = cx.theme().colors().status_bar_background;
 
         let toggle = sidebar_side_context_menu("sidebar-status-toggle-menu", cx)
             .anchor(if on_right {
