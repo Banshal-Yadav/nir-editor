@@ -4568,7 +4568,7 @@ impl Sidebar {
             .border_color(cx.theme().colors().border)
             .child(self.render_sidebar_toggle_button(cx))
             .child(
-                IconButton::new("history", IconName::VoidAgent)
+                IconButton::new("history", IconName::Clock)
                     .icon_size(IconSize::Small)
                     .toggle_state(is_archive)
                     .tooltip(move |_, cx| {

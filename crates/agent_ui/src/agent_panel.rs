@@ -2969,7 +2969,7 @@ impl AgentPanel {
                                 .when(is_agent_selected(Agent::NativeAgent), |this| {
                                     this.action(Box::new(NewExternalAgentThread { agent: None }))
                                 })
-                                .icon(IconName::Slash)
+                                .icon(IconName::VoidAgent)
                                 .icon_color(Color::Muted)
                                 .handler({
                                     let workspace = workspace.clone();
