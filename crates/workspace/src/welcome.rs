@@ -527,7 +527,7 @@ impl Render for WelcomePage {
                             .gap_4()
                             .child(VoidLogo::new(cx))
                             .child(
-                                v_flex().child(Label::new("The void awaits")
+                                v_flex().child(Label::new("think. build. ship.")
                                     .size(LabelSize::Small)
                                     .color(Color::Muted)
                                     .italic()),

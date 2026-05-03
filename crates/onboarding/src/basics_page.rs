@@ -674,7 +674,7 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
             "100+ models — Claude, GPT, Gemini, Llama. Get a free API key in 30 seconds.",
             "Get free key",
             "https://openrouter.ai/keys",
-            true,
+            false,
         ))
         .child(render_item(
             "ai-setup-ollama",
@@ -689,7 +689,7 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
             "ai-setup-lm-studio",
             "LM Studio",
             "offline • free",
-            "GUI for local models — beginner friendly. Download, pick a model, done.",
+            "Local model server — run any GGUF model locally, no cloud needed.",
             "Install",
             "https://lmstudio.ai",
             false,
