@@ -19,6 +19,10 @@ use util::ResultExt;
 use zed_actions::{
     OpenKeymap, OpenSettings, assistant::ToggleFocus,
 };
+// New imports for bottom‑row buttons
+use git::Clone as GitClone;
+use command_palette::Toggle as ToggleCommandPalette;
+use zed_actions::OpenOnboarding;
 
 #[derive(PartialEq, Clone, Debug, Deserialize, Serialize, JsonSchema, Action)]
 #[action(namespace = welcome)]
@@ -99,7 +103,6 @@ impl RenderOnce for SectionButton {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let id = format!("onb-button-{}-{}", self.label, self.tab_index);
         let action_ref: &dyn Action = &*self.action;
-        let _colors = cx.theme().colors();
 
         ButtonLike::new(id)
             .tab_index(self.tab_index as isize)
@@ -159,16 +162,21 @@ impl RenderOnce for VoidLogo {
 
         h_flex()
             .items_center()
+            .gap_2() // provide breathing room between elements
             .child(
                 Label::new("[/]")
                     .weight(FontWeight::EXTRA_BOLD)
                     .size(LabelSize::Large)
-                    .color(Color::Accent)
+                    .color(Color::Accent),
             )
             .child(
                 Label::new("void")
                     .weight(FontWeight::EXTRA_BOLD)
-                    .size(LabelSize::Large)
+                    .size(LabelSize::Large),
+            )
+            .child(
+                // small spacer to separate the cursor from the title
+                div().w(px(4.)),
             )
             .child(
                 Label::new("▊")
@@ -381,10 +389,7 @@ impl WelcomePage {
     }
 
     fn render_agent_card(&self, tab_index: usize, cx: &mut App) -> impl IntoElement {
-        let _color = cx.theme().colors();
-        let description = "AGENT PROTOCOL: ACTIVATE. THINK. BUILD. SHIP.";
         let focus = self.focus_handle.clone();
-        let _accent_color = cx.theme().colors().border_focused;
 
         v_flex()
             .w_full()
@@ -479,7 +484,6 @@ impl Render for WelcomePage {
         let first_section_entries = first_section.entries.len();
         let mut next_tab_index = first_section_entries + second_section.entries.len();
 
-
         let recent_projects = self
             .recent_workspaces
             .as_ref()
@@ -501,6 +505,7 @@ impl Render for WelcomePage {
         };
 
         let has_second_section = rendered_second_section.is_some();
+        let focus = self.focus_handle.clone();
 
         h_flex()
             .key_context("Welcome")
@@ -515,7 +520,7 @@ impl Render for WelcomePage {
                 div()
                     .id("welcome-container")
                     .mt_20()
-                    .w(rems(36.))
+                    .w(rems(48.)) // increased width to reduce cramping
                     .border_1()
                     .border_color(cx.theme().colors().border)
                     .shadow(vec![gpui::BoxShadow {
@@ -529,7 +534,7 @@ impl Render for WelcomePage {
                             .child(
                                 h_flex()
                                     .w_full()
-                                    .h(rems(12.))
+                                    .h(rems(16.)) // taller header
                                     .border_b_1()
                                     .border_color(cx.theme().colors().border)
                                     .child(
@@ -539,17 +544,17 @@ impl Render for WelcomePage {
                                             .justify_between()
                                             .items_center()
                                             .child(VoidLogo::new(cx))
-                                    .child(
-                                        div()
-                                            .pr_12()
                                             .child(
-                                                Label::new("THINK. BUILD. SHIP.")
-                                                    .weight(FontWeight::EXTRA_BOLD)
-                                                    .size(LabelSize::Small)
-                                                    .color(Color::Accent),
-                                            )
+                                                div()
+                                                    .pr_12()
+                                                    .child(
+                                                        Label::new("THINK. BUILD. SHIP.")
+                                                            .weight(FontWeight::EXTRA_BOLD)
+                                                            .size(LabelSize::Small)
+                                                            .color(Color::Accent),
+                                                    ),
+                                            ),
                                     ),
-                                    )
                             )
                             .child(
                                 div()
@@ -560,13 +565,13 @@ impl Render for WelcomePage {
                                             .border_r_1()
                                             .border_b_1()
                                             .border_color(cx.theme().colors().border)
-                                            .child(first_section.entries[0].render(0, &self.focus_handle).unwrap())
+                                            .child(first_section.entries[0].render(0, &self.focus_handle).unwrap()),
                                     )
                                     .child(
                                         div()
                                             .border_b_1()
                                             .border_color(cx.theme().colors().border)
-                                            .child(first_section.entries[1].render(1, &self.focus_handle).unwrap())
+                                            .child(first_section.entries[1].render(1, &self.focus_handle).unwrap()),
                                     )
                                     .when_some(rendered_second_section, |this, section| {
                                         this.child(
@@ -574,7 +579,7 @@ impl Render for WelcomePage {
                                                 .col_span(2)
                                                 .border_b_1()
                                                 .border_color(cx.theme().colors().border)
-                                                .child(section)
+                                                .child(section),
                                         )
                                     })
                                     .when(!has_second_section, |this| {
@@ -583,20 +588,20 @@ impl Render for WelcomePage {
                                                 .border_r_1()
                                                 .border_b_1()
                                                 .border_color(cx.theme().colors().border)
-                                                .child(second_section.entries[0].render(2, &self.focus_handle).unwrap())
+                                                .child(second_section.entries[0].render(2, &self.focus_handle).unwrap()),
                                         )
                                         .child(
                                             div()
                                                 .border_b_1()
                                                 .border_color(cx.theme().colors().border)
-                                                .child(second_section.entries[1].render(3, &self.focus_handle).unwrap())
+                                                .child(second_section.entries[1].render(3, &self.focus_handle).unwrap()),
                                         )
-                                    })
+                                    }),
                             )
                             .child(
                                 div()
                                     .p_8()
-                                    .child(self.render_agent_card(next_tab_index, cx))
+                                    .child(self.render_agent_card(next_tab_index, cx)),
                             )
                             .child(
                                 div()
@@ -604,45 +609,78 @@ impl Render for WelcomePage {
                                     .border_color(cx.theme().colors().border)
                                     .grid()
                                     .grid_cols(3)
+                                    // CLONE_REPO
                                     .child(
-                                        div()
-                                            .border_r_1()
-                                            .border_color(cx.theme().colors().border)
-                                            .p_4()
-                                            .w_full()
-                                            .flex()
-                                            .justify_center()
+                                        ButtonLike::new("clone-repo-btn")
+                                            .tab_index(next_tab_index as isize)
+                                            .on_click({
+                                                let focus = focus.clone();
+                                                move |_, window, cx| {
+                                                    focus.dispatch_action(&GitClone, window, cx);
+                                                }
+                                            })
                                             .child(
-                                                Label::new("CLONE_REPO")
-                                                    .size(LabelSize::XSmall)
-                                            )
+                                                div()
+                                                    .border_r_1()
+                                                    .border_color(cx.theme().colors().border)
+                                                    .p_4()
+                                                    .w_full()
+                                                    .flex()
+                                                    .justify_center()
+                                                    .child(
+                                                        Label::new("CLONE_REPO")
+                                                            .size(LabelSize::XSmall),
+                                                    ),
+                                            ),
                                     )
+                                    // COMMAND_PALETTE
                                     .child(
-                                        div()
-                                            .border_r_1()
-                                            .border_color(cx.theme().colors().border)
-                                            .p_4()
-                                            .w_full()
-                                            .flex()
-                                            .justify_center()
+                                        ButtonLike::new("command-palette-btn")
+                                            .tab_index((next_tab_index + 1) as isize)
+                                            .on_click({
+                                                let focus = focus.clone();
+                                                move |_, window, cx| {
+                                                    focus.dispatch_action(&ToggleCommandPalette, window, cx);
+                                                }
+                                            })
                                             .child(
-                                                Label::new("COMMAND_PALETTE")
-                                                    .size(LabelSize::XSmall)
-                                            )
+                                                div()
+                                                    .border_r_1()
+                                                    .border_color(cx.theme().colors().border)
+                                                    .p_4()
+                                                    .w_full()
+                                                    .flex()
+                                                    .justify_center()
+                                                    .child(
+                                                        Label::new("COMMAND_PALETTE")
+                                                            .size(LabelSize::XSmall),
+                                                    ),
+                                            ),
                                     )
+                                    // EXIT_TO_ONBOARDING
                                     .child(
-                                        div()
-                                            .p_4()
-                                            .w_full()
-                                            .flex()
-                                            .justify_center()
+                                        ButtonLike::new("exit-onboarding-btn")
+                                            .tab_index((next_tab_index + 2) as isize)
+                                            .on_click({
+                                                let focus = focus.clone();
+                                                move |_, window, cx| {
+                                                    focus.dispatch_action(&OpenOnboarding, window, cx);
+                                                }
+                                            })
                                             .child(
-                                                Label::new("EXIT_TO_ONBOARDING")
-                                                    .size(LabelSize::XSmall)
-                                            )
-                                    )
-                            )
-                    )
+                                                div()
+                                                    .p_4()
+                                                    .w_full()
+                                                    .flex()
+                                                    .justify_center()
+                                                    .child(
+                                                        Label::new("EXIT_TO_ONBOARDING")
+                                                            .size(LabelSize::XSmall),
+                                                    ),
+                                            ),
+                                    ),
+                            ),
+                    ),
             )
     }
 }
@@ -821,14 +859,12 @@ mod tests {
 
     #[test]
     fn test_project_name_multiple() {
-        // PathList sorts lexicographically, so filenames appear in alpha order
         let paths = PathList::new(&["/home/user/zed", "/home/user/api"]);
         assert_eq!(project_name(&paths), "api, zed");
     }
 
     #[test]
     fn test_project_name_root_path_filtered() {
-        // A bare root "/" has no file_name(), falls back to "Untitled"
         let paths = PathList::new(&["/"]);
         assert_eq!(project_name(&paths), "Untitled");
     }
