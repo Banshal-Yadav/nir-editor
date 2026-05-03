@@ -409,11 +409,11 @@ impl WelcomePage {
         }
     }
 
-    fn render_agent_card(&self, tab_index: usize, cx: &mut Context<Self>) -> impl IntoElement {
-        let focus = self.focus_handle.clone();
+    fn render_agent_card(&self, tab_index: usize, cx: &mut App) -> impl IntoElement {
         let color = cx.theme().colors();
-
-        let description = "Run multiple threads at once, mix and match any ACP-compatible agent, and keep work conflict-free with worktrees.";
+        let description = "AGENT PROTOCOL: ACTIVATE. THINK. BUILD. SHIP.";
+        let focus = self.focus_handle.clone();
+        let accent_color = cx.theme().colors().accent;
 
         v_flex()
             .w_full()
@@ -450,7 +450,7 @@ impl WelcomePage {
                     .border_2()
                     .border_color(gpui::black())
                     .p_2()
-                    .hover(move |s| s.bg(cx.theme().colors().accent))
+                    .hover(move |s| s.bg(accent_color).text_color(gpui::black()))
                     .on_click(move |_, window, cx| {
                         focus.dispatch_action(&ToggleWorkspaceSidebar, window, cx);
                         focus.dispatch_action(&ToggleFocus, window, cx);
@@ -463,7 +463,7 @@ impl WelcomePage {
                                     .font_weight(FontWeight::ExtraBold)
                                     .size(LabelSize::Small),
                             ),
-                    )
+                    ),
             )
     }
 
