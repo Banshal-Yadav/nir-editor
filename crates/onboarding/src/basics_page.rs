@@ -5,7 +5,7 @@ use client::{Client, UserStore, zed_urls};
 use cloud_api_types::Plan;
 use collections::HashMap;
 use fs::Fs;
-use gpui::{Action, Animation, AnimationExt, App, Entity, IntoElement, pulsating_between, rgba};
+use gpui::{Action, Animation, AnimationExt, App, Entity, Hsla, IntoElement, pulsating_between, rgba};
 use project::agent_server_store::AllAgentServersSettings;
 use project::project_settings::ProjectSettings;
 use project::{AgentRegistryStore, RegistryAgent};
@@ -615,7 +615,7 @@ fn render_ai_section(user_store: &Entity<UserStore>, cx: &mut App) -> impl IntoE
 
 fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
     let colors = cx.theme().colors();
-    let amber_border = rgba(0xffb000ff).into();
+    let amber_border: Hsla = rgba(0xffb000ff).into();
 
     let render_item = |id: &'static str,
                        label: &'static str,
@@ -624,7 +624,7 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
                        button_label: &'static str,
                        url: &'static str,
                        highlight: bool| {
-        let amber_tint = rgba(0xffb0000d).into();
+        let amber_tint: Hsla = rgba(0xffb0000d).into();
 
         v_flex()
             .id(id)
