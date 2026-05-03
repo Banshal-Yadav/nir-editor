@@ -70,6 +70,7 @@ impl RenderOnce for SectionHeader {
 #[derive(IntoElement)]
 struct SectionButton {
     label: SharedString,
+    #[allow(dead_code)]
     icon: IconName,
     action: Box<dyn Action>,
     tab_index: usize,
@@ -98,7 +99,7 @@ impl RenderOnce for SectionButton {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let id = format!("onb-button-{}-{}", self.label, self.tab_index);
         let action_ref: &dyn Action = &*self.action;
-        let colors = cx.theme().colors();
+        let _colors = cx.theme().colors();
 
         ButtonLike::new(id)
             .tab_index(self.tab_index as isize)
@@ -402,10 +403,10 @@ impl WelcomePage {
     }
 
     fn render_agent_card(&self, tab_index: usize, cx: &mut App) -> impl IntoElement {
-        let color = cx.theme().colors();
+        let _color = cx.theme().colors();
         let description = "AGENT PROTOCOL: ACTIVATE. THINK. BUILD. SHIP.";
         let focus = self.focus_handle.clone();
-        let accent_color = cx.theme().colors().border_focused;
+        let _accent_color = cx.theme().colors().border_focused;
 
         v_flex()
             .w_full()
