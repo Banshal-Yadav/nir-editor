@@ -1,23 +1,18 @@
 <svg width="16" height="16" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <g>
-    <text x="40" y="45"
-      font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+  <g fill="currentColor">
+    <!-- Left bracket [ -->
+    <path d="M8 20 H23 V30 H18 V70 H23 V80 H8 Z" />
+    <!-- Right bracket ] -->
+    <path d="M57 20 H72 V80 H57 V70 H62 V30 H57 Z" />
+  </g>
+  <!-- Rounded Slash / -->
+  <line x1="32" y1="70" x2="48" y2="30" stroke="currentColor" stroke-width="12" stroke-linecap="round" />
+  <!-- Text 2 -->
+  <text x="88" y="85"
+      font-family="'Arial Black', sans-serif"
       font-weight="900"
-      font-size="70"
+      font-size="35"
       fill="currentColor"
-      stroke="currentColor"
-      stroke-width="3"
-      text-anchor="middle"
-      dominant-baseline="middle"
-      letter-spacing="0">[/]</text>
-    <text x="75" y="75"
-      font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-      font-weight="900"
-      font-size="30"
-      fill="currentColor"
-      stroke="currentColor"
-      stroke-width="1.5"
       text-anchor="middle"
       dominant-baseline="middle">2</text>
-  </g>
 </svg>

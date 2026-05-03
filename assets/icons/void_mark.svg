@@ -1,12 +1,10 @@
 <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-  <text x="8" y="8.5"
-    font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-    font-weight="900"
-    font-size="11"
-    fill="currentColor"
-    stroke="currentColor"
-    stroke-width="1.0"
-    text-anchor="middle"
-    dominant-baseline="middle"
-    letter-spacing="0">[/]</text>
+  <g fill="currentColor">
+    <!-- Left bracket [ -->
+    <path d="M2.5 3 H5 V4.5 H4 V11.5 H5 V13 H2.5 Z" />
+    <!-- Right bracket ] -->
+    <path d="M11 3 H13.5 V13 H11 V11.5 H12 V4.5 H11 Z" />
+  </g>
+  <!-- Rounded Slash / -->
+  <line x1="6.5" y1="11.5" x2="9.5" y2="4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 </svg>

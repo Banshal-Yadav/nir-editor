@@ -1,14 +1,10 @@
 <svg width="16" height="16" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-  <g transform="translate(0, 2)">
-    <text x="50" y="55"
-      font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-      font-weight="900"
-      font-size="62"
-      fill="currentColor"
-      stroke="currentColor"
-      stroke-width="3"
-      text-anchor="middle"
-      dominant-baseline="middle"
-      letter-spacing="0">[/]</text>
+  <g fill="currentColor">
+    <!-- Left bracket [ -->
+    <path d="M18 20 H33 V30 H28 V70 H33 V80 H18 Z" />
+    <!-- Right bracket ] -->
+    <path d="M67 20 H82 V80 H67 V70 H72 V30 H67 Z" />
   </g>
+  <!-- Rounded Slash / (Shorter) -->
+  <line x1="42" y1="70" x2="58" y2="30" stroke="currentColor" stroke-width="12" stroke-linecap="round" />
 </svg>

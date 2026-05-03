@@ -11,23 +11,24 @@ This document defines the core visual tokens and component styles for the /void 
 
 ## 2. Brand Mark & Logo
 - Type: Text-based "Badge" mark
-- Welcome Screen Logo:
-    - Box: Square container with 3px border
-    - SVG Scale: rems(3.5)
-    - Headline: "/void" (XLarge, ExtraBold)
-- Tagline: "THINK. BUILD. SHIP." (Uppercase, ExtraBold, Small, Amber)
+- Welcome Screen Header:
+    - Logo: Geometric `[/]void` text-based mark
+    - Headline: "void" (ExtraBold, XLarge)
+    - Tagline: "THINK. BUILD. SHIP." (90° Rotated, Amber, ExtraBold, Small)
 
-## 3. Welcome Screen Component
+- Layout: 3-column split header (Logo - Spacer - Tagline)
 - Container:
-    - Max Width: rems_from_px(512.)
-    - Frame: 3px solid border
+    - Width: rems(36.)
+    - Border: 1px solid
     - Shadow: 20px solid black offset
 - Navigation Grid:
-    - Layout: 2-column grid
-    - Item Height: h_20()
-    - Border: 3px outer, 1px gap separators
-    - Hover State: Background Amber, Text Black
-- Typography: All labels Uppercase, ExtraBold
+    - Layout: 2x2 grid for main actions
+    - Item Style: Stacked (Title, Description, Boxed Keybinding)
+    - Border: 1px internal separators
+- Agent Card:
+    - Style: Industrial card with 1px border
+    - Primary CTA: Amber shadowed button (gpui::black text)
+- Footer: 3-column grid for secondary actions (CLONE_REPO, etc.)
 
 ## 4. AI Setup & Onboarding
 - Card Structure:
@@ -39,11 +40,18 @@ This document defines the core visual tokens and component styles for the /void 
     - Highlight: Color::Accent (Amber) for recommended providers
 
 ## 5. Icon Standards (SVG)
-All agent icons use the `[/]` brand mark with the following font properties:
-- Font: ui-monospace, FontWeight 900
-- void_agent.svg (Logo): font-size="80", letter-spacing="-5"
-- void_agent_toggle.svg (Status Bar): font-size="62", letter-spacing="-6"
-- void_mark.svg (Sidebar): Standard bold text mark
+All agent icons use the `[/]` brand mark. To ensure consistency and specific "thickness", these are implemented as manual geometric paths.
+
+- **Design Specification (100x100 viewBox)**:
+    - **Brackets**: Sharp rectangular paths. M18 20 H33 V30 H28 V70 H33 V80 H18 Z.
+    - **Slash**: Rounded line (`stroke-linecap="round"`) with `stroke-width="12"`.
+    - **Proportions**: Slash is shorter than brackets (y=30 to 70 vs y=20 to 80).
+    - **Spacing**: Close but distinct (~3px gap).
+- **Variants**:
+    - `void_agent.svg`: Primary logo.
+    - `void_agent_toggle.svg`: Status bar variant.
+    - `void_agent_two.svg`: Offset main mark with a bold "2" at bottom right.
+    - `void_mark.svg`: 16x16 scaled version (use stroke-width="2" for slash).
 
 ## Technical Implementation Notes (GPUI/UI)
 
