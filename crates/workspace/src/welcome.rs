@@ -6,7 +6,6 @@ use crate::{
 };
 use agent_settings::AgentSettings;
 use chrono::{DateTime, Utc};
-use git::Clone as GitClone;
 use gpui::{
     px, rgba, App, AppContext, Context, EventEmitter, FocusHandle, Focusable, FontWeight,
     Entity, Render, WeakEntity, point,
@@ -17,10 +16,10 @@ use menu::{SelectNext, SelectPrevious};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use settings::Settings;
-use ui::{ButtonLike, Divider, KeyBinding, Vector, VectorName, prelude::*};
+use ui::{ButtonLike, KeyBinding, prelude::*};
 use util::ResultExt;
 use zed_actions::{
-    Extensions, OpenKeymap, OpenOnboarding, OpenSettings, assistant::ToggleFocus, command_palette,
+    OpenKeymap, OpenSettings, assistant::ToggleFocus,
 };
 
 #[derive(PartialEq, Clone, Debug, Deserialize, Serialize, JsonSchema, Action)]
@@ -128,7 +127,6 @@ impl RenderOnce for SectionButton {
                             .border_color(cx.theme().colors().border)
                             .px_2()
                             .py_1()
-                            .w_fit()
                             .child(
                                 KeyBinding::for_action_in(action_ref, &self.focus_handle, cx),
                             ),
@@ -157,10 +155,7 @@ impl VoidLogo {
 
 impl RenderOnce for VoidLogo {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
-        use std::time::Duration;
-        use gpui::{Animation, AnimationExt};
-
-        let cursor_color = Color::Accent.color(cx);
+        let _cursor_color = Color::Accent.color(cx);
 
         h_flex()
             .items_center()
@@ -486,13 +481,10 @@ impl Render for WelcomePage {
 
         let showing_recent_projects =
             self.fallback_to_recent_projects && !recent_projects.is_empty();
-        let second_section = if showing_recent_projects {
-            self.render_recent_project_section(recent_projects)
-                .into_any_element()
+        let rendered_second_section = if showing_recent_projects {
+            Some(self.render_recent_project_section(recent_projects).into_any_element())
         } else {
-            second_section
-                .render(first_section_entries, &self.focus_handle, cx)
-                .into_any_element()
+            None
         };
 
         h_flex()
@@ -532,19 +524,16 @@ impl Render for WelcomePage {
                                             .justify_between()
                                             .items_center()
                                             .child(VoidLogo::new(cx))
-                                            .child(
-                                                div()
-                                                    .pr_12()
-                                                    .style(|s| {
-                                                        s.transform.rotate = Some(gpui::Degrees(90.));
-                                                    })
                                                     .child(
-                                                        Label::new("THINK. BUILD. SHIP.")
-                                                            .weight(FontWeight::EXTRA_BOLD)
-                                                            .size(LabelSize::Small)
-                                                            .color(Color::Accent),
+                                                        div()
+                                                            .pr_12()
+                                                            .child(
+                                                                Label::new("THINK. BUILD. SHIP.")
+                                                                    .weight(FontWeight::EXTRA_BOLD)
+                                                                    .size(LabelSize::Small)
+                                                                    .color(Color::Accent),
+                                                            )
                                                     ),
-                                            ),
                                     )
                             )
                             .child(
@@ -578,6 +567,13 @@ impl Render for WelcomePage {
                                             .child(second_section.entries[1].render(3, &self.focus_handle).unwrap())
                                     )
                             )
+                            .when_some(rendered_second_section, |this, section| {
+                                this.child(
+                                    div()
+                                        .p_8()
+                                        .child(section)
+                                )
+                            })
                             .child(
                                 div()
                                     .p_8()
