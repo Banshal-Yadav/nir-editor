@@ -54,8 +54,10 @@ impl SectionHeader {
 impl RenderOnce for SectionHeader {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         h_flex()
-            .px_2()
-            .py_0p5()
+            .w_full()
+            .items_center()
+            .px_4()
+            .py_1()
             .bg(cx.theme().colors().border_variant)
             .child(
                 Label::new(self.title.to_string())
@@ -108,9 +110,12 @@ impl RenderOnce for SectionButton {
             .child(
                 v_flex()
                     .w_full()
+                    .h_full()
                     .px_4()
-                    .py_3()
+                    .py_4()
                     .gap_1()
+                    .items_center()
+                    .justify_center()
                     .child(
                         Label::new(self.label.to_ascii_uppercase())
                             .weight(FontWeight::EXTRA_BOLD)
@@ -122,14 +127,21 @@ impl RenderOnce for SectionButton {
                             .color(Color::Muted),
                     )
                     .child(
-                        div()
-                            .border_1()
-                            .border_color(cx.theme().colors().border)
-                            .px_2()
-                            .py_1()
+                        h_flex()
+                            .w_full()
+                            .justify_center()
+                            .mt_1()
                             .child(
-                                KeyBinding::for_action_in(action_ref, &self.focus_handle, cx),
-                            ),
+                                div()
+                                    .border_1()
+                                    .border_color(cx.theme().colors().border)
+                                    .px_2()
+                                    .py_0p5()
+                                    .rounded_md()
+                                    .child(
+                                        KeyBinding::for_action_in(action_ref, &self.focus_handle, cx),
+                                    ),
+                            )
                     ),
             )
             .on_click(move |_, window, cx| {
@@ -413,6 +425,9 @@ impl WelcomePage {
                     })
                     .child(
                         div()
+                            .flex()
+                            .items_center()
+                            .justify_center()
                             .bg(rgba(0xffb000ff))
                             .px_6()
                             .py_3()
@@ -553,33 +568,38 @@ impl Render for WelcomePage {
                                     ),
                             )
                             .child(
-                                div()
-                                    .grid()
-                                    .grid_cols(2)
+                                v_flex()
+                                    .w_full()
                                     .child(
                                         div()
-                                            .col_span(2)
+                                            .w_full()
                                             .border_b_1()
                                             .border_color(cx.theme().colors().border)
                                             .child(SectionHeader::new("GET STARTED")),
                                     )
                                     .child(
-                                        div()
-                                            .border_r_1()
-                                            .border_b_1()
-                                            .border_color(cx.theme().colors().border)
-                                            .child(first_section.entries[0].render(0, &self.focus_handle).unwrap()),
-                                    )
-                                    .child(
-                                        div()
-                                            .border_b_1()
-                                            .border_color(cx.theme().colors().border)
-                                            .child(first_section.entries[1].render(1, &self.focus_handle).unwrap()),
+                                        h_flex()
+                                            .w_full()
+                                            .child(
+                                                div()
+                                                    .flex_1()
+                                                    .border_r_1()
+                                                    .border_b_1()
+                                                    .border_color(cx.theme().colors().border)
+                                                    .child(first_section.entries[0].render(0, &self.focus_handle).unwrap()),
+                                            )
+                                            .child(
+                                                div()
+                                                    .flex_1()
+                                                    .border_b_1()
+                                                    .border_color(cx.theme().colors().border)
+                                                    .child(first_section.entries[1].render(1, &self.focus_handle).unwrap()),
+                                            )
                                     )
                                     .when_some(rendered_second_section, |this, section| {
                                         this.child(
                                             div()
-                                                .col_span(2)
+                                                .w_full()
                                                 .border_b_1()
                                                 .border_color(cx.theme().colors().border)
                                                 .child(section),
@@ -589,23 +609,29 @@ impl Render for WelcomePage {
                                         this
                                             .child(
                                                 div()
-                                                    .col_span(2)
+                                                    .w_full()
                                                     .border_b_1()
                                                     .border_color(cx.theme().colors().border)
                                                     .child(SectionHeader::new("CONFIGURATION")),
                                             )
                                             .child(
-                                                div()
-                                                    .border_r_1()
-                                                    .border_b_1()
-                                                    .border_color(cx.theme().colors().border)
-                                                    .child(second_section.entries[0].render(2, &self.focus_handle).unwrap()),
-                                            )
-                                            .child(
-                                                div()
-                                                    .border_b_1()
-                                                    .border_color(cx.theme().colors().border)
-                                                    .child(second_section.entries[1].render(3, &self.focus_handle).unwrap()),
+                                                h_flex()
+                                                    .w_full()
+                                                    .child(
+                                                        div()
+                                                            .flex_1()
+                                                            .border_r_1()
+                                                            .border_b_1()
+                                                            .border_color(cx.theme().colors().border)
+                                                            .child(second_section.entries[0].render(2, &self.focus_handle).unwrap()),
+                                                    )
+                                                    .child(
+                                                        div()
+                                                            .flex_1()
+                                                            .border_b_1()
+                                                            .border_color(cx.theme().colors().border)
+                                                            .child(second_section.entries[1].render(3, &self.focus_handle).unwrap()),
+                                                    )
                                             )
                                     }),
                             )
@@ -616,77 +642,85 @@ impl Render for WelcomePage {
                             )
                             .child({
                                 next_tab_index += 1;
-                                div()
+                                h_flex()
+                                    .w_full()
                                     .border_t_1()
                                     .border_color(cx.theme().colors().border)
-                                    .grid()
-                                    .grid_cols(3)
                                     .child(
-                                        ButtonLike::new("clone-repo-btn")
-                                            .tab_index(next_tab_index as isize)
-                                            .on_click({
-                                                let focus = focus.clone();
-                                                move |_, window, cx| {
-                                                    focus.dispatch_action(&GitClone, window, cx);
-                                                }
-                                            })
+                                        div()
+                                            .flex_1()
+                                            .border_r_1()
+                                            .border_color(cx.theme().colors().border)
                                             .child(
-                                                div()
-                                                    .border_r_1()
-                                                    .border_color(cx.theme().colors().border)
-                                                    .p_4()
-                                                    .w_full()
-                                                    .flex()
-                                                    .justify_center()
+                                                ButtonLike::new("clone-repo-btn")
+                                                    .full_width()
+                                                    .tab_index(next_tab_index as isize)
+                                                    .on_click({
+                                                        let focus = focus.clone();
+                                                        move |_, window, cx| {
+                                                            focus.dispatch_action(&GitClone, window, cx);
+                                                        }
+                                                    })
                                                     .child(
-                                                        Label::new("CLONE_REPO")
-                                                            .size(LabelSize::XSmall),
+                                                        div()
+                                                            .p_4()
+                                                            .w_full()
+                                                            .flex()
+                                                            .items_center()
+                                                            .justify_center()
+                                                            .child(Label::new("CLONE_REPO").size(LabelSize::XSmall)),
                                                     ),
-                                            ),
+                                            )
                                     )
                                     .child(
-                                        ButtonLike::new("command-palette-btn")
-                                            .tab_index((next_tab_index + 1) as isize)
-                                            .on_click({
-                                                let focus = focus.clone();
-                                                move |_, window, cx| {
-                                                    focus.dispatch_action(&ToggleCommandPalette, window, cx);
-                                                }
-                                            })
+                                        div()
+                                            .flex_1()
+                                            .border_r_1()
+                                            .border_color(cx.theme().colors().border)
                                             .child(
-                                                div()
-                                                    .border_r_1()
-                                                    .border_color(cx.theme().colors().border)
-                                                    .p_4()
-                                                    .w_full()
-                                                    .flex()
-                                                    .justify_center()
+                                                ButtonLike::new("command-palette-btn")
+                                                    .full_width()
+                                                    .tab_index((next_tab_index + 1) as isize)
+                                                    .on_click({
+                                                        let focus = focus.clone();
+                                                        move |_, window, cx| {
+                                                            focus.dispatch_action(&ToggleCommandPalette, window, cx);
+                                                        }
+                                                    })
                                                     .child(
-                                                        Label::new("COMMAND_PALETTE")
-                                                            .size(LabelSize::XSmall),
+                                                        div()
+                                                            .p_4()
+                                                            .w_full()
+                                                            .flex()
+                                                            .items_center()
+                                                            .justify_center()
+                                                            .child(Label::new("COMMAND_PALETTE").size(LabelSize::XSmall)),
                                                     ),
-                                            ),
+                                            )
                                     )
                                     .child(
-                                        ButtonLike::new("exit-onboarding-btn")
-                                            .tab_index((next_tab_index + 2) as isize)
-                                            .on_click({
-                                                let focus = focus.clone();
-                                                move |_, window, cx| {
-                                                    focus.dispatch_action(&OpenOnboarding, window, cx);
-                                                }
-                                            })
+                                        div()
+                                            .flex_1()
                                             .child(
-                                                div()
-                                                    .p_4()
-                                                    .w_full()
-                                                    .flex()
-                                                    .justify_center()
+                                                ButtonLike::new("exit-onboarding-btn")
+                                                    .full_width()
+                                                    .tab_index((next_tab_index + 2) as isize)
+                                                    .on_click({
+                                                        let focus = focus.clone();
+                                                        move |_, window, cx| {
+                                                            focus.dispatch_action(&OpenOnboarding, window, cx);
+                                                        }
+                                                    })
                                                     .child(
-                                                        Label::new("EXIT_TO_ONBOARDING")
-                                                            .size(LabelSize::XSmall),
+                                                        div()
+                                                            .p_4()
+                                                            .w_full()
+                                                            .flex()
+                                                            .items_center()
+                                                            .justify_center()
+                                                            .child(Label::new("EXIT_TO_ONBOARDING").size(LabelSize::XSmall)),
                                                     ),
-                                            ),
+                                            )
                                     )
                             }),
                     ),
