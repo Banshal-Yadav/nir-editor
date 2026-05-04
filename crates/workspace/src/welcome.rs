@@ -63,7 +63,7 @@ impl RenderOnce for SectionHeader {
                 Label::new(self.title.to_string())
                     .color(Color::Default)
                     .weight(FontWeight::EXTRA_BOLD)
-                    .size(LabelSize::XSmall),
+                    .size(LabelSize::Small), // Increased from XSmall
             )
     }
 }
@@ -119,11 +119,11 @@ impl RenderOnce for SectionButton {
                     .child(
                         Label::new(self.label.to_ascii_uppercase())
                             .weight(FontWeight::EXTRA_BOLD)
-                            .size(LabelSize::Small),
+                            .size(LabelSize::Default), // Increased from Small
                     )
                     .child(
                         Label::new(self.description.clone())
-                            .size(LabelSize::XSmall)
+                            .size(LabelSize::Small) // Increased from XSmall
                             .color(Color::Muted),
                     )
                     .child(
@@ -402,12 +402,12 @@ impl WelcomePage {
             .child(
                 Label::new("AGENT_PROTOCOL_ENABLED")
                     .weight(FontWeight::EXTRA_BOLD)
-                    .size(LabelSize::Small)
+                    .size(LabelSize::Default) // Increased from Small
                     .mb_4(),
             )
             .child(
                 Label::new("Deploy parallel threads to solve complex tasks. Multi-agent orchestration and automated worktree isolation are active.")
-                    .size(LabelSize::XSmall)
+                    .size(LabelSize::Small) // Increased from XSmall
                     .color(Color::Muted)
                     .mb_6(),
             )
@@ -435,7 +435,7 @@ impl WelcomePage {
                             .child(
                                 Label::new("OPEN AGENT PANEL")
                                     .weight(FontWeight::EXTRA_BOLD)
-                                    .size(LabelSize::Small)
+                                    .size(LabelSize::Default) // Increased from Small
                                     .color(ui::Color::Custom(gpui::black())),
                             ),
                     ),
@@ -540,7 +540,7 @@ impl Render for WelcomePage {
                             .child(
                                 h_flex()
                                     .w_full()
-                                    .h(rems(16.))
+                                    .h(rems(9.)) // Reduced to ~55% of original 16rem height
                                     .border_b_1()
                                     .border_color(cx.theme().colors().border)
                                     .child(
@@ -556,7 +556,7 @@ impl Render for WelcomePage {
                                                     .child(
                                                         Label::new("THINK. BUILD. SHIP.")
                                                             .weight(FontWeight::EXTRA_BOLD)
-                                                            .size(LabelSize::Small)
+                                                            .size(LabelSize::Default) // Increased from Small
                                                             .color(Color::Accent),
                                                     ),
                                             ),
@@ -575,7 +575,7 @@ impl Render for WelcomePage {
                                     .child(
                                         h_flex()
                                             .w_full()
-                                            .min_h(rems(9.)) // Forces row to be thick
+                                            .min_h(rems(9.)) 
                                             .child(
                                                 div()
                                                     .flex_1()
@@ -613,7 +613,7 @@ impl Render for WelcomePage {
                                             .child(
                                                 h_flex()
                                                     .w_full()
-                                                    .min_h(rems(9.)) // Forces row to be thick
+                                                    .min_h(rems(9.)) 
                                                     .child(
                                                         div()
                                                             .flex_1()
@@ -660,12 +660,13 @@ impl Render for WelcomePage {
                                                     })
                                                     .child(
                                                         div()
-                                                            .p_4()
+                                                            .py_6() // Increased padding
+                                                            .px_4()
                                                             .w_full()
                                                             .flex()
                                                             .items_center()
                                                             .justify_center()
-                                                            .child(Label::new("CLONE_REPO").size(LabelSize::XSmall)),
+                                                            .child(Label::new("CLONE_REPO").size(LabelSize::Small)), // Increased size
                                                     ),
                                             )
                                     )
@@ -686,12 +687,13 @@ impl Render for WelcomePage {
                                                     })
                                                     .child(
                                                         div()
-                                                            .p_4()
+                                                            .py_6() // Increased padding
+                                                            .px_4()
                                                             .w_full()
                                                             .flex()
                                                             .items_center()
                                                             .justify_center()
-                                                            .child(Label::new("COMMAND_PALETTE").size(LabelSize::XSmall)),
+                                                            .child(Label::new("COMMAND_PALETTE").size(LabelSize::Small)), // Increased size
                                                     ),
                                             )
                                     )
@@ -710,12 +712,14 @@ impl Render for WelcomePage {
                                                     })
                                                     .child(
                                                         div()
-                                                            .p_4()
+                                                            .bg(cx.theme().colors().element_background) // Subtle tint matches theme
+                                                            .py_6() // Increased padding
+                                                            .px_4()
                                                             .w_full()
                                                             .flex()
                                                             .items_center()
                                                             .justify_center()
-                                                            .child(Label::new("EXIT_TO_ONBOARDING").size(LabelSize::XSmall)),
+                                                            .child(Label::new("EXIT_TO_ONBOARDING").size(LabelSize::Small)), // Increased size
                                                     ),
                                             )
                                     )
