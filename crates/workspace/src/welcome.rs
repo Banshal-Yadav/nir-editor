@@ -14,12 +14,11 @@ use menu::{SelectNext, SelectPrevious};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use ui::{ButtonLike, KeyBinding, prelude::*};
+use ui::{ButtonLike, KeyBinding, Label, prelude::*};
 use util::ResultExt;
 use zed_actions::{
     OpenKeymap, OpenSettings, assistant::ToggleFocus,
 };
-// New imports for bottom‑row buttons
 use git::Clone as GitClone;
 use zed_actions::command_palette::Toggle as ToggleCommandPalette;
 use zed_actions::OpenOnboarding;
@@ -57,7 +56,6 @@ impl RenderOnce for SectionHeader {
         h_flex()
             .px_2()
             .py_0p5()
-            .mb_2()
             .bg(cx.theme().colors().border_variant)
             .child(
                 Label::new(self.title.to_string())
@@ -110,8 +108,9 @@ impl RenderOnce for SectionButton {
             .child(
                 v_flex()
                     .w_full()
-                    .p_4()
-                    .gap_2()
+                    .px_4()
+                    .py_3()
+                    .gap_1()
                     .child(
                         Label::new(self.label.to_ascii_uppercase())
                             .weight(FontWeight::EXTRA_BOLD)
@@ -155,14 +154,14 @@ impl VoidLogo {
 }
 
 impl RenderOnce for VoidLogo {
-    fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
+    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let cursor_animation = Animation::new(std::time::Duration::from_secs(1))
             .repeat()
             .with_easing(pulsating_between(0.3, 1.0));
 
         h_flex()
             .items_center()
-            .gap_2() // provide breathing room between elements
+            .gap_2()
             .child(
                 Label::new("[/]")
                     .weight(FontWeight::EXTRA_BOLD)
@@ -174,15 +173,12 @@ impl RenderOnce for VoidLogo {
                     .weight(FontWeight::EXTRA_BOLD)
                     .size(LabelSize::Large),
             )
-            .child(
-                // small spacer to separate the cursor from the title
-                div().w(px(4.)),
-            )
+            .child(div().w(px(4.)))
             .child(
                 Label::new("▊")
                     .size(LabelSize::Large)
                     .color(Color::Accent)
-                    .with_animation("void-cursor", cursor_animation, |label, delta| {
+                    .with_animation("void-cursor", cursor_animation, |label: Label, delta| {
                         label.alpha(delta)
                     }),
             )
@@ -417,7 +413,7 @@ impl WelcomePage {
                     })
                     .child(
                         div()
-                            .bg(rgba(0xffb000ff)) // Exact Void Amber
+                            .bg(rgba(0xffb000ff))
                             .px_6()
                             .py_3()
                             .shadow(vec![gpui::BoxShadow {
@@ -520,7 +516,7 @@ impl Render for WelcomePage {
                 div()
                     .id("welcome-container")
                     .mt_20()
-                    .w(rems(48.)) // increased width to reduce cramping
+                    .w(rems(48.))
                     .border_1()
                     .border_color(cx.theme().colors().border)
                     .shadow(vec![gpui::BoxShadow {
@@ -534,7 +530,7 @@ impl Render for WelcomePage {
                             .child(
                                 h_flex()
                                     .w_full()
-                                    .h(rems(16.)) // taller header
+                                    .h(rems(16.))
                                     .border_b_1()
                                     .border_color(cx.theme().colors().border)
                                     .child(
@@ -562,6 +558,13 @@ impl Render for WelcomePage {
                                     .grid_cols(2)
                                     .child(
                                         div()
+                                            .col_span(2)
+                                            .border_b_1()
+                                            .border_color(cx.theme().colors().border)
+                                            .child(SectionHeader::new("GET STARTED")),
+                                    )
+                                    .child(
+                                        div()
                                             .border_r_1()
                                             .border_b_1()
                                             .border_color(cx.theme().colors().border)
@@ -583,19 +586,27 @@ impl Render for WelcomePage {
                                         )
                                     })
                                     .when(!has_second_section, |this| {
-                                        this.child(
-                                            div()
-                                                .border_r_1()
-                                                .border_b_1()
-                                                .border_color(cx.theme().colors().border)
-                                                .child(second_section.entries[0].render(2, &self.focus_handle).unwrap()),
-                                        )
-                                        .child(
-                                            div()
-                                                .border_b_1()
-                                                .border_color(cx.theme().colors().border)
-                                                .child(second_section.entries[1].render(3, &self.focus_handle).unwrap()),
-                                        )
+                                        this
+                                            .child(
+                                                div()
+                                                    .col_span(2)
+                                                    .border_b_1()
+                                                    .border_color(cx.theme().colors().border)
+                                                    .child(SectionHeader::new("CONFIGURATION")),
+                                            )
+                                            .child(
+                                                div()
+                                                    .border_r_1()
+                                                    .border_b_1()
+                                                    .border_color(cx.theme().colors().border)
+                                                    .child(second_section.entries[0].render(2, &self.focus_handle).unwrap()),
+                                            )
+                                            .child(
+                                                div()
+                                                    .border_b_1()
+                                                    .border_color(cx.theme().colors().border)
+                                                    .child(second_section.entries[1].render(3, &self.focus_handle).unwrap()),
+                                            )
                                     }),
                             )
                             .child(
@@ -603,13 +614,13 @@ impl Render for WelcomePage {
                                     .p_8()
                                     .child(self.render_agent_card(next_tab_index, cx)),
                             )
-                            .child(
+                            .child({
+                                next_tab_index += 1;
                                 div()
                                     .border_t_1()
                                     .border_color(cx.theme().colors().border)
                                     .grid()
                                     .grid_cols(3)
-                                    // CLONE_REPO
                                     .child(
                                         ButtonLike::new("clone-repo-btn")
                                             .tab_index(next_tab_index as isize)
@@ -633,7 +644,6 @@ impl Render for WelcomePage {
                                                     ),
                                             ),
                                     )
-                                    // COMMAND_PALETTE
                                     .child(
                                         ButtonLike::new("command-palette-btn")
                                             .tab_index((next_tab_index + 1) as isize)
@@ -657,7 +667,6 @@ impl Render for WelcomePage {
                                                     ),
                                             ),
                                     )
-                                    // EXIT_TO_ONBOARDING
                                     .child(
                                         ButtonLike::new("exit-onboarding-btn")
                                             .tab_index((next_tab_index + 2) as isize)
@@ -678,8 +687,8 @@ impl Render for WelcomePage {
                                                             .size(LabelSize::XSmall),
                                                     ),
                                             ),
-                                    ),
-                            ),
+                                    )
+                            }),
                     ),
             )
     }
