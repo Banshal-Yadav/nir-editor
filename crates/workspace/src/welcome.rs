@@ -6,7 +6,7 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use gpui::{
-    px, rgba, App, AppContext, Context, EventEmitter, FocusHandle, Focusable, FontWeight,
+    px, rgba, relative, App, AppContext, Context, EventEmitter, FocusHandle, Focusable, FontWeight,
     Entity, Render, WeakEntity, point,
     Action, actions, Task, Window, Animation, AnimationExt, pulsating_between,
 };
@@ -107,14 +107,14 @@ impl RenderOnce for SectionButton {
         ButtonLike::new(id)
             .tab_index(self.tab_index as isize)
             .full_width()
+            .height(relative(1.)) // Ensures button click area takes entire thick cell
             .child(
                 v_flex()
                     .w_full()
                     .h_full()
-                    .px_4()
-                    .py_4()
+                    .p_6() // Thick padding
                     .gap_1()
-                    .items_center()
+                    .items_start() // Left-align to match brutalist reference
                     .justify_center()
                     .child(
                         Label::new(self.label.to_ascii_uppercase())
@@ -127,21 +127,15 @@ impl RenderOnce for SectionButton {
                             .color(Color::Muted),
                     )
                     .child(
-                        h_flex()
-                            .w_full()
-                            .justify_center()
-                            .mt_1()
+                        div()
+                            .mt_3() // Pushes shortcut box down slightly
+                            .border_1()
+                            .border_color(cx.theme().colors().border)
+                            .px_2()
+                            .py_1()
                             .child(
-                                div()
-                                    .border_1()
-                                    .border_color(cx.theme().colors().border)
-                                    .px_2()
-                                    .py_0p5()
-                                    .rounded_md()
-                                    .child(
-                                        KeyBinding::for_action_in(action_ref, &self.focus_handle, cx),
-                                    ),
-                            )
+                                KeyBinding::for_action_in(action_ref, &self.focus_handle, cx),
+                            ),
                     ),
             )
             .on_click(move |_, window, cx| {
@@ -166,7 +160,7 @@ impl VoidLogo {
 }
 
 impl RenderOnce for VoidLogo {
-    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
         let cursor_animation = Animation::new(std::time::Duration::from_secs(1))
             .repeat()
             .with_easing(pulsating_between(0.3, 1.0));
@@ -402,6 +396,7 @@ impl WelcomePage {
         v_flex()
             .w_full()
             .p_8()
+            .items_start() // Left-align agent text
             .border_1()
             .border_color(cx.theme().colors().border)
             .child(
@@ -580,6 +575,7 @@ impl Render for WelcomePage {
                                     .child(
                                         h_flex()
                                             .w_full()
+                                            .min_h(rems(9.)) // Forces row to be thick
                                             .child(
                                                 div()
                                                     .flex_1()
@@ -617,6 +613,7 @@ impl Render for WelcomePage {
                                             .child(
                                                 h_flex()
                                                     .w_full()
+                                                    .min_h(rems(9.)) // Forces row to be thick
                                                     .child(
                                                         div()
                                                             .flex_1()
