@@ -189,9 +189,9 @@ impl RenderOnce for VoidLogo {
                     .text_size(px(28.))
                     .line_height(relative(1.))
                     .text_color(cx.theme().colors().text_accent)
-                    .child("▊") // Attach child first
+                    .child("▊")
                     .with_animation("void-cursor", cursor_animation, |el, delta| {
-                        el.opacity(delta) // Apply animation wrapper last
+                        el.opacity(delta) 
                     }),
             )
     }
