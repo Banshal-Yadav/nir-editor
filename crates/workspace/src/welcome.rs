@@ -63,7 +63,7 @@ impl RenderOnce for SectionHeader {
                 Label::new(self.title.to_string())
                     .color(Color::Default)
                     .weight(FontWeight::EXTRA_BOLD)
-                    .size(LabelSize::Small), // Increased from XSmall
+                    .size(LabelSize::Small),
             )
     }
 }
@@ -107,28 +107,28 @@ impl RenderOnce for SectionButton {
         ButtonLike::new(id)
             .tab_index(self.tab_index as isize)
             .full_width()
-            .height(relative(1.)) // Ensures button click area takes entire thick cell
+            .height(relative(1.))
             .child(
                 v_flex()
                     .w_full()
                     .h_full()
-                    .p_6() // Thick padding
+                    .p_4() // Reduced from 6 for better proportions
                     .gap_1()
-                    .items_start() // Left-align to match brutalist reference
+                    .items_start()
                     .justify_center()
                     .child(
                         Label::new(self.label.to_ascii_uppercase())
                             .weight(FontWeight::EXTRA_BOLD)
-                            .size(LabelSize::Default), // Increased from Small
+                            .size(LabelSize::Default),
                     )
                     .child(
                         Label::new(self.description.clone())
-                            .size(LabelSize::Small) // Increased from XSmall
+                            .size(LabelSize::Small)
                             .color(Color::Muted),
                     )
                     .child(
                         div()
-                            .mt_3() // Pushes shortcut box down slightly
+                            .mt_2()
                             .border_1()
                             .border_color(cx.theme().colors().border)
                             .px_2()
@@ -395,21 +395,21 @@ impl WelcomePage {
 
         v_flex()
             .w_full()
-            .p_8()
-            .items_start() // Left-align agent text
+            .p_6() // Reduced padding slightly
+            .items_start()
             .border_1()
             .border_color(cx.theme().colors().border)
             .child(
                 Label::new("AGENT_PROTOCOL_ENABLED")
                     .weight(FontWeight::EXTRA_BOLD)
-                    .size(LabelSize::Default) // Increased from Small
-                    .mb_4(),
+                    .size(LabelSize::Default)
+                    .mb_2(),
             )
             .child(
                 Label::new("Deploy parallel threads to solve complex tasks. Multi-agent orchestration and automated worktree isolation are active.")
-                    .size(LabelSize::Small) // Increased from XSmall
+                    .size(LabelSize::Small)
                     .color(Color::Muted)
-                    .mb_6(),
+                    .mb_5(),
             )
             .child(
                 ButtonLike::new("open-agent")
@@ -425,17 +425,17 @@ impl WelcomePage {
                             .justify_center()
                             .bg(rgba(0xffb000ff))
                             .px_6()
-                            .py_3()
+                            .py_2()
                             .shadow(vec![gpui::BoxShadow {
                                 color: rgba(0x000000ff).into(),
-                                offset: point(px(6.), px(6.)),
+                                offset: point(px(4.), px(4.)), // Slightly smaller shadow to match smaller size
                                 blur_radius: px(0.),
                                 spread_radius: px(0.),
                             }])
                             .child(
                                 Label::new("OPEN AGENT PANEL")
                                     .weight(FontWeight::EXTRA_BOLD)
-                                    .size(LabelSize::Default) // Increased from Small
+                                    .size(LabelSize::Default)
                                     .color(ui::Color::Custom(gpui::black())),
                             ),
                     ),
@@ -525,13 +525,13 @@ impl Render for WelcomePage {
             .child(
                 div()
                     .id("welcome-container")
-                    .mt_20()
-                    .w(rems(48.))
+                    .mt_12() // Moved slightly up
+                    .w(rems(40.)) // Narrower width perfectly matches standard Zed sizing
                     .border_1()
                     .border_color(cx.theme().colors().border)
                     .shadow(vec![gpui::BoxShadow {
                         color: rgba(0x000000ff).into(),
-                        offset: point(px(20.), px(20.)),
+                        offset: point(px(16.), px(16.)),
                         blur_radius: px(0.),
                         spread_radius: px(0.),
                     }])
@@ -540,23 +540,24 @@ impl Render for WelcomePage {
                             .child(
                                 h_flex()
                                     .w_full()
-                                    .h(rems(9.)) // Reduced to ~55% of original 16rem height
+                                    .h(rems(6.)) // Slashed height makes the logo effectively massive
                                     .border_b_1()
                                     .border_color(cx.theme().colors().border)
                                     .child(
                                         h_flex()
                                             .w_full()
-                                            .px_8()
+                                            .pl_12() // Shifted logo to the right
+                                            .pr_8()
                                             .justify_between()
                                             .items_center()
                                             .child(VoidLogo::new(cx))
                                             .child(
                                                 div()
-                                                    .pr_12()
+                                                    .pr_4()
                                                     .child(
                                                         Label::new("THINK. BUILD. SHIP.")
                                                             .weight(FontWeight::EXTRA_BOLD)
-                                                            .size(LabelSize::Default) // Increased from Small
+                                                            .size(LabelSize::XSmall) // Reduced text size contrasts with logo
                                                             .color(Color::Accent),
                                                     ),
                                             ),
@@ -575,7 +576,7 @@ impl Render for WelcomePage {
                                     .child(
                                         h_flex()
                                             .w_full()
-                                            .min_h(rems(9.)) 
+                                            .min_h(rems(6.5)) // Tightened up the box height
                                             .child(
                                                 div()
                                                     .flex_1()
@@ -613,7 +614,7 @@ impl Render for WelcomePage {
                                             .child(
                                                 h_flex()
                                                     .w_full()
-                                                    .min_h(rems(9.)) 
+                                                    .min_h(rems(6.5)) // Tightened up the box height
                                                     .child(
                                                         div()
                                                             .flex_1()
@@ -641,6 +642,7 @@ impl Render for WelcomePage {
                                 next_tab_index += 1;
                                 h_flex()
                                     .w_full()
+                                    .h(rems(3.5)) // Added explicit height to row to allow children to fill
                                     .border_t_1()
                                     .border_color(cx.theme().colors().border)
                                     .child(
@@ -651,6 +653,7 @@ impl Render for WelcomePage {
                                             .child(
                                                 ButtonLike::new("clone-repo-btn")
                                                     .full_width()
+                                                    .height(relative(1.)) // Forces button to fill cell
                                                     .tab_index(next_tab_index as isize)
                                                     .on_click({
                                                         let focus = focus.clone();
@@ -660,13 +663,11 @@ impl Render for WelcomePage {
                                                     })
                                                     .child(
                                                         div()
-                                                            .py_6() // Increased padding
-                                                            .px_4()
-                                                            .w_full()
+                                                            .size_full() // Ensures inner layout stretches
                                                             .flex()
                                                             .items_center()
                                                             .justify_center()
-                                                            .child(Label::new("CLONE_REPO").size(LabelSize::Small)), // Increased size
+                                                            .child(Label::new("CLONE_REPO").size(LabelSize::Small)),
                                                     ),
                                             )
                                     )
@@ -678,6 +679,7 @@ impl Render for WelcomePage {
                                             .child(
                                                 ButtonLike::new("command-palette-btn")
                                                     .full_width()
+                                                    .height(relative(1.)) // Forces button to fill cell
                                                     .tab_index((next_tab_index + 1) as isize)
                                                     .on_click({
                                                         let focus = focus.clone();
@@ -687,13 +689,11 @@ impl Render for WelcomePage {
                                                     })
                                                     .child(
                                                         div()
-                                                            .py_6() // Increased padding
-                                                            .px_4()
-                                                            .w_full()
+                                                            .size_full() // Ensures inner layout stretches
                                                             .flex()
                                                             .items_center()
                                                             .justify_center()
-                                                            .child(Label::new("COMMAND_PALETTE").size(LabelSize::Small)), // Increased size
+                                                            .child(Label::new("COMMAND_PALETTE").size(LabelSize::Small)),
                                                     ),
                                             )
                                     )
@@ -703,6 +703,7 @@ impl Render for WelcomePage {
                                             .child(
                                                 ButtonLike::new("exit-onboarding-btn")
                                                     .full_width()
+                                                    .height(relative(1.)) // Forces button to fill cell
                                                     .tab_index((next_tab_index + 2) as isize)
                                                     .on_click({
                                                         let focus = focus.clone();
@@ -712,14 +713,12 @@ impl Render for WelcomePage {
                                                     })
                                                     .child(
                                                         div()
-                                                            .bg(cx.theme().colors().element_background) // Subtle tint matches theme
-                                                            .py_6() // Increased padding
-                                                            .px_4()
-                                                            .w_full()
+                                                            .size_full() // Ensures tinted background fills cell without empty space
+                                                            .bg(cx.theme().colors().element_background)
                                                             .flex()
                                                             .items_center()
                                                             .justify_center()
-                                                            .child(Label::new("EXIT_TO_ONBOARDING").size(LabelSize::Small)), // Increased size
+                                                            .child(Label::new("EXIT_TO_ONBOARDING").size(LabelSize::Small)),
                                                     ),
                                             )
                                     )
