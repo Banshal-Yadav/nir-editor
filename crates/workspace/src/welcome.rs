@@ -14,7 +14,7 @@ use menu::{SelectNext, SelectPrevious};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use ui::{ButtonLike, KeyBinding, Label, prelude::*};
+use ui::{ButtonLike, Icon, IconName, KeyBinding, Label, prelude::*};
 use util::ResultExt;
 use zed_actions::{
     OpenKeymap, OpenSettings, assistant::ToggleFocus,
@@ -399,12 +399,13 @@ impl WelcomePage {
     fn render_agent_card(&self, tab_index: usize, cx: &mut App) -> impl IntoElement {
         let focus = self.focus_handle.clone();
 
-        // extract the theme's accent color 
+        // tint for the resting state
         let mut subtle_bg = cx.theme().colors().text_accent;
-        subtle_bg.a = 0.15; 
+        subtle_bg.a = 0.4;
 
+        //  tint on hover
         let mut hover_bg = cx.theme().colors().text_accent;
-        hover_bg.a = 0.25; 
+        hover_bg.a = 0.5;
 
         v_flex()
             .w_full()
@@ -432,6 +433,7 @@ impl WelcomePage {
                     .items_center()
                     .justify_center()
                     .px_6()
+                    .py_3()
                     .cursor_pointer()
                     .bg(subtle_bg)
                     .hover(|style| {
@@ -493,32 +495,9 @@ impl WelcomePage {
 
 impl Render for WelcomePage {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let (first_section, second_section) = CONTENT;
-        let first_section_entries = first_section.entries.len();
-        let mut next_tab_index = first_section_entries + second_section.entries.len();
-
-        let recent_projects = self
-            .recent_workspaces
-            .as_ref()
-            .into_iter()
-            .flatten()
-            .take(5)
-            .enumerate()
-            .map(|(index, (_, loc, paths, _))| {
-                self.render_recent_project(index, first_section_entries + index, loc, paths)
-            })
-            .collect::<Vec<_>>();
-
-        let showing_recent_projects =
-            self.fallback_to_recent_projects && !recent_projects.is_empty();
-        let rendered_second_section = if showing_recent_projects {
-            Some(self.render_recent_project_section(recent_projects).into_any_element())
-        } else {
-            None
-        };
-
-        let has_second_section = rendered_second_section.is_some();
         let focus = self.focus_handle.clone();
+        let hover_bg = cx.theme().colors().element_hover;
+        let border_color = cx.theme().colors().border;
 
         h_flex()
             .key_context("Welcome")
@@ -529,223 +508,259 @@ impl Render for WelcomePage {
             .size_full()
             .bg(cx.theme().colors().editor_background)
             .justify_center()
+            .items_start()
+            .pt(rems(5.))
             .child(
-                div()
-                    .id("welcome-container")
-                    .mt_12()
-                    .w(rems(40.))
+                v_flex()
+                    .w(rems(36.))
                     .border_1()
-                    .border_color(cx.theme().colors().border)
-                    .shadow(vec![gpui::BoxShadow {
-                        color: rgba(0x000000ff).into(),
-                        offset: point(px(16.), px(16.)),
-                        blur_radius: px(0.),
-                        spread_radius: px(0.),
-                    }])
+                    .border_color(border_color)
+                    .rounded_lg()
+                    .overflow_hidden()
                     .child(
-                        v_flex()
+                        h_flex()
+                            .w_full()
+                            .h(rems(5.))
+                            .px_6()
+                            .border_b_1()
+                            .border_color(border_color)
+                            .items_center()
+                            .justify_between()
+                            .child(VoidLogo::new(cx))
+                            .child(
+                                Label::new("THINK. BUILD. SHIP.")
+                                    .weight(FontWeight::BOLD)
+                                    .size(LabelSize::Default)
+                                    .color(Color::Warning),
+                            ),
+                    )
+                    .child(
+                        h_flex()
+                            .w_full()
+                            .px_6()
+                            .py_3()
+                            .border_b_1()
+                            .border_color(border_color)
+                            .child(
+                                Label::new("OR GET STARTED")
+                                    .size(LabelSize::Small)
+                                    .color(Color::Muted),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .id("action-new-file")
+                            .flex()
+                            .w_full()
+                            .justify_between()
+                            .items_center()
+                            .px_6()
+                            .py_4()
+                            .border_b_1()
+                            .border_color(border_color)
+                            .cursor_pointer()
+                            .hover(move |style| style.bg(hover_bg))
+                            .on_click({
+                                let focus = focus.clone();
+                                move |_, window, cx| focus.dispatch_action(&NewFile, window, cx)
+                            })
                             .child(
                                 h_flex()
-                                    .w_full()
-                                    .h(rems(6.))
-                                    .border_b_1()
-                                    .border_color(cx.theme().colors().border)
+                                    .gap_4()
+                                    .items_center()
+                                    .child(Icon::new(IconName::Plus).color(Color::Muted))
                                     .child(
-                                        h_flex()
-                                            .w_full()
-                                            .pl_12()
-                                            .pr_8()
-                                            .justify_between()
-                                            .items_center()
-                                            .child(VoidLogo::new(cx))
-                                            .child(
-                                                div()
-                                                    .pr_4()
-                                                    .child(
-                                                        Label::new("THINK. BUILD. SHIP.")
-                                                            .weight(FontWeight::EXTRA_BOLD)
-                                                            .size(LabelSize::Small) // Increased ~20%
-                                                            .color(Color::Accent),
-                                                    ),
-                                            ),
-                                    ),
+                                        v_flex()
+                                            .child(Label::new("NEW FILE").weight(FontWeight::BOLD).size(LabelSize::Default).color(Color::Warning))
+                                            .child(Label::new("initialize empty buffer").size(LabelSize::Small).color(Color::Muted)),
+                                    )
                             )
+                            .child(
+                                div().border_1().border_color(border_color).px_2().py_1().rounded_md()
+                                    .child(Label::new("Ctrl-N").size(LabelSize::Small).color(Color::Muted)),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .id("action-open-project")
+                            .flex()
+                            .w_full()
+                            .justify_between()
+                            .items_center()
+                            .px_6()
+                            .py_4()
+                            .border_b_1()
+                            .border_color(border_color)
+                            .cursor_pointer()
+                            .hover(move |style| style.bg(hover_bg))
+                            .on_click({
+                                let focus = focus.clone();
+                                move |_, window, cx| focus.dispatch_action(&Open::DEFAULT, window, cx)
+                            })
+                            .child(
+                                h_flex()
+                                    .gap_4()
+                                    .items_center()
+                                    .child(Icon::new(IconName::Folder).color(Color::Muted))
+                                    .child(
+                                        v_flex()
+                                            .child(Label::new("OPEN PROJECT").weight(FontWeight::BOLD).size(LabelSize::Default).color(Color::Warning))
+                                            .child(Label::new("load workspace from disk").size(LabelSize::Small).color(Color::Muted)),
+                                    )
+                            )
+                            .child(
+                                div().border_1().border_color(border_color).px_2().py_1().rounded_md()
+                                    .child(Label::new("Ctrl-K Ctrl-O").size(LabelSize::Small).color(Color::Muted)),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .id("action-clone-repo")
+                            .flex()
+                            .w_full()
+                            .justify_between()
+                            .items_center()
+                            .px_6()
+                            .py_4()
+                            .border_b_1()
+                            .border_color(border_color)
+                            .cursor_pointer()
+                            .hover(move |style| style.bg(hover_bg))
+                            .on_click({
+                                let focus = focus.clone();
+                                move |_, window, cx| focus.dispatch_action(&GitClone, window, cx)
+                            })
+                            .child(
+                                h_flex()
+                                    .gap_4()
+                                    .items_center()
+                                    .child(Icon::new(IconName::CloudDownload).color(Color::Muted))
+                                    .child(
+                                        v_flex()
+                                            .child(Label::new("CLONE REPOSITORY").weight(FontWeight::BOLD).size(LabelSize::Default).color(Color::Warning))
+                                            .child(Label::new("git clone into new workspace").size(LabelSize::Small).color(Color::Muted)),
+                                    )
+                            ),
+                    )
+                    .child(
+                        div()
+                            .id("action-settings")
+                            .flex()
+                            .w_full()
+                            .justify_between()
+                            .items_center()
+                            .px_6()
+                            .py_4()
+                            .border_b_1()
+                            .border_color(border_color)
+                            .cursor_pointer()
+                            .hover(move |style| style.bg(hover_bg))
+                            .on_click({
+                                let focus = focus.clone();
+                                move |_, window, cx| focus.dispatch_action(&OpenSettings, window, cx)
+                            })
+                            .child(
+                                h_flex()
+                                    .gap_4()
+                                    .items_center()
+                                    .child(Icon::new(IconName::Settings).color(Color::Muted))
+                                    .child(
+                                        v_flex()
+                                            .child(Label::new("SETTINGS").weight(FontWeight::BOLD).size(LabelSize::Default).color(Color::Warning))
+                                            .child(Label::new("configure system preferences").size(LabelSize::Small).color(Color::Muted)),
+                                    )
+                            )
+                            .child(
+                                div().border_1().border_color(border_color).px_2().py_1().rounded_md()
+                                    .child(Label::new("Ctrl-,").size(LabelSize::Small).color(Color::Muted)),
+                            ),
+                    )
+                    .child(
+                        v_flex()
+                            .w_full()
+                            .p_6()
                             .child(
                                 v_flex()
                                     .w_full()
+                                    .bg(cx.theme().colors().element_background)
+                                    .border_1()
+                                    .border_color(border_color)
+                                    .rounded_lg()
+                                    .p_4()
+                                    .child(
+                                        Label::new("✨ Collaborate with Agents")
+                                            .weight(FontWeight::BOLD)
+                                            .size(LabelSize::Default)
+                                            .color(Color::Warning),
+                                    )
+                                    .child(
+                                        Label::new("Run multiple threads at once, mix and match any ACP-compatible agent, and keep work conflict-free with worktrees.")
+                                            .size(LabelSize::Small)
+                                            .color(Color::Muted)
+                                            .my_3(),
+                                    )
                                     .child(
                                         div()
+                                            .id("open-agent-panel-btn")
                                             .w_full()
-                                            .border_b_1()
-                                            .border_color(cx.theme().colors().border)
-                                            .child(SectionHeader::new("GET STARTED")),
-                                    )
-                                    .child(
-                                        h_flex()
-                                            .w_full()
-                                            .min_h(rems(6.5))
-                                            .child(
-                                                div()
-                                                    .flex_1()
-                                                    .border_r_1()
-                                                    .border_b_1()
-                                                    .border_color(cx.theme().colors().border)
-                                                    .child(first_section.entries[0].render(0, &self.focus_handle).unwrap()),
-                                            )
-                                            .child(
-                                                div()
-                                                    .flex_1()
-                                                    .border_b_1()
-                                                    .border_color(cx.theme().colors().border)
-                                                    .child(first_section.entries[1].render(1, &self.focus_handle).unwrap()),
-                                            )
-                                    )
-                                    .when_some(rendered_second_section, |this, section| {
-                                        this.child(
-                                            div()
-                                                .w_full()
-                                                .border_b_1()
-                                                .border_color(cx.theme().colors().border)
-                                                .child(section),
-                                        )
-                                    })
-                                    .when(!has_second_section, |this| {
-                                        this
-                                            .child(
-                                                div()
-                                                    .w_full()
-                                                    .border_b_1()
-                                                    .border_color(cx.theme().colors().border)
-                                                    .child(SectionHeader::new("CONFIGURATION")),
-                                            )
+                                            .border_1()
+                                            .border_color(border_color)
+                                            .rounded_md()
+                                            .py_2()
+                                            .flex()
+                                            .items_center()
+                                            .justify_center()
+                                            .cursor_pointer()
+                                            .hover(move |style| style.bg(hover_bg))
+                                            .on_click({
+                                                let focus = focus.clone();
+                                                move |_, window, cx| {
+                                                    focus.dispatch_action(&ToggleFocus, window, cx);
+                                                }
+                                            })
                                             .child(
                                                 h_flex()
-                                                    .w_full()
-                                                    .min_h(rems(6.5))
-                                                    .child(
-                                                        div()
-                                                            .flex_1()
-                                                            .border_r_1()
-                                                            .border_b_1()
-                                                            .border_color(cx.theme().colors().border)
-                                                            .child(second_section.entries[0].render(2, &self.focus_handle).unwrap()),
-                                                    )
-                                                    .child(
-                                                        div()
-                                                            .flex_1()
-                                                            .border_b_1()
-                                                            .border_color(cx.theme().colors().border)
-                                                            .child(second_section.entries[1].render(3, &self.focus_handle).unwrap()),
-                                                    )
-                                            )
-                                    }),
+                                                    .gap_2()
+                                                    .child(Label::new("Open Agent Panel").size(LabelSize::Small))
+                                                    .child(Label::new("Ctrl-Shift-/").size(LabelSize::Small).color(Color::Muted)),
+                                            ),
+                                    ),
+                            ),
+                    )
+                    .child(
+                        h_flex()
+                            .w_full()
+                            .h(rems(2.8))
+                            .border_t_1()
+                            .border_color(border_color)
+                            .child(
+                                div().id("btn-keymaps").flex_1().h_full().flex().items_center().justify_center().border_r_1().border_color(border_color).cursor_pointer()
+                                    .hover(move |style| style.bg(hover_bg))
+                                    .on_click({
+                                        let focus = focus.clone();
+                                        move |_, window, cx| focus.dispatch_action(&OpenKeymap, window, cx)
+                                    })
+                                    .child(Label::new("KEYMAPS").size(LabelSize::Small).color(Color::Muted)),
                             )
                             .child(
-                                div()
-                                    .p_8()
-                                    .child(self.render_agent_card(next_tab_index, cx)),
+                                div().id("btn-command-palette").flex_1().h_full().flex().items_center().justify_center().border_r_1().border_color(border_color).cursor_pointer()
+                                    .hover(move |style| style.bg(hover_bg))
+                                    .on_click({
+                                        let focus = focus.clone();
+                                        move |_, window, cx| focus.dispatch_action(&ToggleCommandPalette, window, cx)
+                                    })
+                                    .child(Label::new("COMMAND PALETTE").size(LabelSize::Small).color(Color::Muted)),
                             )
-                            .child({
-                                next_tab_index += 1;
-                                h_flex()
-                                    .w_full()
-                                    .h(rems(3.5))
-                                    .border_t_1()
-                                    .border_color(cx.theme().colors().border)
-                                    .child(
-                                        div()
-                                            .flex_1()
-                                            .border_r_1()
-                                            .border_color(cx.theme().colors().border)
-                                            .child(
-                                                ButtonLike::new("clone-repo-btn")
-                                                    .full_width()
-                                                    .height(relative(1.))
-                                                    .tab_index(next_tab_index as isize)
-                                                    .on_click({
-                                                        let focus = focus.clone();
-                                                        move |_, window, cx| {
-                                                            focus.dispatch_action(&GitClone, window, cx);
-                                                        }
-                                                    })
-                                                    .child(
-                                                        div()
-                                                            .size_full()
-                                                            .flex()
-                                                            .items_center()
-                                                            .justify_center()
-                                                            .hover(|style| {
-                                                                style.bg(cx.theme().colors().background)
-                                                                .text_color(rgba(0xffb000ff))
-                                                            })
-                                                            .child(Label::new("CLONE_REPO").size(LabelSize::Small)),
-                                                    ),
-                                            )
-                                    )
-                                    .child(
-                                        div()
-                                            .flex_1()
-                                            .border_r_1()
-                                            .border_color(cx.theme().colors().border)
-                                            .child(
-                                                ButtonLike::new("command-palette-btn")
-                                                    .full_width()
-                                                    .height(relative(1.))
-                                                    .tab_index((next_tab_index + 1) as isize)
-                                                    .on_click({
-                                                        let focus = focus.clone();
-                                                        move |_, window, cx| {
-                                                            focus.dispatch_action(&ToggleCommandPalette, window, cx);
-                                                        }
-                                                    })
-                                                    .child(
-                                                        div()
-                                                            .size_full()
-                                                            .flex()
-                                                            .items_center()
-                                                            .justify_center()
-                                                            .hover(|style| {
-                                                                style.bg(cx.theme().colors().background)
-                                                                .text_color(rgba(0xffb000ff))
-                                                            })
-                                                            .child(Label::new("COMMAND_PALETTE").size(LabelSize::Small)),
-                                                    ),
-                                            )
-                                    )
-                                    .child(
-                                        div()
-                                            .flex_1()
-                                            .child(
-                                                ButtonLike::new("exit-onboarding-btn")
-                                                    .full_width()
-                                                    .height(relative(1.))
-                                                    .tab_index((next_tab_index + 2) as isize)
-                                                    .on_click({
-                                                        let focus = focus.clone();
-                                                        move |_, window, cx| {
-                                                            focus.dispatch_action(&OpenOnboarding, window, cx);
-                                                        }
-                                                    })
-                                                    .child(
-                                                        div()
-                                                            .size_full() 
-                                                            .flex()
-                                                            .items_center()
-                                                            .justify_center()
-                                                            .hover(|style| {
-                                                                style.bg(cx.theme().colors().background)
-                                                                .text_color(rgba(0xffb000ff))
-                                                            })
-                                                            .child(
-                                                                Label::new("EXIT_TO_ONBOARDING")
-                                                                    .size(LabelSize::Small)
-                                                                    .weight(FontWeight::EXTRA_BOLD)
-                                                            ),
-                                                    ),
-                                            )
-                                    )
-                            }),
-                    ),
+                            .child(
+                                div().id("btn-onboarding").flex_1().h_full().flex().items_center().justify_center().cursor_pointer()
+                                    .hover(move |style| style.bg(hover_bg))
+                                    .on_click({
+                                        let focus = focus.clone();
+                                        move |_, window, cx| focus.dispatch_action(&OpenOnboarding, window, cx)
+                                    })
+                                    .child(Label::new("ONBOARDING").size(LabelSize::Small).color(Color::Muted)),
+                            ),
+                    )
             )
     }
 }
