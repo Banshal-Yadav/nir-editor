@@ -170,7 +170,7 @@ impl RenderOnce for VoidLogo {
             .gap_2()
             .child(
                 div()
-                    .text_size(px(28.)) // Increased ~40% from standard Large
+                    .text_size(px(28.))
                     .line_height(relative(1.))
                     .font_weight(FontWeight::EXTRA_BOLD)
                     .text_color(cx.theme().colors().text_accent)
@@ -178,7 +178,7 @@ impl RenderOnce for VoidLogo {
             )
             .child(
                 div()
-                    .text_size(px(28.)) // Increased ~40%
+                    .text_size(px(28.))
                     .line_height(relative(1.))
                     .font_weight(FontWeight::EXTRA_BOLD)
                     .child("void"),
@@ -186,13 +186,13 @@ impl RenderOnce for VoidLogo {
             .child(div().w(px(4.)))
             .child(
                 div()
-                    .text_size(px(28.)) // Increased ~40%
+                    .text_size(px(28.))
                     .line_height(relative(1.))
                     .text_color(cx.theme().colors().text_accent)
+                    .child("▊") // Attach child first
                     .with_animation("void-cursor", cursor_animation, |el, delta| {
-                        el.opacity(delta)
-                    })
-                    .child("▊"),
+                        el.opacity(delta) // Apply animation wrapper last
+                    }),
             )
     }
 }
