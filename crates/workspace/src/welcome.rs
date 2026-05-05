@@ -191,7 +191,7 @@ impl RenderOnce for VoidLogo {
                     .text_color(cx.theme().colors().text_accent)
                     .child("▊")
                     .with_animation("void-cursor", cursor_animation, |el, delta| {
-                        el.opacity(delta) 
+                        el.opacity(delta)
                     }),
             )
     }
@@ -399,6 +399,13 @@ impl WelcomePage {
     fn render_agent_card(&self, tab_index: usize, cx: &mut App) -> impl IntoElement {
         let focus = self.focus_handle.clone();
 
+        // extract the theme's accent color 
+        let mut subtle_bg = cx.theme().colors().text_accent;
+        subtle_bg.a = 0.15; 
+
+        let mut hover_bg = cx.theme().colors().text_accent;
+        hover_bg.a = 0.25; 
+
         v_flex()
             .w_full()
             .p_6()
@@ -406,9 +413,9 @@ impl WelcomePage {
             .border_1()
             .border_color(cx.theme().colors().border)
             .child(
-                Label::new("/ ✦ /void AGENT")
+                Label::new("/void AGENT")
                     .weight(FontWeight::EXTRA_BOLD)
-                    .size(LabelSize::Default)
+                    .size(LabelSize::Large)
                     .mb_2(),
             )
             .child(
@@ -418,32 +425,26 @@ impl WelcomePage {
                     .mb_5(),
             )
             .child(
-                ButtonLike::new("open-agent")
+                div()
+                    .id("open-agent-btn")
                     .tab_index(tab_index as isize)
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .px_6()
+                    .cursor_pointer()
+                    .bg(subtle_bg)
+                    .hover(|style| {
+                        style.bg(hover_bg)
+                    })
                     .on_click(move |_, window, cx| {
                         focus.dispatch_action(&ToggleWorkspaceSidebar, window, cx);
                         focus.dispatch_action(&ToggleFocus, window, cx);
                     })
                     .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .justify_center()
-                            .bg(rgba(0xffb000ff))
-                            .px_6()
-                            .py_2()
-                            .shadow(vec![gpui::BoxShadow {
-                                color: rgba(0x000000ff).into(),
-                                offset: point(px(4.), px(4.)),
-                                blur_radius: px(0.),
-                                spread_radius: px(0.),
-                            }])
-                            .child(
-                                Label::new("OPEN AGENT PANEL")
-                                    .weight(FontWeight::EXTRA_BOLD)
-                                    .size(LabelSize::Default)
-                                    .color(ui::Color::Custom(gpui::black())),
-                            ),
+                        Label::new("OPEN AGENT PANEL")
+                            .weight(FontWeight::EXTRA_BOLD)
+                            .size(LabelSize::Default)
                     ),
             )
     }
@@ -673,6 +674,10 @@ impl Render for WelcomePage {
                                                             .flex()
                                                             .items_center()
                                                             .justify_center()
+                                                            .hover(|style| {
+                                                                style.bg(cx.theme().colors().background)
+                                                                .text_color(rgba(0xffb000ff))
+                                                            })
                                                             .child(Label::new("CLONE_REPO").size(LabelSize::Small)),
                                                     ),
                                             )
@@ -699,6 +704,10 @@ impl Render for WelcomePage {
                                                             .flex()
                                                             .items_center()
                                                             .justify_center()
+                                                            .hover(|style| {
+                                                                style.bg(cx.theme().colors().background)
+                                                                .text_color(rgba(0xffb000ff))
+                                                            })
                                                             .child(Label::new("COMMAND_PALETTE").size(LabelSize::Small)),
                                                     ),
                                             )
@@ -719,14 +728,18 @@ impl Render for WelcomePage {
                                                     })
                                                     .child(
                                                         div()
-                                                            .size_full() // Background removed, inherits hover effect naturally
+                                                            .size_full() 
                                                             .flex()
                                                             .items_center()
                                                             .justify_center()
+                                                            .hover(|style| {
+                                                                style.bg(cx.theme().colors().background)
+                                                                .text_color(rgba(0xffb000ff))
+                                                            })
                                                             .child(
                                                                 Label::new("EXIT_TO_ONBOARDING")
                                                                     .size(LabelSize::Small)
-                                                                    .weight(FontWeight::EXTRA_BOLD) // Made extra bold
+                                                                    .weight(FontWeight::EXTRA_BOLD)
                                                             ),
                                                     ),
                                             )
