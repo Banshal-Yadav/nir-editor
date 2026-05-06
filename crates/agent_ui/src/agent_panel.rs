@@ -2520,7 +2520,7 @@ impl Panel for AgentPanel {
 
     fn icon(&self, _window: &Window, cx: &App) -> Option<IconName> {
         (self.enabled(cx) && AgentSettings::get_global(cx).button)
-            .then_some(IconName::VoidAgentToggle)
+            .then_some(IconName::Sparkle)
     }
 
     fn icon_tooltip(&self, _window: &Window, _cx: &App) -> Option<&'static str> {
