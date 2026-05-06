@@ -51,7 +51,7 @@ use ui::{
 use update_version::UpdateVersion;
 use util::ResultExt;
 use workspace::{
-    MultiWorkspace, ToggleWorktreeSecurity, Workspace, notifications::NotifyResultExt,
+    MultiWorkspace, ToggleWorkspaceSidebar, ToggleWorktreeSecurity, Workspace, notifications::NotifyResultExt,
 };
 
 use zed_actions::OpenRemote;
@@ -309,6 +309,13 @@ impl Render for TitleBar {
                             ),
                     )
                 })
+                .when(
+                    matches!(
+                        agent_settings::AgentSettings::get_layout(cx),
+                        agent_settings::WindowLayout::Editor(_)
+                    ),
+                    |this| this.child(self.render_history_sidebar_toggle(cx)),
+                )
                 .when(TitleBarSettings::get_global(cx).show_user_menu, |this| {
                     this.child(self.render_user_menu_button(cx))
                 })
@@ -592,6 +599,32 @@ impl TitleBar {
                 .anchor(gpui::Anchor::TopLeft)
                 .into_any_element(),
         )
+    }
+
+    fn render_history_sidebar_toggle(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let is_open = self
+            .workspace
+            .upgrade()
+            .and_then(|ws| {
+                ws.read(cx)
+                    .multi_workspace()
+                    .and_then(|mw| mw.upgrade())
+                    .map(|mw| mw.read(cx).sidebar_open())
+            })
+            .unwrap_or(false);
+
+        let icon = if is_open {
+            IconName::ThreadsSidebarRightOpen
+        } else {
+            IconName::ThreadsSidebarRightClosed
+        };
+
+        IconButton::new("history-sidebar-toggle", icon)
+            .icon_size(IconSize::Small)
+            .tooltip(|_, cx| Tooltip::for_action("Toggle History Sidebar", &ToggleWorkspaceSidebar, cx))
+            .on_click(|_, window, cx| {
+                window.dispatch_action(Box::new(ToggleWorkspaceSidebar), cx);
+            })
     }
 
     pub fn render_restricted_mode(&self, cx: &mut Context<Self>) -> Option<AnyElement> {

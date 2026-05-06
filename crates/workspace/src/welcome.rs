@@ -1,19 +1,16 @@
 use crate::{
-    NewFile, Open, OpenMode,
+    NewFile, Open,
     Workspace,
     item::{Item, ItemEvent},
 };
 use gpui::{
     px, relative, App, AppContext, Context, EventEmitter, FocusHandle, Focusable, FontWeight,
     Entity, Render, WeakEntity,
-    Action, actions, Task, Window, Animation, AnimationExt, pulsating_between,
+    actions, Task, Window, Animation, AnimationExt, pulsating_between,
 };
 use menu::{SelectNext, SelectPrevious};
 
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-use ui::{ButtonLike, Icon, IconName, KeyBinding, Label, prelude::*};
-use util::ResultExt;
+use ui::{Icon, IconName, Label, prelude::*};
 use zed_actions::{
     OpenKeymap, OpenSettings, assistant::ToggleFocus,
 };
@@ -84,13 +81,12 @@ impl RenderOnce for VoidLogo {
 }
 
 pub struct WelcomePage {
-    workspace: WeakEntity<Workspace>,
     focus_handle: FocusHandle,
 }
 
 impl WelcomePage {
     pub fn new(
-        workspace: WeakEntity<Workspace>,
+        _workspace: WeakEntity<Workspace>,
         _fallback_to_recent_projects: bool,
         _window: &mut Window,
         cx: &mut Context<Self>,
@@ -100,7 +96,6 @@ impl WelcomePage {
             .detach();
 
         WelcomePage {
-            workspace,
             focus_handle,
         }
     }

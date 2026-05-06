@@ -2118,34 +2118,42 @@ impl MultiWorkspace {
                                     .h_px()
                                     .bg(cx.theme().colors().border)
                             )
-                            .child(
-                                div()
-                                    .id("activity_sidebar_toggle")
-                                    .mt_3()
-                                    .child({
-                                        let icon = if self.sidebar_open() {
-                                            IconName::ThreadsSidebarLeftOpen
-                                        } else {
-                                            IconName::ThreadsSidebarLeftClosed
-                                        };
-                                        Icon::new(icon)
-                                            .size(IconSize::Custom(rems_from_px(22.)))
-                                            .color(Color::Muted)
-                                    })
-                                    .cursor_pointer()
-                                    .on_click(cx.listener(|this, _, window, cx| {
-                                        this.toggle_sidebar(window, cx);
-                                    }))
-                                    .tooltip(|_, cx| {
-                                        Tooltip::for_action(
-                                            "Open Threads Sidebar",
-                                            &ToggleWorkspaceSidebar,
-                                            cx,
-                                        )
-                                    })
-                                    .hover(|s| s.bg(cx.theme().colors().element_hover))
-                                    .rounded_md()
-                                    .p_1()
+                            .when(
+                                !matches!(
+                                    agent_settings::AgentSettings::get_layout(cx),
+                                    agent_settings::WindowLayout::Editor(_)
+                                ),
+                                |this| {
+                                    this.child(
+                                        div()
+                                            .id("activity_sidebar_toggle")
+                                            .mt_3()
+                                            .child({
+                                                let icon = if self.sidebar_open() {
+                                                    IconName::ThreadsSidebarLeftOpen
+                                                } else {
+                                                    IconName::ThreadsSidebarLeftClosed
+                                                };
+                                                Icon::new(icon)
+                                                    .size(IconSize::Custom(rems_from_px(22.)))
+                                                    .color(Color::Muted)
+                                            })
+                                            .cursor_pointer()
+                                            .on_click(cx.listener(|this, _, window, cx| {
+                                                this.toggle_sidebar(window, cx);
+                                            }))
+                                            .tooltip(|_, cx| {
+                                                Tooltip::for_action(
+                                                    "Open Threads Sidebar",
+                                                    &ToggleWorkspaceSidebar,
+                                                    cx,
+                                                )
+                                            })
+                                            .hover(|s| s.bg(cx.theme().colors().element_hover))
+                                            .rounded_md()
+                                            .p_1(),
+                                    )
+                                },
                             )
                     )
                     .children(avatars)

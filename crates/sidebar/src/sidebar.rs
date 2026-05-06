@@ -4503,7 +4503,7 @@ impl Sidebar {
     }
 
     fn render_sidebar_toggle_button(&self, _cx: &mut Context<Self>) -> impl IntoElement {
-        let on_right = AgentSettings::get_global(_cx).sidebar_side() == SidebarSide::Right;
+        let on_right = self.side(_cx) == SidebarSide::Right;
 
         sidebar_side_context_menu("sidebar-toggle-menu", _cx)
             .anchor(if on_right {
@@ -4874,6 +4874,12 @@ impl WorkspaceSidebar for Sidebar {
     }
 
     fn side(&self, cx: &App) -> SidebarSide {
+        if matches!(
+            AgentSettings::get_layout(cx),
+            agent_settings::WindowLayout::Editor(_)
+        ) {
+            return SidebarSide::Right;
+        }
         AgentSettings::get_global(cx).sidebar_side()
     }
 

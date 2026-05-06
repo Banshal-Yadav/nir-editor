@@ -30,8 +30,6 @@ trait StatusItemViewHandle: Send {
 struct SidebarStatus {
     open: bool,
     side: SidebarSide,
-    has_notifications: bool,
-    show_toggle: bool,
 }
 
 impl SidebarStatus {
@@ -45,8 +43,6 @@ impl SidebarStatus {
                 Self {
                     open: mw.sidebar_open() && enabled,
                     side: mw.sidebar_side(cx),
-                    has_notifications: mw.sidebar_has_notifications(cx),
-                    show_toggle: enabled,
                 }
             })
             .unwrap_or_default()
@@ -110,6 +106,9 @@ impl StatusBar {
         type_name.contains("BranchIndicator")
             || type_name.contains("ActiveBufferLanguage")
             || type_name.contains("CursorPosition")
+            || type_name.contains("DiagnosticIndicator")
+            || type_name.contains("LspButton")
+            || type_name.contains("SearchButton")
     }
 
     fn render_left_tools(

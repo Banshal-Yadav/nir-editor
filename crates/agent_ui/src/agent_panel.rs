@@ -2527,6 +2527,11 @@ impl Panel for AgentPanel {
         Some("Agent Panel")
     }
 
+    fn icon_label(&self, _window: &Window, cx: &App) -> Option<String> {
+        (self.enabled(cx) && AgentSettings::get_global(cx).button)
+            .then(|| "Agent".to_string())
+    }
+
     fn toggle_action(&self) -> Box<dyn Action> {
         Box::new(ToggleFocus)
     }

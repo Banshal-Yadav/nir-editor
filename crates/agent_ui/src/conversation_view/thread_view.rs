@@ -3195,17 +3195,17 @@ impl ThreadView {
         let fills_container = !has_messages || editor_expanded;
 
         h_flex()
-            .p_2()
-            .bg(editor_bg_color)
+            .px_2()
+            .pb_2()
+            .pt_1()
+            .bg(cx.theme().colors().panel_background)
             .justify_center()
             .map(|this| {
                 if has_messages {
                     this.on_action(cx.listener(Self::expand_message_editor))
-                        .border_t_1()
-                        .border_color(cx.theme().colors().border)
                         .when(editor_expanded, |this| this.h(vh(0.8, window)))
                 } else {
-                    this.flex_1().size_full()
+                    this
                 }
             })
             .child(
@@ -3216,22 +3216,25 @@ impl ThreadView {
                     .flex_grow_0()
                     .when(fills_container, |this| this.h_full())
                     .justify_between()
-                    .gap_2()
+                    .border_1()
+                    .border_color(cx.theme().colors().border)
+                    .rounded_lg()
+                    .bg(editor_bg_color)
+                    .overflow_hidden()
                     .child(
                         v_flex()
                             .relative()
                             .w_full()
                             .min_h_0()
                             .when(fills_container, |this| this.flex_1())
-                            .pt_1()
-                            .pr_2p5()
+                            .p_2p5()
                             .child(self.message_editor.clone())
                             .when(has_messages, |this| {
                                 this.child(
                                     h_flex()
                                         .absolute()
-                                        .top_0()
-                                        .right_0()
+                                        .top_1()
+                                        .right_1()
                                         .opacity(0.5)
                                         .hover(|s| s.opacity(1.0))
                                         .child(
@@ -3265,6 +3268,8 @@ impl ThreadView {
                             .flex_none()
                             .flex_wrap()
                             .justify_between()
+                            .px_1p5()
+                            .pb_1p5()
                             .child(
                                 h_flex()
                                     .gap_0p5()

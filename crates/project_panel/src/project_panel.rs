@@ -7256,6 +7256,12 @@ impl Panel for ProjectPanel {
         Some("Project Panel")
     }
 
+    fn icon_label(&self, _window: &Window, cx: &App) -> Option<String> {
+        ProjectPanelSettings::get_global(cx)
+            .button
+            .then(|| "Project".to_string())
+    }
+
     fn toggle_action(&self) -> Box<dyn Action> {
         Box::new(ToggleFocus)
     }

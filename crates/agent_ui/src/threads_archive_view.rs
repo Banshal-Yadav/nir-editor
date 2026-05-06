@@ -7,7 +7,7 @@ use crate::agent_connection_store::AgentConnectionStore;
 use crate::thread_metadata_store::{
     ThreadId, ThreadMetadata, ThreadMetadataStore, worktree_info_from_thread_paths,
 };
-use crate::{Agent, ArchiveSelectedThread, DEFAULT_THREAD_TITLE, RemoveSelectedThread};
+use crate::{Agent, ArchiveSelectedThread, DEFAULT_THREAD_TITLE, NewThread, RemoveSelectedThread};
 
 use agent::ThreadStore;
 use agent_client_protocol::schema as acp;
@@ -884,6 +884,14 @@ impl ThreadsArchiveView {
                             .color(Color::Muted),
                     )
                     .child(self.filter_editor.clone()),
+            )
+            .child(
+                IconButton::new("new-thread", IconName::Plus)
+                    .icon_size(IconSize::Small)
+                    .on_click(cx.listener(|_, _, window, cx| {
+                        window.dispatch_action(Box::new(NewThread), cx);
+                    }))
+                    .tooltip(move |_, cx| Tooltip::for_action("Start New Thread", &NewThread, cx)),
             )
             .when(show_focus_keybinding, |this| {
                 this.child(KeyBinding::for_action(&FocusSidebarFilter, cx))
