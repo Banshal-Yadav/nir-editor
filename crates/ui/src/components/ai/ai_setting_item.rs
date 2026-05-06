@@ -367,7 +367,7 @@ impl Component for AiSettingItem {
                             AiSettingItemSource::Registry,
                         )
                         .icon(
-                            Icon::new(IconName::VoidAgentToggle)
+                            Icon::new(IconName::Sparkle)
                                 .size(IconSize::Small)
                                 .color(Color::Muted),
                         ),

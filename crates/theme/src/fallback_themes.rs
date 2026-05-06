@@ -20,7 +20,6 @@ pub fn zed_default_themes() -> ThemeFamily {
         themes: vec![
             zed_default_dark(),
             antigravity(),
-            void_gemenicious(),
             void_claudious(),
         ],
         scales: default_color_scales(),
@@ -391,14 +390,11 @@ pub(crate) fn zed_default_dark() -> Theme {
 }
 
 pub(crate) fn antigravity() -> Theme {
-    let bg = hsla(60. / 360., 5. / 100., 10. / 100., 1.); // #1c1c1a (Warm Dark Charcoal)
-    let editor = hsla(60. / 360., 5. / 100., 12. / 100., 1.);
-    let elevated_surface = hsla(60. / 360., 5. / 100., 14. / 100., 1.);
-    let accent = hsla(38. / 360., 45. / 100., 58. / 100., 1.); // Bronze/Gold
-    
-    let text = hsla(52. / 360., 15. / 100., 88. / 100., 1.0); // #e6e4d5 (Light Grayish Yellow Tint)
-    let warm_neutral = hsla(52. / 360., 10. / 100., 75. / 100., 1.0);
-    let green = hsla(120. / 360., 15. / 100., 60. / 100., 1.0);
+    // Soft Cold-Gray Crayon Base
+    let base = hsla(60. / 360., 4. / 100., 11. / 100., 1.); // #1d1d1b
+    let accent = hsla(38. / 360., 35. / 100., 60. / 100., 1.); // Soft Crayon Bronze
+    let text = hsla(52. / 360., 10. / 100., 85. / 100., 1.0); // Chalky Gray-White
+    let muted = hsla(60. / 360., 5. / 100., 45. / 100., 1.0); // Muted Crayon Precision
     
     let player = PlayerColors::dark();
     Theme {
@@ -408,55 +404,64 @@ pub(crate) fn antigravity() -> Theme {
         styles: ThemeStyles {
             window_background_appearance: WindowBackgroundAppearance::Opaque,
             system: SystemColors::default(),
-            accents: AccentColors(Arc::from(vec![accent, warm_neutral, green])),
+            accents: AccentColors(Arc::from(vec![accent])),
             colors: ThemeColors {
-                border: hsla(60. / 360., 5. / 100., 5. / 100., 1.),
-                elevated_surface_background: elevated_surface,
-                surface_background: bg,
-                background: bg,
-                editor_background: editor,
+                // UNIFORM BACKGROUNDS
+                background: base,
+                editor_background: base,
+                surface_background: base,
+                elevated_surface_background: base,
+                panel_background: base,
+                status_bar_background: base,
+                title_bar_background: base,
+                toolbar_background: base,
+                tab_bar_background: base,
+                tab_inactive_background: base,
+                tab_active_background: base,
+                terminal_background: base,
+                
+                // UNIFORM BORDERS
+                border: hsla(60. / 360., 5. / 100., 15. / 100., 1.),
+                border_variant: hsla(60. / 360., 5. / 100., 15. / 100., 1.),
+                
                 text,
-                text_muted: hsla(60. / 360., 8. / 100., 60. / 100., 1.0),
-                icon: text,
+                text_muted: muted,
                 icon_accent: accent,
-                tab_active_background: editor,
-                tab_inactive_background: bg,
-                status_bar_background: bg,
-                title_bar_background: bg,
-                toolbar_background: editor,
-                panel_background: bg,
-                scrollbar_thumb_background: hsla(60. / 360., 5. / 100., 25. / 100., 0.5),
+                
+                // ELEMENTS (Must not be darker than base)
+                element_background: hsla(60. / 360., 5. / 100., 16. / 100., 1.0), // Slightly lighter
+                element_hover: hsla(60. / 360., 5. / 100., 20. / 100., 1.0),
+                element_selected: hsla(60. / 360., 5. / 100., 24. / 100., 1.0),
+                
+                editor_gutter_background: base,
+                editor_line_number: muted,
+                editor_active_line_number: text,
+                scrollbar_thumb_background: hsla(60. / 360., 5. / 100., 20. / 100., 0.4),
                 ..zed_default_dark().styles.colors
             },
             status: zed_default_dark().styles.status,
             player,
             syntax: Arc::new(SyntaxTheme::new(vec![
-                ("keyword".into(), accent.into()),
-                ("function".into(), text.into()),
-                ("string".into(), green.into()),
-                ("comment".into(), hsla(60. / 360., 10. / 100., 45. / 100., 1.0).into()),
-                ("type".into(), warm_neutral.into()),
+                ("keyword".into(), accent.into()), // Bronze
+                ("function".into(), text.into()), // Chalky White
+                ("string".into(), hsla(120. / 360., 15. / 100., 60. / 100., 1.0).into()), // Muted Ivy
+                ("comment".into(), muted.into()),
+                ("type".into(), hsla(200. / 360., 20. / 100., 65. / 100., 1.0).into()), // Muted Slate
                 ("variable".into(), text.into()),
-                ("number".into(), accent.into()),
-                ("operator".into(), warm_neutral.into()),
-                ("property".into(), warm_neutral.into()),
+                ("number".into(), accent.into()), // Bronze
+                ("operator".into(), muted.into()),
+                ("property".into(), hsla(30. / 360., 25. / 100., 70. / 100., 1.0).into()), // Muted Ochre
             ])),
         },
     }
 }
 
 pub(crate) fn void_claudious() -> Theme {
-    let bg = hsla(24. / 360., 24. / 100., 8. / 100., 1.); // #1a1410
-    let surface = hsla(24. / 360., 20. / 100., 12. / 100., 1.); // #231d17
-    let elevated_surface = hsla(22. / 360., 17. / 100., 15. / 100., 1.); // #2d2520
-    let border = hsla(27. / 360., 20. / 100., 20. / 100., 1.); // #3d3228
-    
-    let accent = hsla(15. / 360., 50. / 100., 58. / 100., 1.0); // #cc785c
-    let text = hsla(24. / 360., 30. / 100., 87. / 100., 1.0); // #e8ddd5
-    
-    let strings = hsla(36. / 360., 62. / 100., 76. / 100., 1.0); // #e8c99a
-    let types = hsla(24. / 360., 55. / 100., 62. / 100., 1.0); // #d4956a
-    let comment = hsla(24. / 360., 18. / 100., 30. / 100., 1.0); // #5a4a3f
+    // Soft Gray-Brown Crayon Base (Warm)
+    let base = hsla(24. / 360., 12. / 100., 12. / 100., 1.); // #221e1a
+    let accent = hsla(24. / 360., 40. / 100., 65. / 100., 1.0); // Soft Crayon Terra Cotta
+    let text = hsla(24. / 360., 15. / 100., 85. / 100., 1.0); // Chalky Cream
+    let muted = hsla(24. / 360., 10. / 100., 45. / 100., 1.0); // Muted Crayon Earth
     
     let player = PlayerColors::dark();
     Theme {
@@ -466,100 +471,55 @@ pub(crate) fn void_claudious() -> Theme {
         styles: ThemeStyles {
             window_background_appearance: WindowBackgroundAppearance::Opaque,
             system: SystemColors::default(),
-            accents: AccentColors(Arc::from(vec![accent, types])),
+            accents: AccentColors(Arc::from(vec![accent])),
             colors: ThemeColors {
-                border,
-                elevated_surface_background: elevated_surface,
-                surface_background: surface,
-                background: bg,
-                editor_background: bg,
+                // UNIFORM BACKGROUNDS (ABSOLUTE)
+                background: base,
+                editor_background: base,
+                surface_background: base,
+                elevated_surface_background: base,
+                panel_background: base,
+                status_bar_background: base,
+                title_bar_background: base,
+                toolbar_background: base,
+                tab_bar_background: base,
+                tab_inactive_background: base,
+                tab_active_background: base,
+                terminal_background: base, // Ensure terminal matches
+                
+                // UNIFORM BORDERS
+                border: hsla(24. / 360., 10. / 100., 16. / 100., 1.),
+                border_variant: hsla(24. / 360., 10. / 100., 16. / 100., 1.),
+                
                 text,
-                text_muted: comment,
-                text_accent: accent,
+                text_muted: muted,
                 icon_accent: accent,
-                tab_active_background: bg,
-                tab_inactive_background: surface,
-                tab_bar_background: elevated_surface,
-                status_bar_background: elevated_surface,
-                title_bar_background: elevated_surface,
-                toolbar_background: bg,
-                panel_background: elevated_surface,
-                scrollbar_thumb_background: hsla(24. / 360., 18. / 100., 30. / 100., 0.5),
-                ..zed_default_dark().styles.colors
-            },
-            status: StatusColors {
-                error: hsla(0. / 360., 71. / 100., 60. / 100., 1.0),
-                warning: hsla(33. / 360., 58. / 100., 52. / 100., 1.0),
-                success: hsla(139. / 360., 27. / 100., 49. / 100., 1.0),
-                info: hsla(215. / 360., 52. / 100., 58. / 100., 1.0),
-                ..zed_default_dark().styles.status
-            },
-            player,
-            syntax: Arc::new(SyntaxTheme::new(vec![
-                ("keyword".into(), accent.into()),
-                ("function".into(), text.into()),
-                ("string".into(), strings.into()),
-                ("comment".into(), comment.into()),
-                ("type".into(), types.into()),
-                ("variable".into(), text.into()),
-                ("number".into(), accent.into()),
-                ("operator".into(), hsla(27. / 360., 13. / 100., 55. / 100., 1.0).into()),
-                ("punctuation".into(), comment.into()),
-            ])),
-        },
-    }
-}
-
-pub(crate) fn void_gemenicious() -> Theme {
-    let bg = hsla(240. / 360., 4. / 100., 5. / 100., 1.); // #0e0e10 (Gemini Dark)
-    let editor = bg;
-    let elevated_surface = hsla(240. / 360., 4. / 100., 8. / 100., 1.);
-    let accent = hsla(260. / 360., 60. / 100., 70. / 100., 1.0); // #AD89EB (Gemini Violet)
-    
-    let secondary = hsla(240. / 360., 10. / 100., 70. / 100., 1.0); // Steel Gray
-    let comment = hsla(240. / 360., 4. / 100., 40. / 100., 1.0);
-    
-    let player = PlayerColors::dark();
-    Theme {
-        id: "void-gemenicious".to_string(),
-        name: "Void Gemenicious".into(),
-        appearance: Appearance::Dark,
-        styles: ThemeStyles {
-            window_background_appearance: WindowBackgroundAppearance::Opaque,
-            system: SystemColors::default(),
-            accents: AccentColors(Arc::from(vec![accent, secondary])),
-            colors: ThemeColors {
-                border: hsla(240. / 360., 4. / 100., 2. / 100., 1.),
-                elevated_surface_background: elevated_surface,
-                surface_background: bg,
-                background: bg,
-                editor_background: editor,
-                text: hsla(240. / 360., 4. / 100., 90. / 100., 1.0),
-                text_muted: comment,
-                icon_accent: accent,
-                tab_active_background: editor,
-                tab_inactive_background: bg,
-                tab_bar_background: elevated_surface,
-                status_bar_background: elevated_surface,
-                title_bar_background: elevated_surface,
-                toolbar_background: bg,
-                panel_background: elevated_surface,
-                scrollbar_thumb_background: hsla(240. / 360., 4. / 100., 20. / 100., 0.5),
+                
+                // ELEMENTS (Must not be darker than base)
+                element_background: hsla(24. / 360., 12. / 100., 16. / 100., 1.0), // Slightly lighter
+                element_hover: hsla(24. / 360., 12. / 100., 20. / 100., 1.0),
+                element_selected: hsla(24. / 360., 12. / 100., 24. / 100., 1.0),
+                
+                editor_gutter_background: base,
+                editor_line_number: muted,
+                editor_active_line_number: text,
+                scrollbar_thumb_background: hsla(24. / 360., 10. / 100., 20. / 100., 0.4),
                 ..zed_default_dark().styles.colors
             },
             status: zed_default_dark().styles.status,
             player,
             syntax: Arc::new(SyntaxTheme::new(vec![
-                ("keyword".into(), accent.into()),
-                ("function".into(), secondary.into()),
-                ("string".into(), hsla(260. / 360., 40. / 100., 80. / 100., 1.0).into()),
-                ("comment".into(), comment.into()),
-                ("type".into(), accent.into()),
-                ("variable".into(), hsla(240. / 360., 4. / 100., 95. / 100., 1.0).into()),
-                ("number".into(), hsla(280. / 360., 50. / 100., 75. / 100., 1.0).into()),
-                ("operator".into(), secondary.into()),
+                ("keyword".into(), accent.into()), // Terra Cotta
+                ("function".into(), hsla(35. / 360., 35. / 100., 70. / 100., 1.0).into()), // Chalky Gold
+                ("string".into(), hsla(80. / 360., 20. / 100., 65. / 100., 1.0).into()), // Sage Green
+                ("comment".into(), muted.into()),
+                ("type".into(), hsla(20. / 360., 30. / 100., 75. / 100., 1.0).into()), // Muted Clay
+                ("variable".into(), text.into()),
+                ("number".into(), hsla(15. / 360., 45. / 100., 70. / 100., 1.0).into()), // Soft Brick
+                ("operator".into(), muted.into()),
                 ("property".into(), accent.into()),
             ])),
         },
     }
 }
+
