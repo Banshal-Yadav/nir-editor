@@ -2122,11 +2122,16 @@ impl MultiWorkspace {
                                 div()
                                     .id("activity_sidebar_toggle")
                                     .mt_3()
-                                    .child(
-                                        Icon::new(IconName::ThreadsSidebarLeftClosed)
+                                    .child({
+                                        let icon = if self.sidebar_open() {
+                                            IconName::ThreadsSidebarLeftOpen
+                                        } else {
+                                            IconName::ThreadsSidebarLeftClosed
+                                        };
+                                        Icon::new(icon)
                                             .size(IconSize::Custom(rems_from_px(22.)))
                                             .color(Color::Muted)
-                                    )
+                                    })
                                     .cursor_pointer()
                                     .on_click(cx.listener(|this, _, window, cx| {
                                         this.toggle_sidebar(window, cx);
