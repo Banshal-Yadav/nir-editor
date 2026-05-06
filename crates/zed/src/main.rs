@@ -309,7 +309,7 @@ fn main() {
         .unwrap();
 
     log::info!(
-        "========== starting zed version {}, sha {} ==========",
+        "========== starting void version {}, sha {} ==========",
         app_version,
         app_commit_sha
             .as_ref()
@@ -382,7 +382,7 @@ fn main() {
         }
     };
     if failed_single_instance_check {
-        println!("zed is already running");
+        println!("/void is already running");
         return;
     }
 
