@@ -6,8 +6,8 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use gpui::{
-    px, rgba, relative, App, AppContext, Context, EventEmitter, FocusHandle, Focusable, FontWeight,
-    Entity, Render, WeakEntity, point,
+    px, relative, App, AppContext, Context, EventEmitter, FocusHandle, Focusable, FontWeight,
+    Entity, Render, WeakEntity,
     Action, actions, Task, Window, Animation, AnimationExt, pulsating_between,
 };
 use menu::{SelectNext, SelectPrevious};
@@ -531,7 +531,7 @@ impl Render for WelcomePage {
                                 Label::new("THINK. BUILD. SHIP.")
                                     .weight(FontWeight::BOLD)
                                     .size(LabelSize::Default)
-                                    .color(Color::Warning),
+                                    .color(Color::Accent),
                             ),
                     )
                     .child(
@@ -571,7 +571,7 @@ impl Render for WelcomePage {
                                     .child(Icon::new(IconName::Plus).color(Color::Muted))
                                     .child(
                                         v_flex()
-                                            .child(Label::new("NEW FILE").weight(FontWeight::BOLD).size(LabelSize::Default).color(Color::Warning))
+                                            .child(Label::new("NEW FILE").weight(FontWeight::BOLD).size(LabelSize::Default))
                                             .child(Label::new("initialize empty buffer").size(LabelSize::Small).color(Color::Muted)),
                                     )
                             )
@@ -604,7 +604,7 @@ impl Render for WelcomePage {
                                     .child(Icon::new(IconName::Folder).color(Color::Muted))
                                     .child(
                                         v_flex()
-                                            .child(Label::new("OPEN PROJECT").weight(FontWeight::BOLD).size(LabelSize::Default).color(Color::Warning))
+                                            .child(Label::new("OPEN PROJECT").weight(FontWeight::BOLD).size(LabelSize::Default))
                                             .child(Label::new("load workspace from disk").size(LabelSize::Small).color(Color::Muted)),
                                     )
                             )
@@ -637,7 +637,7 @@ impl Render for WelcomePage {
                                     .child(Icon::new(IconName::CloudDownload).color(Color::Muted))
                                     .child(
                                         v_flex()
-                                            .child(Label::new("CLONE REPOSITORY").weight(FontWeight::BOLD).size(LabelSize::Default).color(Color::Warning))
+                                            .child(Label::new("CLONE REPOSITORY").weight(FontWeight::BOLD).size(LabelSize::Default))
                                             .child(Label::new("git clone into new workspace").size(LabelSize::Small).color(Color::Muted)),
                                     )
                             ),
@@ -666,7 +666,7 @@ impl Render for WelcomePage {
                                     .child(Icon::new(IconName::Settings).color(Color::Muted))
                                     .child(
                                         v_flex()
-                                            .child(Label::new("SETTINGS").weight(FontWeight::BOLD).size(LabelSize::Default).color(Color::Warning))
+                                            .child(Label::new("SETTINGS").weight(FontWeight::BOLD).size(LabelSize::Default))
                                             .child(Label::new("configure system preferences").size(LabelSize::Small).color(Color::Muted)),
                                     )
                             )
@@ -688,10 +688,9 @@ impl Render for WelcomePage {
                                     .rounded_lg()
                                     .p_4()
                                     .child(
-                                        Label::new("✨ Collaborate with Agents")
+                                        Label::new("Collaborate with Agents")
                                             .weight(FontWeight::BOLD)
-                                            .size(LabelSize::Default)
-                                            .color(Color::Warning),
+                                            .size(LabelSize::Default),
                                     )
                                     .child(
                                         Label::new("Run multiple threads at once, mix and match any ACP-compatible agent, and keep work conflict-free with worktrees.")
@@ -740,7 +739,7 @@ impl Render for WelcomePage {
                                         let focus = focus.clone();
                                         move |_, window, cx| focus.dispatch_action(&OpenKeymap, window, cx)
                                     })
-                                    .child(Label::new("KEYMAPS").size(LabelSize::Small).color(Color::Muted)),
+                                    .child(Label::new("KEYMAPS").size(LabelSize::Small)),
                             )
                             .child(
                                 div().id("btn-command-palette").flex_1().h_full().flex().items_center().justify_center().border_r_1().border_color(border_color).cursor_pointer()
@@ -749,7 +748,7 @@ impl Render for WelcomePage {
                                         let focus = focus.clone();
                                         move |_, window, cx| focus.dispatch_action(&ToggleCommandPalette, window, cx)
                                     })
-                                    .child(Label::new("COMMAND PALETTE").size(LabelSize::Small).color(Color::Muted)),
+                                    .child(Label::new("COMMAND PALETTE").size(LabelSize::Small)),
                             )
                             .child(
                                 div().id("btn-onboarding").flex_1().h_full().flex().items_center().justify_center().cursor_pointer()
@@ -758,7 +757,7 @@ impl Render for WelcomePage {
                                         let focus = focus.clone();
                                         move |_, window, cx| focus.dispatch_action(&OpenOnboarding, window, cx)
                                     })
-                                    .child(Label::new("ONBOARDING").size(LabelSize::Small).color(Color::Muted)),
+                                    .child(Label::new("ONBOARDING").size(LabelSize::Small)),
                             ),
                     )
             )

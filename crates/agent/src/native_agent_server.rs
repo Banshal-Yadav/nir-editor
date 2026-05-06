@@ -33,7 +33,7 @@ impl AgentServer for NativeAgentServer {
     }
 
     fn logo(&self) -> ui::IconName {
-        ui::IconName::Slash
+        ui::IconName::VoidAgent
     }
 
     fn connect(

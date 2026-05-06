@@ -1,14 +1,8 @@
-use crate::{
-    ItemHandle, MultiWorkspace, Pane, SidebarSide, ToggleWorkspaceSidebar,
-    sidebar_side_context_menu,
-};
-use gpui::{
-    Anchor, AnyView, App, Context, Decorations, Entity, IntoElement, ParentElement, Render, Styled,
-    Subscription, WeakEntity, Window,
-};
+use crate::{ItemHandle, MultiWorkspace, Pane, SidebarSide};
+use gpui::{AnyView, App, Context, Decorations, Entity, IntoElement, ParentElement, Render, Styled, Subscription, WeakEntity, Window};
 use std::any::TypeId;
 use theme::CLIENT_SIDE_DECORATION_ROUNDING;
-use ui::{Divider, IconButton, Tooltip, prelude::*};
+use ui::prelude::*;
 
 pub trait StatusItemView: Render {
     /// Event callback that is triggered when the active pane item changes.
@@ -120,9 +114,9 @@ impl StatusBar {
 
     fn render_left_tools(
         &self,
-        sidebar: &SidebarStatus,
-        window: &mut Window,
-        cx: &mut Context<Self>,
+        _sidebar: &SidebarStatus,
+        _window: &mut Window,
+        _cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let essential_left_items = self.left_items.iter().filter_map(|item| {
             if Self::is_essential(item.item_type_name()) {
@@ -136,18 +130,14 @@ impl StatusBar {
             .gap_1()
             .min_w_0()
             .overflow_x_hidden()
-            .when(
-                sidebar.show_toggle && !sidebar.open && sidebar.side == SidebarSide::Left,
-                |this| this.child(self.render_sidebar_toggle(sidebar, window, cx)),
-            )
             .children(essential_left_items)
     }
 
     fn render_right_tools(
         &self,
-        sidebar: &SidebarStatus,
-        window: &mut Window,
-        cx: &mut Context<Self>,
+        _sidebar: &SidebarStatus,
+        _window: &mut Window,
+        _cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let mut essential_right_items = Vec::new();
         let mut overflow_items = Vec::new();
@@ -171,68 +161,10 @@ impl StatusBar {
             .overflow_x_hidden()
             .children(essential_right_items)
             .children(overflow_items)
-            .when(
-                sidebar.show_toggle && !sidebar.open && sidebar.side == SidebarSide::Right,
-                |this| this.child(self.render_sidebar_toggle(sidebar, window, cx)),
-            )
     }
 
 
 
-    fn render_sidebar_toggle(
-        &self,
-        sidebar: &SidebarStatus,
-        _window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> impl IntoElement {
-        let on_right = sidebar.side == SidebarSide::Right;
-        let _has_notifications = sidebar.has_notifications;
-        let _indicator_border = cx.theme().colors().status_bar_background;
-
-        let toggle = sidebar_side_context_menu("sidebar-status-toggle-menu", cx)
-            .anchor(if on_right {
-                Anchor::BottomRight
-            } else {
-                Anchor::BottomLeft
-            })
-            .attach(if on_right {
-                Anchor::TopRight
-            } else {
-                Anchor::TopLeft
-            })
-            .trigger(move |is_active, _window, _cx| {
-                IconButton::new(
-                    "toggle-workspace-sidebar",
-                    if on_right {
-                        IconName::ThreadsSidebarRightClosed
-                    } else {
-                        IconName::ThreadsSidebarLeftClosed
-                    },
-                )
-                .style(ButtonStyle::Subtle)
-                .toggle_state(is_active)
-                .tooltip(move |_, cx| {
-                    Tooltip::for_action("Open Threads Sidebar", &ToggleWorkspaceSidebar, cx)
-                })
-                .on_click(move |_, window: &mut Window, cx: &mut App| {
-                    if let Some(multi_workspace) = window.root::<MultiWorkspace>().flatten() {
-                        multi_workspace.update(cx, |multi_workspace: &mut MultiWorkspace, cx| {
-                            multi_workspace.toggle_sidebar(window, cx);
-                        });
-                    }
-                })
-            });
-
-        h_flex()
-            .gap_0p5()
-            .when(on_right, |this| {
-                this.child(Divider::vertical().color(ui::DividerColor::Border))
-            })
-            .child(toggle)
-            .when(!on_right, |this| {
-                this.child(Divider::vertical().color(ui::DividerColor::Border))
-            })
-    }
 }
 
 impl StatusBar {

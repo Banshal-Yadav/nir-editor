@@ -1,4 +1,5 @@
 use anyhow::Result;
+use ui::Tooltip;
 use fs::Fs;
 
 use gpui::{
@@ -21,7 +22,7 @@ use zed_actions::agents_sidebar::ToggleThreadSwitcher;
 
 use agent_settings::AgentSettings;
 use settings::SidebarDockPosition;
-use ui::{ContextMenu, right_click_menu, Vector, VectorName};
+use ui::{ContextMenu, right_click_menu, Vector, VectorName, Icon, IconName};
 use theme;
 
 const SIDEBAR_RESIZE_HANDLE_SIZE: Pixels = px(6.0);
@@ -1433,7 +1434,7 @@ impl MultiWorkspace {
         if !workspace_was_retained {
             self.register_workspace(&workspace, window, cx);
 
-            if self.sidebar_open {
+            if self.sidebar_open || self.multi_workspace_enabled(cx) {
                 let key = workspace.read(cx).project_group_key(cx);
                 self.retain_workspace(workspace.clone(), key, cx);
             }
@@ -1446,7 +1447,7 @@ impl MultiWorkspace {
             group.last_active_workspace = Some(self.active_workspace.downgrade());
         }
 
-        if !self.sidebar_open && !old_active_was_retained {
+        if !self.sidebar_open && !self.multi_workspace_enabled(cx) && !old_active_was_retained {
             self.detach_workspace(&old_active_workspace, cx);
         }
 
@@ -2048,8 +2049,8 @@ impl MultiWorkspace {
                             .top_0()
                             .bottom_0()
                             .when(is_active, |el| {
-                                // Active project: amber left border #e8a825, 3px
-                                el.w(px(3.)).bg(gpui::rgb(0xe8a825))
+                                // Active project: use theme text color for indicator
+                                el.w(px(3.)).bg(cx.theme().colors().text)
                             })
                             .when(!is_active, |el| {
                                 // Inactive project: subtle border #2a2a2a, 1px
@@ -2064,7 +2065,7 @@ impl MultiWorkspace {
                             .flex()
                             .items_center()
                             .justify_center()
-                            .text_color(gpui::rgb(0xe8a825)) // Text: always #e8a825 amber
+                            .text_color(cx.theme().colors().text)
                             .child(first_letter.to_string())
                     )
                     .cursor_pointer()
@@ -2102,13 +2103,44 @@ impl MultiWorkspace {
                     .gap_2()
                     .py_2()
                     .child(
-                        div()
-                            .pt(px(12.))
+                        v_flex()
+                            .pt(px(6.))
+                            .pb_1()
                             .w_full()
-                            .flex()
-                            .justify_center()
+                            .items_center()
                             .child(
                                 Vector::square(VectorName::VoidLogo, rems_from_px(28.))
+                            )
+                            .child(
+                                div()
+                                    .mt(px(10.))
+                                    .w(px(24.))
+                                    .h_px()
+                                    .bg(cx.theme().colors().border)
+                            )
+                            .child(
+                                div()
+                                    .id("activity_sidebar_toggle")
+                                    .mt_3()
+                                    .child(
+                                        Icon::new(IconName::ThreadsSidebarLeftClosed)
+                                            .size(IconSize::Custom(rems_from_px(22.)))
+                                            .color(Color::Muted)
+                                    )
+                                    .cursor_pointer()
+                                    .on_click(cx.listener(|this, _, window, cx| {
+                                        this.toggle_sidebar(window, cx);
+                                    }))
+                                    .tooltip(|_, cx| {
+                                        Tooltip::for_action(
+                                            "Open Threads Sidebar",
+                                            &ToggleWorkspaceSidebar,
+                                            cx,
+                                        )
+                                    })
+                                    .hover(|s| s.bg(cx.theme().colors().element_hover))
+                                    .rounded_md()
+                                    .p_1()
                             )
                     )
                     .children(avatars)
