@@ -462,6 +462,7 @@ impl PickerDelegate for CommandPaletteDelegate {
             async move {
                 commands.sort_by_key(|action| {
                     (
+                        action.name != "/void: show welcome",
                         Reverse(hit_counts.get(&action.name).cloned()),
                         action.name.clone(),
                     )
@@ -695,6 +696,14 @@ impl PickerDelegate for CommandPaletteDelegate {
 }
 
 pub fn humanize_action_name(name: &str) -> String {
+    let name = if name.starts_with("zed::") {
+        let mut new_name = "/void".to_string();
+        new_name.push_str(&name[3..]);
+        new_name
+    } else {
+        name.to_string()
+    };
+
     let capacity = name.len() + name.chars().filter(|c| c.is_uppercase()).count();
     let mut result = String::with_capacity(capacity);
     for char in name.chars() {
@@ -741,6 +750,10 @@ mod tests {
 
     #[test]
     fn test_humanize_action_name() {
+        assert_eq!(
+            humanize_action_name("zed::ShowWelcome"),
+            "/void: show welcome"
+        );
         assert_eq!(
             humanize_action_name("editor::GoToDefinition"),
             "editor: go to definition"

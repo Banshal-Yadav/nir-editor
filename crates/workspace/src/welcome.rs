@@ -1,10 +1,8 @@
 use crate::{
-    NewFile, Open, OpenMode, PathList, SerializedWorkspaceLocation, ToggleWorkspaceSidebar,
-    Workspace, WorkspaceId,
+    NewFile, Open, OpenMode,
+    Workspace,
     item::{Item, ItemEvent},
-    persistence::WorkspaceDb,
 };
-use chrono::{DateTime, Utc};
 use gpui::{
     px, relative, App, AppContext, Context, EventEmitter, FocusHandle, Focusable, FontWeight,
     Entity, Render, WeakEntity,
@@ -23,12 +21,6 @@ use git::Clone as GitClone;
 use zed_actions::command_palette::Toggle as ToggleCommandPalette;
 use zed_actions::OpenOnboarding;
 
-#[derive(PartialEq, Clone, Debug, Deserialize, Serialize, JsonSchema, Action)]
-#[action(namespace = welcome)]
-#[serde(transparent)]
-pub struct OpenRecentProject {
-    pub index: usize,
-}
 
 actions!(
     zed,
@@ -37,112 +29,6 @@ actions!(
         ShowWelcome
     ]
 );
-
-#[derive(IntoElement)]
-struct SectionHeader {
-    title: SharedString,
-}
-
-impl SectionHeader {
-    fn new(title: impl Into<SharedString>) -> Self {
-        Self {
-            title: title.into(),
-        }
-    }
-}
-
-impl RenderOnce for SectionHeader {
-    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
-        h_flex()
-            .w_full()
-            .items_center()
-            .px_4()
-            .py_1()
-            .bg(cx.theme().colors().border_variant)
-            .child(
-                Label::new(self.title.to_string())
-                    .color(Color::Default)
-                    .weight(FontWeight::EXTRA_BOLD)
-                    .size(LabelSize::Small),
-            )
-    }
-}
-
-#[derive(IntoElement)]
-struct SectionButton {
-    label: SharedString,
-    description: SharedString,
-    #[allow(dead_code)]
-    icon: IconName,
-    action: Box<dyn Action>,
-    tab_index: usize,
-    focus_handle: FocusHandle,
-}
-
-impl SectionButton {
-    fn new(
-        label: impl Into<SharedString>,
-        description: impl Into<SharedString>,
-        icon: IconName,
-        action: &dyn Action,
-        tab_index: usize,
-        focus_handle: FocusHandle,
-    ) -> Self {
-        Self {
-            label: label.into(),
-            description: description.into(),
-            icon,
-            action: action.boxed_clone(),
-            tab_index,
-            focus_handle,
-        }
-    }
-}
-
-impl RenderOnce for SectionButton {
-    fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let id = format!("onb-button-{}-{}", self.label, self.tab_index);
-        let action_ref: &dyn Action = &*self.action;
-
-        ButtonLike::new(id)
-            .tab_index(self.tab_index as isize)
-            .full_width()
-            .height(relative(1.))
-            .child(
-                v_flex()
-                    .w_full()
-                    .h_full()
-                    .p_4()
-                    .gap_1()
-                    .items_start()
-                    .justify_center()
-                    .child(
-                        Label::new(self.label.to_ascii_uppercase())
-                            .weight(FontWeight::EXTRA_BOLD)
-                            .size(LabelSize::Default),
-                    )
-                    .child(
-                        Label::new(self.description.clone())
-                            .size(LabelSize::Small)
-                            .color(Color::Muted),
-                    )
-                    .child(
-                        div()
-                            .mt_2()
-                            .border_1()
-                            .border_color(cx.theme().colors().border)
-                            .px_2()
-                            .py_1()
-                            .child(
-                                KeyBinding::for_action_in(action_ref, &self.focus_handle, cx),
-                            ),
-                    ),
-            )
-            .on_click(move |_, window, cx| {
-                self.focus_handle.dispatch_action(&*self.action, window, cx)
-            })
-    }
-}
 
 /// Custom /void logo component with SVG and blinking cursor
 #[derive(IntoElement)]
@@ -197,162 +83,25 @@ impl RenderOnce for VoidLogo {
     }
 }
 
-enum SectionVisibility {
-    Always,
-}
-
-impl SectionVisibility {
-    fn is_visible(&self) -> bool {
-        match self {
-            SectionVisibility::Always => true,
-        }
-    }
-}
-
-struct SectionEntry {
-    icon: IconName,
-    title: &'static str,
-    description: &'static str,
-    action: &'static dyn Action,
-    visibility_guard: SectionVisibility,
-}
-
-impl SectionEntry {
-    fn render(&self, button_index: usize, focus: &FocusHandle) -> Option<impl IntoElement> {
-        self.visibility_guard.is_visible().then(|| {
-            SectionButton::new(
-                self.title,
-                self.description,
-                self.icon,
-                self.action,
-                button_index,
-                focus.clone(),
-            )
-        })
-    }
-}
-
-const CONTENT: (Section<2>, Section<2>) = (
-    Section {
-        title: "Get Started",
-        entries: [
-            SectionEntry {
-                icon: IconName::Plus,
-                title: "New File",
-                description: "Initialize empty buffer",
-                action: &NewFile,
-                visibility_guard: SectionVisibility::Always,
-            },
-            SectionEntry {
-                icon: IconName::FolderOpen,
-                title: "Open Project",
-                description: "Load workspace from disk",
-                action: &Open::DEFAULT,
-                visibility_guard: SectionVisibility::Always,
-            },
-        ],
-    },
-    Section {
-        title: "Configuration",
-        entries: [
-            SectionEntry {
-                icon: IconName::Settings,
-                title: "Settings",
-                description: "Configure system prefs",
-                action: &OpenSettings,
-                visibility_guard: SectionVisibility::Always,
-            },
-            SectionEntry {
-                icon: IconName::Keyboard,
-                title: "Keymaps",
-                description: "Modify input bindings",
-                action: &OpenKeymap,
-                visibility_guard: SectionVisibility::Always,
-            },
-        ],
-    },
-);
-
-struct Section<const COLS: usize> {
-    title: &'static str,
-    entries: [SectionEntry; COLS],
-}
-
-impl<const COLS: usize> Section<COLS> {
-    fn render(self, index_offset: usize, focus: &FocusHandle, cx: &mut App) -> impl IntoElement {
-        v_flex()
-            .min_w_full()
-            .child(SectionHeader::new(self.title))
-            .child(
-                div()
-                    .grid()
-                    .grid_cols(2)
-                    .gap_px()
-                    .bg(cx.theme().colors().background)
-                    .border_3()
-                    .border_color(cx.theme().colors().border)
-                    .children(
-                        self.entries
-                            .iter()
-                            .enumerate()
-                            .filter_map(|(index, entry)| entry.render(index_offset + index, focus)),
-                    ),
-            )
-    }
-}
-
 pub struct WelcomePage {
     workspace: WeakEntity<Workspace>,
     focus_handle: FocusHandle,
-    fallback_to_recent_projects: bool,
-    recent_workspaces: Option<
-        Vec<(
-            WorkspaceId,
-            SerializedWorkspaceLocation,
-            PathList,
-            DateTime<Utc>,
-        )>,
-    >,
 }
 
 impl WelcomePage {
     pub fn new(
         workspace: WeakEntity<Workspace>,
-        fallback_to_recent_projects: bool,
-        window: &mut Window,
+        _fallback_to_recent_projects: bool,
+        _window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
         let focus_handle = cx.focus_handle();
-        cx.on_focus(&focus_handle, window, |_, _, cx| cx.notify())
+        cx.on_focus(&focus_handle, _window, |_, _, cx| cx.notify())
             .detach();
-
-        if fallback_to_recent_projects {
-            let fs = workspace
-                .upgrade()
-                .map(|ws| ws.read(cx).app_state().fs.clone());
-            let db = WorkspaceDb::global(cx);
-            cx.spawn_in(window, async move |this: WeakEntity<Self>, cx| {
-                let Some(fs) = fs else { return };
-                let workspaces = db
-                    .recent_project_workspaces(fs.as_ref())
-                    .await
-                    .log_err()
-                    .unwrap_or_default();
-
-                this.update(cx, |this, cx| {
-                    this.recent_workspaces = Some(workspaces);
-                    cx.notify();
-                })
-                .ok();
-            })
-            .detach();
-        }
 
         WelcomePage {
             workspace,
             focus_handle,
-            fallback_to_recent_projects,
-            recent_workspaces: None,
         }
     }
 
@@ -366,131 +115,6 @@ impl WelcomePage {
         cx.notify();
     }
 
-    fn open_recent_project(
-        &mut self,
-        action: &OpenRecentProject,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        if let Some(recent_workspaces) = &self.recent_workspaces {
-            if let Some((_workspace_id, location, paths, _timestamp)) =
-                recent_workspaces.get(action.index)
-            {
-                let is_local = matches!(location, SerializedWorkspaceLocation::Local);
-
-                if is_local {
-                    let paths = paths.clone();
-                    let paths = paths.paths().to_vec();
-                    self.workspace
-                        .update(cx, |workspace, cx| {
-                            workspace
-                                .open_workspace_for_paths(OpenMode::Activate, paths, window, cx)
-                                .detach_and_log_err(cx);
-                        })
-                        .log_err();
-                } else {
-                    use zed_actions::OpenRecent;
-                    window.dispatch_action(OpenRecent::default().boxed_clone(), cx);
-                }
-            }
-        }
-    }
-
-    fn render_agent_card(&self, tab_index: usize, cx: &mut App) -> impl IntoElement {
-        let focus = self.focus_handle.clone();
-
-        // tint for the resting state
-        let mut subtle_bg = cx.theme().colors().text_accent;
-        subtle_bg.a = 0.4;
-
-        //  tint on hover
-        let mut hover_bg = cx.theme().colors().text_accent;
-        hover_bg.a = 0.5;
-
-        v_flex()
-            .w_full()
-            .p_6()
-            .items_start()
-            .border_1()
-            .border_color(cx.theme().colors().border)
-            .child(
-                Label::new("/void AGENT")
-                    .weight(FontWeight::EXTRA_BOLD)
-                    .size(LabelSize::Large)
-                    .mb_2(),
-            )
-            .child(
-                Label::new("Deploy parallel threads to solve complex tasks. Multi-agent orchestration and automated worktree isolation are active.")
-                    .size(LabelSize::Small)
-                    .color(Color::Muted)
-                    .mb_5(),
-            )
-            .child(
-                div()
-                    .id("open-agent-btn")
-                    .tab_index(tab_index as isize)
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .px_6()
-                    .py_3()
-                    .cursor_pointer()
-                    .bg(subtle_bg)
-                    .hover(|style| {
-                        style.bg(hover_bg)
-                    })
-                    .on_click(move |_, window, cx| {
-                        focus.dispatch_action(&ToggleWorkspaceSidebar, window, cx);
-                        focus.dispatch_action(&ToggleFocus, window, cx);
-                    })
-                    .child(
-                        Label::new("OPEN AGENT PANEL")
-                            .weight(FontWeight::EXTRA_BOLD)
-                            .size(LabelSize::Default)
-                    ),
-            )
-    }
-
-    fn render_recent_project_section(
-        &self,
-        recent_projects: Vec<impl IntoElement>,
-    ) -> impl IntoElement {
-        v_flex()
-            .w_full()
-            .child(SectionHeader::new("Recent Projects"))
-            .children(recent_projects)
-    }
-
-    fn render_recent_project(
-        &self,
-        project_index: usize,
-        tab_index: usize,
-        location: &SerializedWorkspaceLocation,
-        paths: &PathList,
-    ) -> impl IntoElement {
-        let name = project_name(paths);
-
-        let (icon, title) = match location {
-            SerializedWorkspaceLocation::Local => (IconName::Folder, name),
-            SerializedWorkspaceLocation::Remote(_) => (IconName::Server, name),
-        };
-
-        let description = match location {
-            SerializedWorkspaceLocation::Local => paths.paths()[0].to_string_lossy().to_string(),
-            SerializedWorkspaceLocation::Remote(_) => "Remote Project".to_string(),
-        };
-
-        SectionButton::new(
-            title,
-            description,
-            icon,
-            &OpenRecentProject {
-                index: project_index,
-            },
-            tab_index,
-            self.focus_handle.clone(),
-        )
-    }
 }
 
 impl Render for WelcomePage {
@@ -504,12 +128,10 @@ impl Render for WelcomePage {
             .track_focus(&self.focus_handle(cx))
             .on_action(cx.listener(Self::select_previous))
             .on_action(cx.listener(Self::select_next))
-            .on_action(cx.listener(Self::open_recent_project))
             .size_full()
             .bg(cx.theme().colors().editor_background)
             .justify_center()
-            .items_start()
-            .pt(rems(5.))
+            .items_center()
             .child(
                 v_flex()
                     .w(rems(36.))
@@ -903,48 +525,5 @@ mod persistence {
                 WHERE item_id = ? AND workspace_id = ?
             }
         }
-    }
-}
-
-fn project_name(paths: &PathList) -> String {
-    let joined = paths
-        .paths()
-        .iter()
-        .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
-        .collect::<Vec<_>>()
-        .join(", ");
-    if joined.is_empty() {
-        "Untitled".to_string()
-    } else {
-        joined
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_project_name_empty() {
-        let paths = PathList::new::<&str>(&[]);
-        assert_eq!(project_name(&paths), "Untitled");
-    }
-
-    #[test]
-    fn test_project_name_single() {
-        let paths = PathList::new(&["/home/user/my-project"]);
-        assert_eq!(project_name(&paths), "my-project");
-    }
-
-    #[test]
-    fn test_project_name_multiple() {
-        let paths = PathList::new(&["/home/user/zed", "/home/user/api"]);
-        assert_eq!(project_name(&paths), "api, zed");
-    }
-
-    #[test]
-    fn test_project_name_root_path_filtered() {
-        let paths = PathList::new(&["/"]);
-        assert_eq!(project_name(&paths), "Untitled");
     }
 }

@@ -391,14 +391,14 @@ pub(crate) fn zed_default_dark() -> Theme {
 }
 
 pub(crate) fn antigravity() -> Theme {
-    let bg = hsla(24. / 360., 10. / 100., 7. / 100., 1.);
-    let editor = hsla(24. / 360., 10. / 100., 9. / 100., 1.);
-    let elevated_surface = hsla(24. / 360., 10. / 100., 11. / 100., 1.);
-    let accent = hsla(38. / 360., 48. / 100., 57. / 100., 1.); // Muted Gold
+    let bg = hsla(60. / 360., 5. / 100., 10. / 100., 1.); // #1c1c1a (Warm Dark Charcoal)
+    let editor = hsla(60. / 360., 5. / 100., 12. / 100., 1.);
+    let elevated_surface = hsla(60. / 360., 5. / 100., 14. / 100., 1.);
+    let accent = hsla(38. / 360., 45. / 100., 58. / 100., 1.); // Bronze/Gold
     
-    let blue = hsla(200. / 360., 40. / 100., 60. / 100., 1.0);
-    let green = hsla(100. / 360., 30. / 100., 60. / 100., 1.0);
-    let red = hsla(0. / 360., 40. / 100., 60. / 100., 1.0);
+    let text = hsla(52. / 360., 15. / 100., 88. / 100., 1.0); // #e6e4d5 (Light Grayish Yellow Tint)
+    let warm_neutral = hsla(52. / 360., 10. / 100., 75. / 100., 1.0);
+    let green = hsla(120. / 360., 15. / 100., 60. / 100., 1.0);
     
     let player = PlayerColors::dark();
     Theme {
@@ -408,16 +408,16 @@ pub(crate) fn antigravity() -> Theme {
         styles: ThemeStyles {
             window_background_appearance: WindowBackgroundAppearance::Opaque,
             system: SystemColors::default(),
-            accents: AccentColors(Arc::from(vec![accent, blue, green, red])),
+            accents: AccentColors(Arc::from(vec![accent, warm_neutral, green])),
             colors: ThemeColors {
-                border: hsla(24. / 360., 10. / 100., 4. / 100., 1.),
+                border: hsla(60. / 360., 5. / 100., 5. / 100., 1.),
                 elevated_surface_background: elevated_surface,
                 surface_background: bg,
                 background: bg,
                 editor_background: editor,
-                text: hsla(36. / 360., 20. / 100., 88. / 100., 1.0),
-                text_muted: hsla(36. / 360., 10. / 100., 60. / 100., 1.0),
-                icon: hsla(36. / 360., 20. / 100., 88. / 100., 1.0),
+                text,
+                text_muted: hsla(60. / 360., 8. / 100., 60. / 100., 1.0),
+                icon: text,
                 icon_accent: accent,
                 tab_active_background: editor,
                 tab_inactive_background: bg,
@@ -425,31 +425,38 @@ pub(crate) fn antigravity() -> Theme {
                 title_bar_background: bg,
                 toolbar_background: editor,
                 panel_background: bg,
-                scrollbar_thumb_background: hsla(24. / 360., 10. / 100., 20. / 100., 0.5),
+                scrollbar_thumb_background: hsla(60. / 360., 5. / 100., 25. / 100., 0.5),
                 ..zed_default_dark().styles.colors
             },
             status: zed_default_dark().styles.status,
             player,
             syntax: Arc::new(SyntaxTheme::new(vec![
                 ("keyword".into(), accent.into()),
-                ("function".into(), blue.into()),
+                ("function".into(), text.into()),
                 ("string".into(), green.into()),
-                ("comment".into(), hsla(36. / 360., 10. / 100., 50. / 100., 1.0).into()),
-                ("type".into(), hsla(36. / 360., 30. / 100., 70. / 100., 1.0).into()),
-                ("variable".into(), hsla(36. / 360., 20. / 100., 88. / 100., 1.0).into()),
+                ("comment".into(), hsla(60. / 360., 10. / 100., 45. / 100., 1.0).into()),
+                ("type".into(), warm_neutral.into()),
+                ("variable".into(), text.into()),
+                ("number".into(), accent.into()),
+                ("operator".into(), warm_neutral.into()),
+                ("property".into(), warm_neutral.into()),
             ])),
         },
     }
 }
 
 pub(crate) fn void_claudious() -> Theme {
-    let bg = hsla(15. / 360., 15. / 100., 5. / 100., 1.); // #0d0a08
-    let editor = bg;
-    let elevated_surface = hsla(15. / 360., 15. / 100., 8. / 100., 1.);
-    let accent = hsla(15. / 360., 55. / 100., 58. / 100., 1.); // #cc785c
+    let bg = hsla(24. / 360., 24. / 100., 8. / 100., 1.); // #1a1410
+    let surface = hsla(24. / 360., 20. / 100., 12. / 100., 1.); // #231d17
+    let elevated_surface = hsla(22. / 360., 17. / 100., 15. / 100., 1.); // #2d2520
+    let border = hsla(27. / 360., 20. / 100., 20. / 100., 1.); // #3d3228
     
-    let strings = hsla(36. / 360., 65. / 100., 76. / 100., 1.); // #e8c99a
-    let types = hsla(24. / 360., 58. / 100., 62. / 100., 1.); // #d4956a
+    let accent = hsla(15. / 360., 50. / 100., 58. / 100., 1.0); // #cc785c
+    let text = hsla(24. / 360., 30. / 100., 87. / 100., 1.0); // #e8ddd5
+    
+    let strings = hsla(36. / 360., 62. / 100., 76. / 100., 1.0); // #e8c99a
+    let types = hsla(24. / 360., 55. / 100., 62. / 100., 1.0); // #d4956a
+    let comment = hsla(24. / 360., 18. / 100., 30. / 100., 1.0); // #5a4a3f
     
     let player = PlayerColors::dark();
     Theme {
@@ -459,49 +466,58 @@ pub(crate) fn void_claudious() -> Theme {
         styles: ThemeStyles {
             window_background_appearance: WindowBackgroundAppearance::Opaque,
             system: SystemColors::default(),
-            accents: AccentColors(Arc::from(vec![accent])),
+            accents: AccentColors(Arc::from(vec![accent, types])),
             colors: ThemeColors {
-                border: hsla(15. / 360., 15. / 100., 3. / 100., 1.),
+                border,
                 elevated_surface_background: elevated_surface,
-                surface_background: bg,
+                surface_background: surface,
                 background: bg,
-                editor_background: editor,
-                text: hsla(15. / 360., 5. / 100., 90. / 100., 1.0),
-                text_muted: hsla(15. / 360., 10. / 100., 50. / 100., 1.0),
+                editor_background: bg,
+                text,
+                text_muted: comment,
                 text_accent: accent,
                 icon_accent: accent,
-                tab_active_background: editor,
-                tab_inactive_background: bg,
-                status_bar_background: bg,
-                title_bar_background: bg,
+                tab_active_background: bg,
+                tab_inactive_background: surface,
+                tab_bar_background: elevated_surface,
+                status_bar_background: elevated_surface,
+                title_bar_background: elevated_surface,
+                toolbar_background: bg,
+                panel_background: elevated_surface,
+                scrollbar_thumb_background: hsla(24. / 360., 18. / 100., 30. / 100., 0.5),
                 ..zed_default_dark().styles.colors
             },
-            status: zed_default_dark().styles.status,
+            status: StatusColors {
+                error: hsla(0. / 360., 71. / 100., 60. / 100., 1.0),
+                warning: hsla(33. / 360., 58. / 100., 52. / 100., 1.0),
+                success: hsla(139. / 360., 27. / 100., 49. / 100., 1.0),
+                info: hsla(215. / 360., 52. / 100., 58. / 100., 1.0),
+                ..zed_default_dark().styles.status
+            },
             player,
             syntax: Arc::new(SyntaxTheme::new(vec![
                 ("keyword".into(), accent.into()),
-                ("function".into(), hsla(0. / 360., 0. / 100., 82. / 100., 1.0).into()),
+                ("function".into(), text.into()),
                 ("string".into(), strings.into()),
-                ("comment".into(), HighlightStyle {
-                    color: Some(hsla(30. / 360., 35. / 100., 16. / 100., 1.0)),
-                    font_style: Some(FontStyle::Italic),
-                    ..HighlightStyle::default()
-                }),
+                ("comment".into(), comment.into()),
                 ("type".into(), types.into()),
+                ("variable".into(), text.into()),
                 ("number".into(), accent.into()),
+                ("operator".into(), hsla(27. / 360., 13. / 100., 55. / 100., 1.0).into()),
+                ("punctuation".into(), comment.into()),
             ])),
         },
     }
 }
 
 pub(crate) fn void_gemenicious() -> Theme {
-    let bg = hsla(220. / 360., 40. / 100., 5. / 100., 1.); // #080c14
+    let bg = hsla(240. / 360., 4. / 100., 5. / 100., 1.); // #0e0e10 (Gemini Dark)
     let editor = bg;
-    let elevated_surface = hsla(220. / 360., 40. / 100., 10. / 100., 1.);
-    let accent = hsla(215. / 360., 100. / 100., 65. / 100., 1.); // #4a9eff
+    let elevated_surface = hsla(240. / 360., 4. / 100., 8. / 100., 1.);
+    let accent = hsla(260. / 360., 60. / 100., 70. / 100., 1.0); // #AD89EB (Gemini Violet)
     
-    let strings = hsla(168. / 360., 100. / 100., 42. / 100., 1.); // #00d4aa
-    let types = hsla(200. / 360., 94. / 100., 74. / 100., 1.); // #7dd3fc
+    let secondary = hsla(240. / 360., 10. / 100., 70. / 100., 1.0); // Steel Gray
+    let comment = hsla(240. / 360., 4. / 100., 40. / 100., 1.0);
     
     let player = PlayerColors::dark();
     Theme {
@@ -511,36 +527,38 @@ pub(crate) fn void_gemenicious() -> Theme {
         styles: ThemeStyles {
             window_background_appearance: WindowBackgroundAppearance::Opaque,
             system: SystemColors::default(),
-            accents: AccentColors(Arc::from(vec![accent])),
+            accents: AccentColors(Arc::from(vec![accent, secondary])),
             colors: ThemeColors {
-                border: hsla(220. / 360., 40. / 100., 3. / 100., 1.),
+                border: hsla(240. / 360., 4. / 100., 2. / 100., 1.),
                 elevated_surface_background: elevated_surface,
                 surface_background: bg,
                 background: bg,
                 editor_background: editor,
-                text: hsla(220. / 360., 10. / 100., 90. / 100., 1.0),
-                text_muted: hsla(220. / 360., 15. / 100., 50. / 100., 1.0),
-                text_accent: accent,
+                text: hsla(240. / 360., 4. / 100., 90. / 100., 1.0),
+                text_muted: comment,
                 icon_accent: accent,
                 tab_active_background: editor,
                 tab_inactive_background: bg,
-                status_bar_background: bg,
-                title_bar_background: bg,
+                tab_bar_background: elevated_surface,
+                status_bar_background: elevated_surface,
+                title_bar_background: elevated_surface,
+                toolbar_background: bg,
+                panel_background: elevated_surface,
+                scrollbar_thumb_background: hsla(240. / 360., 4. / 100., 20. / 100., 0.5),
                 ..zed_default_dark().styles.colors
             },
             status: zed_default_dark().styles.status,
             player,
             syntax: Arc::new(SyntaxTheme::new(vec![
                 ("keyword".into(), accent.into()),
-                ("function".into(), hsla(0. / 360., 0. / 100., 82. / 100., 1.0).into()),
-                ("string".into(), strings.into()),
-                ("comment".into(), HighlightStyle {
-                    color: Some(hsla(215. / 360., 35. / 100., 25. / 100., 1.0)),
-                    font_style: Some(FontStyle::Italic),
-                    ..HighlightStyle::default()
-                }),
-                ("type".into(), types.into()),
-                ("number".into(), accent.into()),
+                ("function".into(), secondary.into()),
+                ("string".into(), hsla(260. / 360., 40. / 100., 80. / 100., 1.0).into()),
+                ("comment".into(), comment.into()),
+                ("type".into(), accent.into()),
+                ("variable".into(), hsla(240. / 360., 4. / 100., 95. / 100., 1.0).into()),
+                ("number".into(), hsla(280. / 360., 50. / 100., 75. / 100., 1.0).into()),
+                ("operator".into(), secondary.into()),
+                ("property".into(), accent.into()),
             ])),
         },
     }
