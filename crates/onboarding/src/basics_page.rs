@@ -5,7 +5,7 @@ use client::{Client, UserStore, zed_urls};
 use cloud_api_types::Plan;
 use collections::HashMap;
 use fs::Fs;
-use gpui::{Action, Animation, AnimationExt, App, Entity, Hsla, IntoElement, pulsating_between, rgba};
+use gpui::{Action, Animation, AnimationExt, App, Entity, IntoElement, pulsating_between};
 use project::agent_server_store::AllAgentServersSettings;
 use project::project_settings::ProjectSettings;
 use project::{AgentRegistryStore, RegistryAgent};
@@ -615,7 +615,8 @@ fn render_ai_section(user_store: &Entity<UserStore>, cx: &mut App) -> impl IntoE
 
 fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
     let colors = cx.theme().colors();
-    let amber_border: Hsla = rgba(0xffb000ff).into();
+    let accent_tint = colors.text_accent.alpha(0.08);
+    let accent_border = colors.text_accent.alpha(0.45);
 
     let render_item = |id: &'static str,
                        label: &'static str,
@@ -624,14 +625,21 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
                        button_label: &'static str,
                        url: &'static str,
                        highlight: bool| {
-        let amber_tint: Hsla = rgba(0xffb0000d).into();
+        let badge_label = Label::new(badge).size(LabelSize::XSmall);
+        let badge_label = if highlight {
+            badge_label.color(Color::Accent)
+        } else {
+            badge_label.color(Color::Muted)
+        };
 
         v_flex()
             .id(id)
             .w_full()
             .border_1()
             .border_color(colors.border_variant)
-            .when(highlight, |this| this.bg(amber_tint))
+            .when(highlight, |this| {
+                this.border_color(accent_border).bg(accent_tint)
+            })
             .rounded_md()
             .p_4()
             .gap_2()
@@ -641,11 +649,7 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
                     .gap_1()
                     .items_center()
                     .child(Label::new(label))
-                    .child(
-                        Label::new(badge)
-                            .size(LabelSize::XSmall)
-                            .color(Color::Muted),
-                    ),
+                    .child(badge_label),
             )
             .child(
                 Label::new(description)

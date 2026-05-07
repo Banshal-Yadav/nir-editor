@@ -520,6 +520,8 @@ pub(crate) fn void_claudious() -> Theme {
                 
                 border_focused: accent,
                 border_selected: accent,
+                panel_focused_border: accent,
+                pane_focused_border: accent,
                 text_accent: accent,
                 
                 editor_gutter_background: base,
@@ -603,6 +605,8 @@ pub(crate) fn void_forest() -> Theme {
                 
                 border_focused: accent,
                 border_selected: accent,
+                panel_focused_border: accent,
+                pane_focused_border: accent,
                 text_accent: accent,
                 
                 editor_gutter_background: base,

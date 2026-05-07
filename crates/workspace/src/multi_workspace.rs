@@ -2136,7 +2136,14 @@ impl MultiWorkspace {
                                             .child(
                                                 Icon::new(IconName::Sparkle)
                                                     .size(IconSize::Custom(rems_from_px(22.)))
-                                                    .color(Color::Muted)
+                                                    .color(if matches!(
+                                                        agent_settings::AgentSettings::get_layout(cx),
+                                                        agent_settings::WindowLayout::Agent(_)
+                                                    ) {
+                                                        Color::Muted
+                                                    } else {
+                                                        Color::Placeholder
+                                                    })
                                             )
                                             .cursor_pointer()
                                             .on_click(cx.listener(|_, _, window, cx| {
@@ -2169,7 +2176,11 @@ impl MultiWorkspace {
                                                 };
                                                 Icon::new(icon)
                                                     .size(IconSize::Custom(rems_from_px(22.)))
-                                                    .color(Color::Muted)
+                                                    .color(if self.sidebar_open() {
+                                                        Color::Muted
+                                                    } else {
+                                                        Color::Placeholder
+                                                    })
                                             })
                                             .cursor_pointer()
                                             .on_click(cx.listener(|this, _, window, cx| {

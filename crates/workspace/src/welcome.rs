@@ -368,13 +368,37 @@ impl Render for WelcomePage {
                                     .child(Label::new("COMMAND PALETTE").size(LabelSize::Small)),
                             )
                             .child(
-                                div().id("btn-onboarding").flex_1().h_full().flex().items_center().justify_center().cursor_pointer()
-                                    .hover(move |style| style.bg(hover_bg))
+                                div()
+                                    .id("btn-onboarding")
+                                    .flex_1()
+                                    .h_full()
+                                    .flex()
+                                    .items_center()
+                                    .justify_center()
+                                    .cursor_pointer()
+                                    .bg(cx.theme().colors().text_accent.alpha(0.12))
+                                    .hover(|style| {
+                                        style.bg(cx.theme().colors().text_accent.alpha(0.2))
+                                    })
                                     .on_click({
                                         let focus = focus.clone();
                                         move |_, window, cx| focus.dispatch_action(&OpenOnboarding, window, cx)
                                     })
-                                    .child(Label::new("ONBOARDING").size(LabelSize::Small)),
+                                    .child(
+                                        h_flex()
+                                            .gap_1()
+                                            .items_center()
+                                            .child(
+                                                Label::new("ONBOARDING")
+                                                    .size(LabelSize::Small)
+                                                    .color(Color::Accent),
+                                            )
+                                            .child(
+                                                Icon::new(IconName::ChevronRight)
+                                                    .size(IconSize::XSmall)
+                                                    .color(Color::Accent),
+                                            ),
+                                    ),
                             ),
                     )
             )

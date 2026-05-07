@@ -627,9 +627,6 @@ impl TitleBar {
 
         IconButton::new("history-sidebar-toggle", icon)
             .icon_size(IconSize::Small)
-            .icon_color(Color::Muted)
-            .selected_icon_color(Color::Default)
-            .toggle_state(is_open)
             .tooltip(|_, cx| Tooltip::for_action("Toggle History Sidebar", &ToggleWorkspaceSidebar, cx))
             .on_click(|_, window, cx| {
                 window.dispatch_action(Box::new(ToggleWorkspaceSidebar), cx);
@@ -642,14 +639,9 @@ impl TitleBar {
             return None;
         }
 
-        let is_visible = matches!(AgentSettings::get_layout(cx), WindowLayout::Agent(_));
-
         Some(
             IconButton::new("agent-panel-toggle", IconName::Sparkle)
                 .icon_size(IconSize::Small)
-                .icon_color(Color::Muted)
-                .selected_icon_color(Color::Default)
-                .toggle_state(is_visible)
                 .tooltip(|_, cx| Tooltip::for_action("Toggle Agent Panel", &ToggleAgent, cx))
                 .on_click(|_, window, cx| {
                     window.dispatch_action(Box::new(ToggleAgent), cx);

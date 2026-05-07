@@ -4502,60 +4502,6 @@ impl Sidebar {
         )
     }
 
-    fn render_sidebar_toggle_button(&self, _cx: &mut Context<Self>) -> impl IntoElement {
-        let on_right = self.side(_cx) == SidebarSide::Right;
-
-        sidebar_side_context_menu("sidebar-toggle-menu", _cx)
-            .anchor(if on_right {
-                gpui::Anchor::BottomRight
-            } else {
-                gpui::Anchor::BottomLeft
-            })
-            .attach(if on_right {
-                gpui::Anchor::TopRight
-            } else {
-                gpui::Anchor::TopLeft
-            })
-            .trigger(move |_is_active, _window, _cx| {
-                let icon = if on_right {
-                    IconName::ThreadsSidebarRightOpen
-                } else {
-                    IconName::ThreadsSidebarLeftOpen
-                };
-                IconButton::new("sidebar-close-toggle", icon)
-                    .icon_size(IconSize::Small)
-                    .tooltip(Tooltip::element(move |_window, cx| {
-                        v_flex()
-                            .gap_1()
-                            .child(
-                                h_flex()
-                                    .gap_2()
-                                    .justify_between()
-                                    .child(Label::new("Toggle Sidebar"))
-                                    .child(KeyBinding::for_action(&ToggleWorkspaceSidebar, cx)),
-                            )
-                            .child(
-                                h_flex()
-                                    .pt_1()
-                                    .gap_2()
-                                    .border_t_1()
-                                    .border_color(cx.theme().colors().border_variant)
-                                    .justify_between()
-                                    .child(Label::new("Focus Sidebar"))
-                                    .child(KeyBinding::for_action(&FocusWorkspaceSidebar, cx)),
-                            )
-                            .into_any_element()
-                    }))
-                    .on_click(|_, window, cx| {
-                        if let Some(multi_workspace) = window.root::<MultiWorkspace>().flatten() {
-                            multi_workspace.update(cx, |multi_workspace, cx| {
-                                multi_workspace.close_sidebar(window, cx);
-                            });
-                        }
-                    })
-            })
-    }
-
     fn render_sidebar_bottom_bar(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
         let is_archive = matches!(self.view, SidebarView::Archive(..));
         let on_right = self.side(cx) == SidebarSide::Right;
