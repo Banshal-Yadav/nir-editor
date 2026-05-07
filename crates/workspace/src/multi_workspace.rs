@@ -19,6 +19,7 @@ use ui::prelude::*;
 use util::ResultExt;
 use util::path_list::PathList;
 use zed_actions::agents_sidebar::ToggleThreadSwitcher;
+use zed_actions::assistant::Toggle;
 
 use agent_settings::AgentSettings;
 use settings::SidebarDockPosition;
@@ -2119,7 +2120,35 @@ impl MultiWorkspace {
                                     .bg(cx.theme().colors().border)
                             )
                             .when(
-                                !matches!(
+                                {
+                                    let settings = AgentSettings::get_global(cx);
+                                    settings.enabled(cx) && settings.button
+                                },
+                                |this| {
+                                    this.child(
+                                        div()
+                                            .id("activity_agent_toggle")
+                                            .mt_3()
+                                            .child(
+                                                Icon::new(IconName::Sparkle)
+                                                    .size(IconSize::Custom(rems_from_px(22.)))
+                                                    .color(Color::Muted)
+                                            )
+                                            .cursor_pointer()
+                                            .on_click(cx.listener(|_, _, window, cx| {
+                                                window.dispatch_action(Box::new(Toggle), cx);
+                                            }))
+                                            .tooltip(|_, cx| {
+                                                Tooltip::for_action("Toggle Agent Panel", &Toggle, cx)
+                                            })
+                                            .hover(|s| s.bg(cx.theme().colors().element_hover))
+                                            .rounded_md()
+                                            .p_1(),
+                                    )
+                                },
+                            )
+                            .when(
+                                self.multi_workspace_enabled(cx) && !matches!(
                                     agent_settings::AgentSettings::get_layout(cx),
                                     agent_settings::WindowLayout::Editor(_)
                                 ),
