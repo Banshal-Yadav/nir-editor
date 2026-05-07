@@ -2217,6 +2217,18 @@ impl MultiWorkspace {
                                 },
                             )
                     )
+                    .child(
+                        v_flex()
+                            .w_full()
+                            .items_center()
+                            .child(
+                                div()
+                                    .my_1()
+                                    .w(px(24.))
+                                    .h_px()
+                                    .bg(cx.theme().colors().border)
+                            )
+                    )
                     .children(avatars)
                     .child(
                         // "+" button to open folder picker
