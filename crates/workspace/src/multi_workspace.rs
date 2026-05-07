@@ -2114,7 +2114,7 @@ impl MultiWorkspace {
                             )
                             .child(
                                 div()
-                                    .mt(px(10.))
+                                    .mt(px(16.))
                                     .w(px(24.))
                                     .h_px()
                                     .bg(cx.theme().colors().border)

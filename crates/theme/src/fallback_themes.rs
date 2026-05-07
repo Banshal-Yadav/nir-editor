@@ -441,7 +441,10 @@ pub(crate) fn antigravity() -> Theme {
                 scrollbar_thumb_background: hsla(60. / 360., 5. / 100., 20. / 100., 0.4),
                 ..zed_default_dark().styles.colors
             },
-            status: zed_default_dark().styles.status,
+            status: StatusColors {
+                error_background: hsla(355. / 360., 65. / 100., 65. / 100., 0.2),
+                ..zed_default_dark().styles.status
+            },
             player,
             syntax: Arc::new(SyntaxTheme::new(vec![
                 ("keyword".into(), accent.into()), // Bronze

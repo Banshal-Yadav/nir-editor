@@ -1354,6 +1354,9 @@ impl Render for PanelButtons {
                                 IconButton::new((name, is_active_button as u64), icon)
                                     .icon_size(IconSize::Medium)
                                     .toggle_state(is_active_button)
+                                    .when(is_active_button && name == "Agent Panel", |this| {
+                                        this.icon_color(Color::Accent)
+                                    })
                                     .on_click({
                                         let action = action.boxed_clone();
                                         move |_: &gpui::ClickEvent, window: &mut Window, cx: &mut App| {
