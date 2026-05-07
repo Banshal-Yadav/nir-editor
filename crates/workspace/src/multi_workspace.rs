@@ -2155,6 +2155,38 @@ impl MultiWorkspace {
                                     )
                                 },
                             )
+                            .when(
+                                matches!(
+                                    agent_settings::AgentSettings::get_layout(cx),
+                                    agent_settings::WindowLayout::Editor(_)
+                                ),
+                                |this| {
+                                    this.child(
+                                        div()
+                                            .id("activity_project_toggle")
+                                            .mt_3()
+                                            .child(
+                                                Icon::new(IconName::FileTree)
+                                                    .size(IconSize::Custom(rems_from_px(22.)))
+                                                    .color(Color::Muted)
+                                            )
+                                            .cursor_pointer()
+                                            .on_click(cx.listener(|_, _, window, cx| {
+                                                window.dispatch_action(Box::new(crate::ToggleLeftDock), cx);
+                                            }))
+                                            .tooltip(|_, cx| {
+                                                Tooltip::for_action(
+                                                    "Open Project Panel",
+                                                    &crate::ToggleLeftDock,
+                                                    cx,
+                                                )
+                                            })
+                                            .hover(|s| s.bg(cx.theme().colors().element_hover))
+                                            .rounded_md()
+                                            .p_1(),
+                                    )
+                                },
+                            )
                     )
                     .children(avatars)
                     .child(

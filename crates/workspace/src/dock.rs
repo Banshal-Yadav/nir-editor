@@ -1209,6 +1209,16 @@ impl Render for PanelButtons {
                     })
                     .log_err()?;
                 let name = entry.panel.persistent_name();
+
+                if name == "Project Panel"
+                    && matches!(
+                        agent_settings::AgentSettings::get_layout(cx),
+                        agent_settings::WindowLayout::Editor(_)
+                    )
+                {
+                    return None;
+                }
+
                 let panel = entry.panel.clone();
                 let supports_flexible = panel.supports_flexible_size(cx);
                 let currently_flexible = panel.has_flexible_size(window, cx);
@@ -1320,26 +1330,49 @@ impl Render for PanelButtons {
                         .trigger(move |is_active, _window, _cx| {
                             // Include active state in element ID to invalidate the cached
                             // tooltip when panel state changes (e.g., via keyboard shortcut)
-                            let button = IconButton::new((name, is_active_button as u64), icon)
-                                .icon_size(IconSize::Medium)
-                                .toggle_state(is_active_button)
-                                .on_click({
-                                    let action = action.boxed_clone();
-                                    move |_, window, cx| {
-                                        window.focus(&focus_handle, cx);
-                                        window.dispatch_action(action.boxed_clone(), cx)
-                                    }
-                                })
-                                .when(!is_active, |this| {
-                                    this.tooltip(move |_window, cx| {
-                                        Tooltip::for_action(tooltip.clone(), &*action, cx)
+                            let is_count = icon_label.as_ref().map_or(false, |l| l.parse::<usize>().is_ok());
+
+                            let button = if !is_count && let Some(label) = icon_label.clone() {
+                                Button::new((name, is_active_button as u64), label)
+                                    .style(ButtonStyle::Subtle)
+                                    .start_icon(Icon::new(icon))
+                                    .toggle_state(is_active_button)
+                                    .on_click({
+                                        let action = action.boxed_clone();
+                                        move |_: &gpui::ClickEvent, window: &mut Window, cx: &mut App| {
+                                            window.focus(&focus_handle, cx);
+                                            window.dispatch_action(action.boxed_clone(), cx)
+                                        }
                                     })
-                                });
+                                    .when(!is_active, |this| {
+                                        this.tooltip(move |_window, cx| {
+                                            Tooltip::for_action(tooltip.clone(), &*action, cx)
+                                        })
+                                    })
+                                    .into_any_element()
+                            } else {
+                                IconButton::new((name, is_active_button as u64), icon)
+                                    .icon_size(IconSize::Medium)
+                                    .toggle_state(is_active_button)
+                                    .on_click({
+                                        let action = action.boxed_clone();
+                                        move |_: &gpui::ClickEvent, window: &mut Window, cx: &mut App| {
+                                            window.focus(&focus_handle, cx);
+                                            window.dispatch_action(action.boxed_clone(), cx)
+                                        }
+                                    })
+                                    .when(!is_active, |this| {
+                                        this.tooltip(move |_window, cx| {
+                                            Tooltip::for_action(tooltip.clone(), &*action, cx)
+                                        })
+                                    })
+                                    .into_any_element()
+                            };
 
                             div().relative().child(button).when_some(
                                 icon_label
                                     .clone()
-                                    .filter(|_| !is_active_button)
+                                    .filter(|_| !is_active_button && is_count)
                                     .and_then(|label| label.parse::<usize>().ok()),
                                 |this, count| this.child(CountBadge::new(count)),
                             )
