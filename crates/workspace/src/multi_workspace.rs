@@ -2123,6 +2123,10 @@ impl MultiWorkspace {
                                 {
                                     let settings = AgentSettings::get_global(cx);
                                     settings.enabled(cx) && settings.button
+                                    && !matches!(
+                                        agent_settings::AgentSettings::get_layout(cx),
+                                        agent_settings::WindowLayout::Editor(_)
+                                    )
                                 },
                                 |this| {
                                     this.child(

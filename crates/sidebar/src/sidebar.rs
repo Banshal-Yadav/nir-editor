@@ -4650,6 +4650,10 @@ impl Sidebar {
             this.show_archive(window, cx);
             this.show_thread_import_modal(window, cx);
         });
+        let on_dismiss = cx.listener(|_, _, _, cx| {
+            AcpThreadImportOnboarding::dismiss(cx);
+            cx.notify();
+        });
         render_import_onboarding_banner(
             "acp",
             "Looking for threads from external agents?",
@@ -4659,7 +4663,7 @@ impl Sidebar {
             } else {
                 "Import Threads"
             },
-            |_, _window, cx| AcpThreadImportOnboarding::dismiss(cx),
+            on_dismiss,
             on_import,
             cx,
         )
@@ -4694,6 +4698,10 @@ impl Sidebar {
                 });
             }
         });
+        let on_dismiss = cx.listener(|_, _, _, cx| {
+            CrossChannelImportOnboarding::dismiss(cx);
+            cx.notify();
+        });
         render_import_onboarding_banner(
             "channel",
             "Threads found from other channels",
@@ -4703,7 +4711,7 @@ impl Sidebar {
             } else {
                 "Import Threads"
             },
-            |_, _window, cx| CrossChannelImportOnboarding::dismiss(cx),
+            on_dismiss,
             on_import,
             cx,
         )

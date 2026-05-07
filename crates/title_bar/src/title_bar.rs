@@ -54,7 +54,7 @@ use workspace::{
     MultiWorkspace, ToggleWorkspaceSidebar, ToggleWorktreeSecurity, Workspace, notifications::NotifyResultExt,
 };
 
-use zed_actions::OpenRemote;
+use zed_actions::{OpenRemote, assistant::Toggle as ToggleAgent};
 
 pub use onboarding_banner::restore_banner;
 
@@ -314,7 +314,13 @@ impl Render for TitleBar {
                         agent_settings::AgentSettings::get_layout(cx),
                         agent_settings::WindowLayout::Editor(_)
                     ),
-                    |this| this.child(self.render_history_sidebar_toggle(cx)),
+                    |this| {
+                        this.when_some(
+                            self.render_agent_panel_toggle(cx),
+                            |this, btn| this.child(btn),
+                        )
+                        .child(self.render_history_sidebar_toggle(cx))
+                    },
                 )
                 .when(TitleBarSettings::get_global(cx).show_user_menu, |this| {
                     this.child(self.render_user_menu_button(cx))
@@ -625,6 +631,22 @@ impl TitleBar {
             .on_click(|_, window, cx| {
                 window.dispatch_action(Box::new(ToggleWorkspaceSidebar), cx);
             })
+    }
+
+    fn render_agent_panel_toggle(&self, cx: &mut Context<Self>) -> Option<impl IntoElement> {
+        let settings = AgentSettings::get_global(cx);
+        if !settings.enabled(cx) || !settings.button {
+            return None;
+        }
+
+        Some(
+            IconButton::new("agent-panel-toggle", IconName::Sparkle)
+                .icon_size(IconSize::Small)
+                .tooltip(|_, cx| Tooltip::for_action("Toggle Agent Panel", &ToggleAgent, cx))
+                .on_click(|_, window, cx| {
+                    window.dispatch_action(Box::new(ToggleAgent), cx);
+                }),
+        )
     }
 
     pub fn render_restricted_mode(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
