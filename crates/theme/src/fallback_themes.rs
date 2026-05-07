@@ -428,12 +428,16 @@ pub(crate) fn antigravity() -> Theme {
                 
                 text,
                 text_muted: muted,
+                text_accent: accent,
                 icon_accent: accent,
                 
                 // ELEMENTS (Must not be darker than base)
                 element_background: hsla(60. / 360., 5. / 100., 16. / 100., 1.0), // Slightly lighter
                 element_hover: hsla(60. / 360., 5. / 100., 20. / 100., 1.0),
                 element_selected: hsla(60. / 360., 5. / 100., 24. / 100., 1.0),
+                
+                border_focused: accent,
+                border_selected: accent,
                 
                 editor_gutter_background: base,
                 editor_line_number: muted,
@@ -443,6 +447,15 @@ pub(crate) fn antigravity() -> Theme {
             },
             status: StatusColors {
                 error_background: hsla(355. / 360., 65. / 100., 65. / 100., 0.2),
+                warning: hsla(40. / 360., 35. / 100., 60. / 100., 1.0),
+                warning_background: hsla(40. / 360., 35. / 100., 60. / 100., 0.2),
+                warning_border: hsla(40. / 360., 35. / 100., 60. / 100., 1.0),
+                info: hsla(200. / 360., 20. / 100., 65. / 100., 1.0),
+                info_background: hsla(200. / 360., 20. / 100., 65. / 100., 0.2),
+                info_border: hsla(200. / 360., 20. / 100., 65. / 100., 1.0),
+                hint: hsla(200. / 360., 20. / 100., 65. / 100., 1.0),
+                hint_background: hsla(200. / 360., 20. / 100., 65. / 100., 0.2),
+                hint_border: hsla(200. / 360., 20. / 100., 65. / 100., 1.0),
                 ..zed_default_dark().styles.status
             },
             player,
@@ -505,13 +518,29 @@ pub(crate) fn void_claudious() -> Theme {
                 element_hover: hsla(24. / 360., 12. / 100., 20. / 100., 1.0),
                 element_selected: hsla(24. / 360., 12. / 100., 24. / 100., 1.0),
                 
+                border_focused: accent,
+                border_selected: accent,
+                text_accent: accent,
+                
                 editor_gutter_background: base,
                 editor_line_number: muted,
                 editor_active_line_number: text,
                 scrollbar_thumb_background: hsla(24. / 360., 10. / 100., 20. / 100., 0.4),
                 ..zed_default_dark().styles.colors
             },
-            status: zed_default_dark().styles.status,
+            status: StatusColors {
+                error_background: hsla(355. / 360., 65. / 100., 65. / 100., 0.2),
+                warning: hsla(35. / 360., 35. / 100., 60. / 100., 1.0),
+                warning_background: hsla(35. / 360., 35. / 100., 60. / 100., 0.2),
+                warning_border: hsla(35. / 360., 35. / 100., 60. / 100., 1.0),
+                info: hsla(24. / 360., 25. / 100., 65. / 100., 1.0),
+                info_background: hsla(24. / 360., 25. / 100., 65. / 100., 0.2),
+                info_border: hsla(24. / 360., 25. / 100., 65. / 100., 1.0),
+                hint: hsla(24. / 360., 25. / 100., 65. / 100., 1.0),
+                hint_background: hsla(24. / 360., 25. / 100., 65. / 100., 0.2),
+                hint_border: hsla(24. / 360., 25. / 100., 65. / 100., 1.0),
+                ..zed_default_dark().styles.status
+            },
             player,
             syntax: Arc::new(SyntaxTheme::new(vec![
                 ("keyword".into(), accent.into()), // Terra Cotta
@@ -572,13 +601,29 @@ pub(crate) fn void_forest() -> Theme {
                 element_hover: hsla(120. / 360., 5. / 100., 20. / 100., 1.0),
                 element_selected: hsla(120. / 360., 5. / 100., 24. / 100., 1.0),
                 
+                border_focused: accent,
+                border_selected: accent,
+                text_accent: accent,
+                
                 editor_gutter_background: base,
                 editor_line_number: muted,
                 editor_active_line_number: text,
                 scrollbar_thumb_background: hsla(120. / 360., 5. / 100., 20. / 100., 0.4),
                 ..zed_default_dark().styles.colors
             },
-            status: zed_default_dark().styles.status,
+            status: StatusColors {
+                error_background: hsla(355. / 360., 65. / 100., 65. / 100., 0.2),
+                warning: hsla(45. / 360., 30. / 100., 60. / 100., 1.0),
+                warning_background: hsla(45. / 360., 30. / 100., 60. / 100., 0.2),
+                warning_border: hsla(45. / 360., 30. / 100., 60. / 100., 1.0),
+                info: hsla(120. / 360., 20. / 100., 60. / 100., 1.0),
+                info_background: hsla(120. / 360., 20. / 100., 60. / 100., 0.2),
+                info_border: hsla(120. / 360., 20. / 100., 60. / 100., 1.0),
+                hint: hsla(120. / 360., 20. / 100., 60. / 100., 1.0),
+                hint_background: hsla(120. / 360., 20. / 100., 60. / 100., 0.2),
+                hint_border: hsla(120. / 360., 20. / 100., 60. / 100., 1.0),
+                ..zed_default_dark().styles.status
+            },
             player,
             syntax: Arc::new(SyntaxTheme::new(vec![
                 ("keyword".into(), accent.into()), // Sage
@@ -598,7 +643,7 @@ pub(crate) fn void_forest() -> Theme {
 pub(crate) fn void_geminious() -> Theme {
     // Soft Indigo-Purple Crayon Base
     let base = hsla(240. / 360., 5. / 100., 13. / 100., 1.); // #212125
-    let accent = hsla(260. / 360., 30. / 100., 75. / 100., 1.0); // Soft Lavender
+    let accent = hsla(260. / 360., 50. / 100., 75. / 100., 1.0); // More vibrant Lavender
     let text = hsla(240. / 360., 10. / 100., 85. / 100., 1.0); // Chalky Lilac
     let muted = hsla(240. / 360., 8. / 100., 45. / 100., 1.0); // Muted Crayon Indigo
     
@@ -639,13 +684,29 @@ pub(crate) fn void_geminious() -> Theme {
                 element_hover: hsla(240. / 360., 5. / 100., 22. / 100., 1.0),
                 element_selected: hsla(240. / 360., 5. / 100., 26. / 100., 1.0),
                 
+                border_focused: accent,
+                border_selected: accent,
+                text_accent: accent,
+                
                 editor_gutter_background: base,
                 editor_line_number: muted,
                 editor_active_line_number: text,
                 scrollbar_thumb_background: hsla(240. / 360., 5. / 100., 22. / 100., 0.4),
                 ..zed_default_dark().styles.colors
             },
-            status: zed_default_dark().styles.status,
+            status: StatusColors {
+                error_background: hsla(355. / 360., 65. / 100., 65. / 100., 0.2),
+                warning: hsla(40. / 360., 25. / 100., 70. / 100., 1.0),
+                warning_background: hsla(40. / 360., 25. / 100., 70. / 100., 0.2),
+                warning_border: hsla(40. / 360., 25. / 100., 70. / 100., 1.0),
+                info: hsla(260. / 360., 40. / 100., 70. / 100., 1.0),
+                info_background: hsla(260. / 360., 40. / 100., 70. / 100., 0.2),
+                info_border: hsla(260. / 360., 40. / 100., 70. / 100., 1.0),
+                hint: hsla(260. / 360., 40. / 100., 70. / 100., 1.0),
+                hint_background: hsla(260. / 360., 40. / 100., 70. / 100., 0.2),
+                hint_border: hsla(260. / 360., 40. / 100., 70. / 100., 1.0),
+                ..zed_default_dark().styles.status
+            },
             player,
             syntax: Arc::new(SyntaxTheme::new(vec![
                 ("keyword".into(), accent.into()), // Lavender
