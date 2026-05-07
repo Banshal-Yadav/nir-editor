@@ -3205,16 +3205,45 @@ impl ThreadView {
                     this.on_action(cx.listener(Self::expand_message_editor))
                         .when(editor_expanded, |this| this.h(vh(0.8, window)))
                 } else {
-                    this
+                    this.flex_1().items_center()
                 }
             })
             .child(
                 v_flex()
-                    .when_some(max_content_width, |this, max_w| this.flex_basis(max_w))
-                    .when(max_content_width.is_none(), |this| this.w_full())
-                    .flex_shrink()
-                    .flex_grow_0()
-                    .when(fills_container, |this| this.h_full())
+                    .w_full()
+                    .when_some(max_content_width, |this, max_w| this.max_w(max_w))
+                    .when(editor_expanded, |this| this.h_full())
+                    .when(!has_messages, |this| {
+                        this.child(
+                            div()
+                                .flex()
+                                .w_full()
+                                .justify_center()
+                                .items_center()
+                                .gap_3()
+                                .mb_3()
+                                .child(
+                                    Icon::new(IconName::Sparkle)
+                                        .size(IconSize::Custom(rems_from_px(24.)))
+                                        .color(Color::Accent)
+                                )
+                                .child(
+                                    div()
+                                        .flex_shrink()
+                                        .whitespace_normal()
+                                        .text_size(px(28.))
+                                        .text_color(cx.theme().colors().text)
+                                        .child("What do you want to build today?"),
+                                ),
+                        )
+                    })
+                    .child(
+                        v_flex()
+                            .w_full()
+                            .flex_shrink()
+                            .flex_grow_0()
+                            .when(editor_expanded, |this| this.h_full())
+                            .when(!has_messages, |this| this.h(vh(0.15, window)))
                     .justify_between()
                     .border_1()
                     .border_color(cx.theme().colors().border)
@@ -3292,7 +3321,7 @@ impl ThreadView {
                                     .child(self.render_send_button(cx)),
                             ),
                     ),
-            )
+            ))
             .into_any()
     }
 

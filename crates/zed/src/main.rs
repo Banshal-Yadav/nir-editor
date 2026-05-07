@@ -382,7 +382,7 @@ fn main() {
         }
     };
     if failed_single_instance_check {
-        println!("/void is already running");
+        println!("void is already running");
         return;
     }
 
