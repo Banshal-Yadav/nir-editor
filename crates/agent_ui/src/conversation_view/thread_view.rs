@@ -3244,85 +3244,87 @@ impl ThreadView {
                             .flex_grow_0()
                             .when(editor_expanded, |this| this.h_full())
                             .when(!has_messages, |this| this.h(vh(0.15, window)))
-                    .justify_between()
-                    .border_1()
-                    .border_color(cx.theme().colors().border)
-                    .rounded_lg()
-                    .bg(editor_bg_color)
-                    .overflow_hidden()
-                    .child(
-                        v_flex()
-                            .relative()
-                            .w_full()
-                            .min_h_0()
-                            .when(fills_container, |this| this.flex_1())
-                            .p_2p5()
-                            .child(self.message_editor.clone())
-                            .when(has_messages, |this| {
-                                this.child(
-                                    h_flex()
-                                        .absolute()
-                                        .top_1()
-                                        .right_1()
-                                        .opacity(0.5)
-                                        .hover(|s| s.opacity(1.0))
-                                        .child(
-                                            IconButton::new("toggle-height", expand_icon)
-                                                .icon_size(IconSize::Small)
-                                                .icon_color(Color::Muted)
-                                                .tooltip({
-                                                    move |_window, cx| {
-                                                        Tooltip::for_action_in(
-                                                            expand_tooltip,
-                                                            &ExpandMessageEditor,
-                                                            &focus_handle,
-                                                            cx,
-                                                        )
-                                                    }
-                                                })
-                                                .on_click(cx.listener(|this, _, window, cx| {
-                                                    this.expand_message_editor(
-                                                        &ExpandMessageEditor,
-                                                        window,
-                                                        cx,
-                                                    );
-                                                })),
-                                        ),
-                                )
-                            }),
-                    )
-                    .child(
-                        h_flex()
-                            .w_full()
-                            .flex_none()
-                            .flex_wrap()
                             .justify_between()
-                            .px_1p5()
-                            .pb_1p5()
+                            .border_1()
+                            .border_color(cx.theme().colors().border)
+                            .rounded_lg()
+                            .bg(editor_bg_color)
+                            .overflow_hidden()
                             .child(
-                                h_flex()
-                                    .gap_0p5()
-                                    .child(self.render_add_context_button(cx))
-                                    .child(self.render_follow_toggle(cx))
-                                    .children(self.render_fast_mode_control(cx))
-                                    .children(self.render_thinking_control(cx)),
+                                v_flex()
+                                    .relative()
+                                    .w_full()
+                                    .min_h_0()
+                                    .when(fills_container, |this| this.flex_1())
+                                    .p_2p5()
+                                    .child(self.message_editor.clone())
+                                    .when(has_messages, |this| {
+                                        this.child(
+                                            h_flex()
+                                                .absolute()
+                                                .top_1()
+                                                .right_1()
+                                                .opacity(0.5)
+                                                .hover(|s| s.opacity(1.0))
+                                                .child(
+                                                    IconButton::new("toggle-height", expand_icon)
+                                                        .icon_size(IconSize::Small)
+                                                        .icon_color(Color::Muted)
+                                                        .tooltip({
+                                                            move |_window, cx| {
+                                                                Tooltip::for_action_in(
+                                                                    expand_tooltip,
+                                                                    &ExpandMessageEditor,
+                                                                    &focus_handle,
+                                                                    cx,
+                                                                )
+                                                            }
+                                                        })
+                                                        .on_click(cx.listener(|this, _, window, cx| {
+                                                            this.expand_message_editor(
+                                                                &ExpandMessageEditor,
+                                                                window,
+                                                                cx,
+                                                            );
+                                                        })),
+                                                ),
+                                        )
+                                    }),
                             )
                             .child(
                                 h_flex()
-                                    .gap_1()
-                                    .children(self.render_token_usage(cx))
-                                    .children(self.profile_selector.clone())
-                                    .map(|this| match self.config_options_view.clone() {
-                                        Some(config_view) => this.child(config_view),
-                                        None => this
-                                            .children(self.mode_selector.clone())
-                                            .children(self.model_selector.clone()),
-                                    })
-                                    .child(self.render_send_button(cx)),
+                                    .w_full()
+                                    .flex_none()
+                                    .flex_wrap()
+                                    .justify_between()
+                                    .px_1p5()
+                                    .pb_1p5()
+                                    .child(
+                                        h_flex()
+                                            .gap_0p5()
+                                            .child(self.render_add_context_button(cx))
+                                            .child(self.render_follow_toggle(cx))
+                                            .children(self.render_fast_mode_control(cx))
+                                            .children(self.render_thinking_control(cx)),
+                                    )
+                                    .child(
+                                        h_flex()
+                                            .gap_1()
+                                            .children(self.render_token_usage(cx))
+                                            .children(self.profile_selector.clone())
+                                            .map(|this| match self.config_options_view.clone() {
+                                                Some(config_view) => this.child(config_view),
+                                                None => this
+                                                    .children(self.mode_selector.clone())
+                                                    .children(self.model_selector.clone()),
+                                            })
+                                            .child(self.render_send_button(cx)),
+                                    ),
                             ),
-                    ),
-            ))
-            .into_any()
+                    )
+                    .children(self.render_suggestion_chips(window, cx))
+            )
+            .into_any_element()
     }
 
     fn render_message_queue_entries(
@@ -8973,6 +8975,159 @@ impl ThreadView {
         window.defer(cx, move |window, cx| {
             menu_handle.toggle(window, cx);
         });
+    }
+
+    fn render_suggestion_chips(
+        &self,
+        _window: &mut Window,
+        cx: &Context<Self>,
+    ) -> Option<impl IntoElement> {
+        if self.list_state.item_count() > 0 {
+            return None;
+        }
+
+        let workspace = self.workspace.upgrade()?;
+        let active_item = workspace.read(cx).active_item(cx);
+
+        if let Some(item) = active_item {
+            let filename = item.tab_content_text(0, cx);
+            let mut info_text = format!("Currently viewing {}", filename);
+
+            let chips = if let Some(editor) = item.downcast::<Editor>() {
+                let editor = editor.read(cx);
+                let buffer = editor.buffer().read(cx);
+                let snapshot = buffer.snapshot(cx);
+
+                let language = snapshot
+                    .language_at(Point::zero())
+                    .map(|l| l.name())
+                    .unwrap_or_else(|| "Plain Text".into());
+                let line_count = snapshot.max_point().row + 1;
+
+                info_text = format!(
+                    "Currently viewing {} • {} • {} lines",
+                    filename, language, line_count
+                );
+                vec![
+                    (
+                        "Explain",
+                        IconName::Book,
+                        format!("Explain the file `{}` step-by-step.", filename).into(),
+                    ),
+                    (
+                        "Find Bug",
+                        IconName::Debug,
+                        format!(
+                            "Analyze the file `{}` for potential bugs or edge cases.",
+                            filename
+                        )
+                        .into(),
+                    ),
+                ]
+            } else {
+                vec![
+                    (
+                        "Explain",
+                        IconName::Book,
+                        format!("Explain what {} is.", filename).into(),
+                    ),
+                    ("Ask", IconName::Chat, "I have a question about this.".into()),
+                ]
+            };
+
+            let mut rendered_chips = Vec::new();
+            for (label, icon, prompt) in chips {
+                rendered_chips.push(self.render_suggestion_chip(label, icon, prompt, cx));
+            }
+
+            Some(
+                v_flex()
+                    .items_start()
+                    .gap_3()
+                    .mt_4()
+                    .child(
+                        div()
+                            .text_color(cx.theme().colors().text_muted)
+                            .text_size(px(13.))
+                            .child(info_text),
+                    )
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .flex_wrap()
+                            .children(rendered_chips),
+                    ),
+            )
+        } else {
+            let chips = vec![
+                (
+                    "Open Project",
+                    IconName::FolderOpen,
+                    "Help me open and explore a project.".into(),
+                ),
+                (
+                    "Explain Repo",
+                    IconName::FileTree,
+                    "Give me an overview of the current repository structure and purpose.".into(),
+                ),
+                (
+                    "Generate Code",
+                    IconName::Plus,
+                    "I want to generate some new code. What should we build?".into(),
+                ),
+                (
+                    "Ask Void",
+                    IconName::Sparkle,
+                    "I have a general question about coding or /void.".into(),
+                ),
+            ];
+
+            let mut rendered_chips = Vec::new();
+            for (label, icon, prompt) in chips {
+                rendered_chips.push(self.render_suggestion_chip(label, icon, prompt, cx));
+            }
+
+            Some(
+                h_flex()
+                    .gap_2()
+                    .flex_wrap()
+                    .mt_4()
+                    .children(rendered_chips),
+            )
+        }
+    }
+
+    fn render_suggestion_chip(
+        &self,
+        label: &'static str,
+        icon: IconName,
+        prompt: SharedString,
+        cx: &Context<Self>,
+    ) -> impl IntoElement {
+        div()
+            .id(label)
+            .flex()
+            .items_center()
+            .gap_1p5()
+            .px_2()
+            .py_1()
+            .border_1()
+            .border_color(cx.theme().colors().border)
+            .rounded_md()
+            .cursor_pointer()
+            .hover(|s| s.bg(cx.theme().colors().ghost_element_hover))
+            .child(
+                Icon::new(icon)
+                    .size(IconSize::Small)
+                    .color(Color::Muted),
+            )
+            .child(div().text_size(px(13.)).child(label))
+            .on_click(cx.listener(move |this, _, window, cx| {
+                this.message_editor.update(cx, |editor, cx| {
+                    editor.set_text(prompt.as_ref(), window, cx);
+                    editor.focus_handle(cx).focus(window, cx);
+                });
+            }))
     }
 }
 
