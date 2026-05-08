@@ -7,6 +7,7 @@ use gpui::{
     px, relative, App, AppContext, Context, EventEmitter, FocusHandle, Focusable, FontWeight,
     Entity, Render, WeakEntity,
     actions, Task, Window, Animation, AnimationExt, pulsating_between,
+    linear_gradient, linear_color_stop, white,
 };
 use menu::{SelectNext, SelectPrevious};
 
@@ -299,7 +300,11 @@ impl Render for WelcomePage {
                             .child(
                                 v_flex()
                                     .w_full()
-                                    .bg(cx.theme().colors().element_background)
+                                    .bg(linear_gradient(
+                                        180.0,
+                                        linear_color_stop(cx.theme().colors().editor_background.blend(white().alpha(0.03)), 0.0),
+                                        linear_color_stop(cx.theme().colors().editor_background, 1.0),
+                                    ))
                                     .border_1()
                                     .border_color(border_color)
                                     .rounded_lg()
