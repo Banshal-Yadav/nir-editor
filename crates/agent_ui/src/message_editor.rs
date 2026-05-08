@@ -162,7 +162,7 @@ impl EventEmitter<MessageEditorEvent> for MessageEditor {}
 
 const COMMAND_HINT_INLAY_ID: InlayId = InlayId::Hint(0);
 
-enum MentionInsertPosition {
+pub(crate) enum MentionInsertPosition {
     AtCursor,
     EndOfBuffer,
 }
