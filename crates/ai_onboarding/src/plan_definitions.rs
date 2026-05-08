@@ -16,7 +16,7 @@ impl PlanDefinitions {
 
     pub fn pro_trial(&self, period: bool) -> impl IntoElement {
         List::new()
-            .child(ListBulletItem::new("$20 of tokens in Zed agent"))
+            .child(ListBulletItem::new("$20 of tokens in /void agent"))
             .child(ListBulletItem::new("Unlimited edit predictions"))
             .when(period, |this| {
                 this.child(ListBulletItem::new(
@@ -27,7 +27,7 @@ impl PlanDefinitions {
 
     pub fn pro_plan(&self) -> impl IntoElement {
         List::new()
-            .child(ListBulletItem::new("$5 of tokens in Zed agent"))
+            .child(ListBulletItem::new("$5 of tokens in /void agent"))
             .child(ListBulletItem::new("Usage-based billing beyond $5"))
             .child(ListBulletItem::new("Unlimited edit predictions"))
     }
@@ -41,7 +41,7 @@ impl PlanDefinitions {
     pub fn student_plan(&self) -> impl IntoElement {
         List::new()
             .child(ListBulletItem::new("Unlimited edit predictions"))
-            .child(ListBulletItem::new("$10 of tokens in Zed agent"))
+            .child(ListBulletItem::new("$10 of tokens in /void agent"))
             .child(ListBulletItem::new(
                 "Optional credit packs for additional usage",
             ))

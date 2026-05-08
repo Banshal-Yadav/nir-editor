@@ -393,7 +393,7 @@ pub fn into_mistral(
                             let tool_content = match &tool_result.content {
                                 LanguageModelToolResultContent::Text(text) => text.to_string(),
                                 LanguageModelToolResultContent::Image(_) => {
-                                    "[Tool responded with an image, but Zed doesn't support these in Mistral models yet]".to_string()
+                                    "[Tool responded with an image, but /void doesn't support these in Mistral models yet]".to_string()
                                 }
                             };
                             messages.push(mistral::RequestMessage::Tool {
@@ -832,7 +832,7 @@ impl Render for ConfigurationView {
             v_flex()
                 .size_full()
                 .on_action(cx.listener(Self::save_api_key))
-                .child(Label::new("To use Zed's agent with Mistral, you need to add an API key. Follow these steps:"))
+                .child(Label::new("To use /void's agent with Mistral, you need to add an API key. Follow these steps:"))
                 .child(
                     List::new()
                         .child(
@@ -850,7 +850,7 @@ impl Render for ConfigurationView {
                 .child(self.api_key_editor.clone())
                 .child(
                     Label::new(
-                        format!("You can also set the {API_KEY_ENV_VAR_NAME} environment variable and restart Zed."),
+                        format!("You can also set the {API_KEY_ENV_VAR_NAME} environment variable and restart /void."),
                     )
                     .size(LabelSize::Small).color(Color::Muted),
                 )

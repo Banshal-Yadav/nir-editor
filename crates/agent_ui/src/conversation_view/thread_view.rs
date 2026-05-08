@@ -3195,7 +3195,7 @@ impl ThreadView {
         let fills_container = !has_messages || editor_expanded;
 
         h_flex()
-            .px_2()
+            .px_4()
             .pb_2()
             .pt_1()
             .bg(cx.theme().colors().panel_background)
@@ -3214,26 +3214,32 @@ impl ThreadView {
                     .when_some(max_content_width, |this, max_w| this.max_w(max_w))
                     .when(editor_expanded, |this| this.h_full())
                     .when(!has_messages, |this| {
+                        let sparkle_animation = Animation::new(std::time::Duration::from_secs(4))
+                            .repeat()
+                            .with_easing(pulsating_between(0.6, 1.0));
+
+                        let sparkle_div = div()
+                            .child(
+                                Icon::new(IconName::Sparkle)
+                                    .size(IconSize::Custom(rems_from_px(24.)))
+                                    .color(Color::Accent)
+                            );
+
                         this.child(
                             div()
                                 .flex()
-                                .w_full()
-                                .justify_center()
                                 .items_center()
-                                .gap_3()
+                                .gap_2()
                                 .mb_3()
-                                .child(
-                                    Icon::new(IconName::Sparkle)
-                                        .size(IconSize::Custom(rems_from_px(24.)))
-                                        .color(Color::Accent)
-                                )
+                                .child(sparkle_div.with_animation("sparkle-pulse", sparkle_animation, |el, delta| {
+                                    el.opacity(delta)
+                                }))
                                 .child(
                                     div()
-                                        .flex_shrink()
-                                        .whitespace_normal()
-                                        .text_size(px(28.))
+                                        .text_xl()
                                         .text_color(cx.theme().colors().text)
-                                        .child("What do you want to build today?"),
+                                        .min_w_0()
+                                        .child("What do you want to build with /void?"),
                                 ),
                         )
                     })
@@ -9458,4 +9464,8 @@ pub(crate) fn open_link(
     } else {
         cx.open_url(&url);
     }
+}
+
+fn get_time_greeting() -> &'static str {
+    "What do you want to build with /void?"
 }

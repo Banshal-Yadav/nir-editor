@@ -521,7 +521,7 @@ impl Component for ZedAiConfiguration {
                         }),
                     ),
                     single_example(
-                        "Business Plan - Zed models enabled",
+                        "Business Plan - /void models enabled",
                         configuration(PreviewConfiguration {
                             plan: Some(Plan::ZedBusiness),
                             is_connected: true,
@@ -530,7 +530,7 @@ impl Component for ZedAiConfiguration {
                         }),
                     ),
                     single_example(
-                        "Business Plan - Zed models disabled",
+                        "Business Plan - /void models disabled",
                         configuration(PreviewConfiguration {
                             plan: Some(Plan::ZedBusiness),
                             is_connected: true,
