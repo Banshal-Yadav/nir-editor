@@ -8989,11 +8989,47 @@ impl ThreadView {
         let workspace = self.workspace.upgrade()?;
         let active_item = workspace.read(cx).active_item(cx);
 
+        let mut chips = vec![
+            (
+                "Open Project",
+                IconName::FolderOpen,
+                SharedString::from("Help me open and explore a project."),
+            ),
+            (
+                "Explain Repo",
+                IconName::FileTree,
+                SharedString::from(
+                    "Give me an overview of the current repository structure and purpose.",
+                ),
+            ),
+            (
+                "Generate Code",
+                IconName::Plus,
+                SharedString::from("I want to generate some new code. What should we build?"),
+            ),
+            (
+                "Ask Void",
+                IconName::Sparkle,
+                SharedString::from("I have a general question about coding or /void."),
+            ),
+        ];
+
+        let mut info_text = None;
+
         if let Some(item) = active_item {
             let filename = item.tab_content_text(0, cx);
-            let mut info_text = format!("Currently viewing {}", filename);
+            let project_path = item.project_path(cx);
+            let display_name = project_path
+                .and_then(|project_path| {
+                    workspace
+                        .read(cx)
+                        .project()
+                        .read(cx)
+                        .short_full_path_for_project_path(&project_path, cx)
+                })
+                .unwrap_or_else(|| filename.to_string());
 
-            let chips = if let Some(editor) = item.downcast::<Editor>() {
+            if let Some(editor) = item.downcast::<Editor>() {
                 let editor = editor.read(cx);
                 let buffer = editor.buffer().read(cx);
                 let snapshot = buffer.snapshot(cx);
@@ -9004,97 +9040,64 @@ impl ThreadView {
                     .unwrap_or_else(|| "Plain Text".into());
                 let line_count = snapshot.max_point().row + 1;
 
-                info_text = format!(
-                    "Currently viewing {} • {} • {} lines",
+                info_text = Some(format!(
+                    "{} • {} • {} lines",
                     filename, language, line_count
-                );
-                vec![
-                    (
-                        "Explain",
-                        IconName::Book,
-                        format!("Explain the file `{}` step-by-step.", filename).into(),
-                    ),
+                ));
+
+                chips.insert(
+                    0,
                     (
                         "Find Bug",
                         IconName::Debug,
                         format!(
                             "Analyze the file `{}` for potential bugs or edge cases.",
-                            filename
+                            display_name
                         )
                         .into(),
                     ),
-                ]
-            } else {
-                vec![
+                );
+                chips.insert(
+                    0,
                     (
                         "Explain",
                         IconName::Book,
-                        format!("Explain what {} is.", filename).into(),
+                        format!("Explain the file `{}` step-by-step.", display_name).into(),
                     ),
-                    ("Ask", IconName::Chat, "I have a question about this.".into()),
-                ]
-            };
-
-            let mut rendered_chips = Vec::new();
-            for (label, icon, prompt) in chips {
-                rendered_chips.push(self.render_suggestion_chip(label, icon, prompt, cx));
+                );
+            } else {
+                info_text = Some(filename.clone().to_string());
+                chips.insert(
+                    0,
+                    (
+                        "Explain",
+                        IconName::Book,
+                        format!("Explain what {} is.", display_name).into(),
+                    ),
+                );
             }
+        }
 
-            Some(
-                v_flex()
-                    .items_start()
-                    .gap_3()
-                    .mt_4()
-                    .child(
+        let mut rendered_chips = Vec::new();
+        for (label, icon, prompt) in chips {
+            rendered_chips.push(self.render_suggestion_chip(label, icon, prompt, cx));
+        }
+
+        Some(
+            v_flex()
+                .items_start()
+                .gap_3()
+                .mt_4()
+                .when_some(info_text, |this, text| {
+                    this.child(
                         div()
                             .text_color(cx.theme().colors().text_muted)
                             .text_size(px(13.))
-                            .child(info_text),
+                            .child(text),
                     )
-                    .child(
-                        h_flex()
-                            .gap_2()
-                            .flex_wrap()
-                            .children(rendered_chips),
-                    ),
-            )
-        } else {
-            let chips = vec![
-                (
-                    "Open Project",
-                    IconName::FolderOpen,
-                    "Help me open and explore a project.".into(),
-                ),
-                (
-                    "Explain Repo",
-                    IconName::FileTree,
-                    "Give me an overview of the current repository structure and purpose.".into(),
-                ),
-                (
-                    "Generate Code",
-                    IconName::Plus,
-                    "I want to generate some new code. What should we build?".into(),
-                ),
-                (
-                    "Ask Void",
-                    IconName::Sparkle,
-                    "I have a general question about coding or /void.".into(),
-                ),
-            ];
-
-            let mut rendered_chips = Vec::new();
-            for (label, icon, prompt) in chips {
-                rendered_chips.push(self.render_suggestion_chip(label, icon, prompt, cx));
-            }
-
-            Some(
-                h_flex()
-                    .gap_2()
-                    .flex_wrap()
-                    .mt_4()
-                    .children(rendered_chips),
-            )
-        }
+                })
+                .child(h_flex().gap_2().flex_wrap().children(rendered_chips)),
+        )
     }
 
     fn render_suggestion_chip(

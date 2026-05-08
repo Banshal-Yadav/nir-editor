@@ -2260,7 +2260,7 @@ impl MultiWorkspace {
                             )
                             .cursor_pointer()
                             .on_click(cx.listener(|_, _, window, cx| {
-                                window.dispatch_action(Box::new(crate::Open::default()), cx);
+                                window.dispatch_action(Box::new(crate::AddFolderToProject), cx);
                             }))
                     )
             )
