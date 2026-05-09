@@ -12,7 +12,7 @@ use feature_flags::AcpBetaFeatureFlag;
 
 use crate::message_editor::SharedSessionCapabilities;
 
-use gpui::List;
+use gpui::{Animation, AnimationExt, List, pulsating_between};
 use heapless::Vec as ArrayVec;
 use language_model::{LanguageModelEffortLevel, Speed};
 use settings::{SidebarSide, update_settings_file};
@@ -3214,17 +3214,26 @@ impl ThreadView {
                     .when_some(max_content_width, |this, max_w| this.max_w(max_w))
                     .when(editor_expanded, |this| this.h_full())
                     .when(!has_messages, |this| {
+                        let sparkle_animation = Animation::new(std::time::Duration::from_secs(4))
+                            .repeat()
+                            .with_easing(pulsating_between(0.6, 1.0));
+
+                        let sparkle_div = div()
+                            .child(
+                                Icon::new(IconName::Sparkle)
+                                    .size(IconSize::Custom(rems_from_px(24.)))
+                                    .color(Color::Accent)
+                            );
+
                         this.child(
                             div()
                                 .flex()
                                 .items_center()
                                 .gap_2()
                                 .mb_3()
-                                .child(
-                                    Icon::new(IconName::Sparkle)
-                                        .size(IconSize::Custom(rems_from_px(24.)))
-                                        .color(Color::Accent)
-                                )
+                                .child(sparkle_div.with_animation("sparkle-pulse", sparkle_animation, |el, delta| {
+                                    el.opacity(delta)
+                                }))
                                 .child(
                                     div()
                                         .text_xl()
