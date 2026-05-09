@@ -3195,7 +3195,7 @@ impl ThreadView {
         let fills_container = !has_messages || editor_expanded;
 
         h_flex()
-            .px_4()
+            .px_2()
             .pb_2()
             .pt_1()
             .bg(cx.theme().colors().panel_background)
@@ -3205,7 +3205,7 @@ impl ThreadView {
                     this.on_action(cx.listener(Self::expand_message_editor))
                         .when(editor_expanded, |this| this.h(vh(0.8, window)))
                 } else {
-                    this.flex_1().items_center()
+                    this
                 }
             })
             .child(
@@ -8995,112 +8995,197 @@ impl ThreadView {
         let workspace = self.workspace.upgrade()?;
         let active_item = workspace.read(cx).active_item(cx);
 
+        let mut chips = Vec::new();
+        let mut info_text = None;
+
         if let Some(item) = active_item {
             let filename = item.tab_content_text(0, cx);
-            let mut info_text = format!("Currently viewing {}", filename);
+            let project_path = item.project_path(cx);
+            let abs_path = project_path
+                .as_ref()
+                .and_then(|project_path| {
+                    let project = workspace.read(cx).project().read(cx);
+                    let worktree = project.worktree_for_id(project_path.worktree_id, cx)?;
+                    Some(
+                        worktree
+                            .read(cx)
+                            .absolutize(&project_path.path)
+                            .to_string_lossy()
+                            .to_string(),
+                    )
+                })
+                .unwrap_or_else(|| filename.to_string());
 
-            let chips = if let Some(editor) = item.downcast::<Editor>() {
+            if let Some(editor) = item.downcast::<Editor>() {
                 let editor = editor.read(cx);
                 let buffer = editor.buffer().read(cx);
                 let snapshot = buffer.snapshot(cx);
 
                 let language = snapshot
-                    .language_at(Point::zero())
+                    .language_at(language::Point::zero())
                     .map(|l| l.name())
                     .unwrap_or_else(|| "Plain Text".into());
                 let line_count = snapshot.max_point().row + 1;
 
-                info_text = format!(
-                    "Currently viewing {} • {} • {} lines",
-                    filename, language, line_count
-                );
-                vec![
-                    (
-                        "Explain",
-                        IconName::Book,
-                        format!("Explain the file `{}` step-by-step.", filename).into(),
-                    ),
-                    (
-                        "Find Bug",
-                        IconName::Debug,
+                let metadata = format!("{} • {} • {} lines", filename, language, line_count);
+                info_text = Some(metadata);
+
+                let is_modified = project_path
+                    .as_ref()
+                    .and_then(|pp| {
+                        let project = workspace.read(cx).project().read(cx);
+                        project
+                            .git_store()
+                            .read(cx)
+                            .repository_and_path_for_project_path(pp, cx)
+                    })
+                    .map(|(repo, repo_path)| {
+                        repo.read(cx).status_for_path(&repo_path).is_some()
+                    })
+                    .unwrap_or(false);
+
+                // Contextual Pro-Actions
+                if is_modified {
+                    chips.push((
+                        "Summarize Changes",
+                        IconName::Check,
                         format!(
-                            "Analyze the file `{}` for potential bugs or edge cases.",
-                            filename
+                            "Summarize the recent uncommitted changes in: {}. Use `git diff` to provide a concise summary.",
+                            abs_path
                         )
                         .into(),
-                    ),
-                ]
+                    ));
+                }
+
+                // General contextual actions
+                chips.push((
+                    "Explain",
+                    IconName::Book,
+                    format!("Explain the file at:\n{}", abs_path).into(),
+                ));
+                chips.push((
+                    "Find Bug",
+                    IconName::Debug,
+                    format!(
+                        "Analyze the file at:\n{}\nfor potential bugs or edge cases.",
+                        abs_path
+                    )
+                    .into(),
+                ));
+                chips.push((
+                    "Refactor",
+                    IconName::AiEdit,
+                    format!("Suggest refactors for the file at:\n{}", abs_path).into(),
+                ));
+                chips.push((
+                    "Optimize",
+                    IconName::BoltFilled,
+                    format!("Suggest performance optimizations for the file at:\n{}", abs_path)
+                        .into(),
+                ));
+
+                // Language-specific chips
+                let lang_lower = language.0.to_lowercase();
+                if lang_lower.contains("html")
+                    || lang_lower.contains("css")
+                    || lang_lower.contains("javascript")
+                    || lang_lower.contains("typescript")
+                    || lang_lower.contains("tsx")
+                    || lang_lower.contains("jsx")
+                {
+                    chips.push((
+                        "Improve UI",
+                        IconName::Sparkle,
+                        format!("Suggest UI improvements for the file at:\n{}", abs_path).into(),
+                    ));
+                    chips.push((
+                        "Improve Accessibility",
+                        IconName::Person,
+                        format!("Suggest accessibility improvements for the file at:\n{}", abs_path)
+                            .into(),
+                    ));
+                } else if lang_lower.contains("markdown") {
+                    chips.push((
+                        "Summarize",
+                        IconName::TextSnippet,
+                        format!("Summarize the file at:\n{}", abs_path).into(),
+                    ));
+                    chips.push((
+                        "Improve Writing",
+                        IconName::Pencil,
+                        format!("Suggest writing improvements for the file at:\n{}", abs_path)
+                            .into(),
+                    ));
+                }
             } else {
-                vec![
-                    (
+                // Non-editor but still an active item
+                let is_search = filename.to_lowercase().contains("search") || filename.to_lowercase() == "json";
+                if !is_search {
+                    info_text = Some(filename.clone().to_string());
+                    chips.push((
                         "Explain",
                         IconName::Book,
-                        format!("Explain what {} is.", filename).into(),
-                    ),
-                    ("Ask", IconName::Chat, "I have a question about this.".into()),
-                ]
-            };
-
-            let mut rendered_chips = Vec::new();
-            for (label, icon, prompt) in chips {
-                rendered_chips.push(self.render_suggestion_chip(label, icon, prompt, cx));
+                        format!("Explain what {} is at:\n{}", filename, abs_path).into(),
+                    ));
+                } else {
+                    // It's a search window or similar system view, show global project chips instead
+                    chips.push((
+                        "Explain Repo",
+                        IconName::Book,
+                        SharedString::from(
+                            "Give me a high-level overview of this repository's structure and purpose.",
+                        ),
+                    ));
+                    chips.push((
+                        "Ask Void",
+                        IconName::Sparkle,
+                        SharedString::from("Ask a general question about the codebase or search for specific logic."),
+                    ));
+                }
             }
+        } else {
+            // Global/Project level chips when NO file is open
+            chips.push((
+                "Explain Repo",
+                IconName::Book,
+                SharedString::from(
+                    "Give me a high-level overview of this repository's structure and purpose.",
+                ),
+            ));
+            chips.push((
+                "Start a Feature",
+                IconName::Plus,
+                SharedString::from(
+                    "I want to build a new feature. Help me plan the architecture and implementation.",
+                ),
+            ));
+            chips.push((
+                "Ask Void",
+                IconName::Sparkle,
+                SharedString::from("Ask a general question about the codebase or search for specific logic."),
+            ));
+        }
 
-            Some(
-                v_flex()
-                    .items_start()
-                    .gap_3()
-                    .mt_4()
-                    .child(
+        let mut rendered_chips = Vec::new();
+        for (label, icon, prompt) in chips {
+            rendered_chips.push(self.render_suggestion_chip(label, icon, prompt, cx));
+        }
+
+        Some(
+            v_flex()
+                .items_start()
+                .gap_3()
+                .mt_4()
+                .when_some(info_text, |this, text| {
+                    this.child(
                         div()
                             .text_color(cx.theme().colors().text_muted)
                             .text_size(px(13.))
-                            .child(info_text),
+                            .child(text),
                     )
-                    .child(
-                        h_flex()
-                            .gap_2()
-                            .flex_wrap()
-                            .children(rendered_chips),
-                    ),
-            )
-        } else {
-            let chips = vec![
-                (
-                    "Open Project",
-                    IconName::FolderOpen,
-                    "Help me open and explore a project.".into(),
-                ),
-                (
-                    "Explain Repo",
-                    IconName::FileTree,
-                    "Give me an overview of the current repository structure and purpose.".into(),
-                ),
-                (
-                    "Generate Code",
-                    IconName::Plus,
-                    "I want to generate some new code. What should we build?".into(),
-                ),
-                (
-                    "Ask Void",
-                    IconName::Sparkle,
-                    "I have a general question about coding or /void.".into(),
-                ),
-            ];
-
-            let mut rendered_chips = Vec::new();
-            for (label, icon, prompt) in chips {
-                rendered_chips.push(self.render_suggestion_chip(label, icon, prompt, cx));
-            }
-
-            Some(
-                h_flex()
-                    .gap_2()
-                    .flex_wrap()
-                    .mt_4()
-                    .children(rendered_chips),
-            )
-        }
+                })
+                .child(h_flex().gap_2().flex_wrap().children(rendered_chips)),
+        )
     }
 
     fn render_suggestion_chip(
@@ -9110,6 +9195,8 @@ impl ThreadView {
         prompt: SharedString,
         cx: &Context<Self>,
     ) -> impl IntoElement {
+        let color = Color::Muted;
+
         div()
             .id(label)
             .flex()
@@ -9125,14 +9212,14 @@ impl ThreadView {
             .child(
                 Icon::new(icon)
                     .size(IconSize::Small)
-                    .color(Color::Muted),
+                    .color(color),
             )
             .child(div().text_size(px(13.)).child(label))
             .on_click(cx.listener(move |this, _, window, cx| {
                 this.message_editor.update(cx, |editor, cx| {
                     editor.set_text(prompt.as_ref(), window, cx);
-                    editor.focus_handle(cx).focus(window, cx);
                 });
+                this.send(window, cx);
             }))
     }
 }
@@ -9143,20 +9230,29 @@ impl Render for ThreadView {
         let list_state = self.list_state.clone();
 
         let conversation = v_flex()
+            .flex_1()
             .when(self.resumed_without_history, |this| {
                 this.child(Self::render_resume_notice(cx))
             })
-            .map(|this| {
-                if has_messages {
-                    this.flex_1()
-                        .size_full()
-                        .child(self.render_entries(cx))
-                        .vertical_scrollbar_for(&list_state, window, cx)
-                        .into_any()
-                } else {
-                    this.into_any()
-                }
-            });
+            .child(
+                v_flex()
+                    .flex_1()
+                    .size_full()
+                    .child(
+                        v_flex()
+                            .when(has_messages, |this| {
+                                this.flex_1()
+                                    .size_full()
+                                    .child(
+                                        div()
+                                            .flex_1()
+                                            .size_full()
+                                            .child(self.render_entries(cx))
+                                            .vertical_scrollbar_for(&list_state, window, cx),
+                                    )
+                            })
+                    )
+            );
 
         v_flex()
             .key_context("AcpThread")
@@ -9334,25 +9430,30 @@ impl Render for ThreadView {
             }))
             .size_full()
             .children(self.render_subagent_titlebar(cx))
-            .child(conversation)
-            .children(self.render_multi_root_callout(cx))
-            .children(self.render_activity_bar(window, cx))
-            .when(self.show_external_source_prompt_warning, |this| {
-                this.child(self.render_external_source_prompt_warning(cx))
-            })
-            .when(self.show_codex_windows_warning, |this| {
-                this.child(self.render_codex_windows_warning(cx))
-            })
-            .children(self.render_thread_retry_status_callout())
-            .children(self.render_thread_error(window, cx))
-            .when_some(
-                match has_messages {
-                    true => None,
-                    false => self.new_server_version_available.clone(),
-                },
-                |this, version| this.child(self.render_new_version_callout(&version, cx)),
+            .child(
+                v_flex()
+                    .flex_1()
+                    .size_full()
+                    .child(conversation)
+                    .children(self.render_multi_root_callout(cx))
+                    .children(self.render_activity_bar(window, cx))
+                    .when(self.show_external_source_prompt_warning, |this| {
+                        this.child(self.render_external_source_prompt_warning(cx))
+                    })
+                    .when(self.show_codex_windows_warning, |this| {
+                        this.child(self.render_codex_windows_warning(cx))
+                    })
+                    .children(self.render_thread_retry_status_callout())
+                    .children(self.render_thread_error(window, cx))
+                    .when_some(
+                        match has_messages {
+                            true => None,
+                            false => self.new_server_version_available.clone(),
+                        },
+                        |this, version| this.child(self.render_new_version_callout(&version, cx)),
+                    )
+                    .children(self.render_token_limit_callout(cx)),
             )
-            .children(self.render_token_limit_callout(cx))
             .child(self.render_message_editor(window, cx))
     }
 }

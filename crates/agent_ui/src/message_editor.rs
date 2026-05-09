@@ -162,12 +162,12 @@ impl EventEmitter<MessageEditorEvent> for MessageEditor {}
 
 const COMMAND_HINT_INLAY_ID: InlayId = InlayId::Hint(0);
 
-enum MentionInsertPosition {
+pub(crate) enum MentionInsertPosition {
     AtCursor,
     EndOfBuffer,
 }
 
-fn insert_mention_for_project_path(
+pub(crate) fn insert_mention_for_project_path(
     project_path: &ProjectPath,
     position: MentionInsertPosition,
     editor: &Entity<Editor>,
@@ -1689,6 +1689,42 @@ impl MessageEditor {
         self.editor.update(cx, |editor, cx| {
             editor.set_placeholder_text(placeholder, window, cx);
         });
+    }
+
+    pub fn set_suggestion(
+        &mut self,
+        prefix: &str,
+        project_path: ProjectPath,
+        suffix: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.set_text(prefix, window, cx);
+        let Some(workspace) = self.workspace.upgrade() else {
+            return;
+        };
+        let project = workspace.read(cx).project().clone();
+        let supports_images = self.session_capabilities.read().supports_images();
+
+        if let Some(task) = insert_mention_for_project_path(
+            &project_path,
+            MentionInsertPosition::EndOfBuffer,
+            &self.editor,
+            &self.mention_set,
+            &project,
+            &workspace,
+            supports_images,
+            window,
+            cx,
+        ) {
+            task.detach();
+        }
+
+        if !suffix.is_empty() {
+            self.editor.update(cx, |editor, cx| {
+                editor.edit([(multi_buffer::Anchor::Max..multi_buffer::Anchor::Max, suffix)], cx);
+            });
+        }
     }
 
     pub fn set_text(&mut self, text: &str, window: &mut Window, cx: &mut Context<Self>) {
