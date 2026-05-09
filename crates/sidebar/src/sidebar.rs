@@ -54,7 +54,7 @@ use workspace::{
     CloseWindow, MultiWorkspace, MultiWorkspaceEvent, NextProject,
     NextThread, Open, OpenMode, PreviousProject, PreviousThread, ProjectGroupKey, SaveIntent,
     Sidebar as WorkspaceSidebar, SidebarSide, Toast, Workspace,
-    notifications::NotificationId,
+    notifications::NotificationId, 
 };
 
 use zed_actions::OpenRecent;

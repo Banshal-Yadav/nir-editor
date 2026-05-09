@@ -3205,7 +3205,7 @@ impl ThreadView {
                     this.on_action(cx.listener(Self::expand_message_editor))
                         .when(editor_expanded, |this| this.h(vh(0.8, window)))
                 } else {
-                    this
+                    this.flex_1().items_center()
                 }
             })
             .child(
@@ -3214,32 +3214,26 @@ impl ThreadView {
                     .when_some(max_content_width, |this, max_w| this.max_w(max_w))
                     .when(editor_expanded, |this| this.h_full())
                     .when(!has_messages, |this| {
-                        let sparkle_animation = Animation::new(std::time::Duration::from_secs(4))
-                            .repeat()
-                            .with_easing(pulsating_between(0.6, 1.0));
-
-                        let sparkle_div = div()
-                            .child(
-                                Icon::new(IconName::Sparkle)
-                                    .size(IconSize::Custom(rems_from_px(24.)))
-                                    .color(Color::Accent)
-                            );
-
                         this.child(
                             div()
                                 .flex()
+                                .w_full()
+                                .justify_center()
                                 .items_center()
-                                .gap_2()
+                                .gap_3()
                                 .mb_3()
-                                .child(sparkle_div.with_animation("sparkle-pulse", sparkle_animation, |el, delta| {
-                                    el.opacity(delta)
-                                }))
+                                .child(
+                                    Icon::new(IconName::Sparkle)
+                                        .size(IconSize::Custom(rems_from_px(24.)))
+                                        .color(Color::Accent)
+                                )
                                 .child(
                                     div()
-                                        .text_xl()
+                                        .flex_shrink()
+                                        .whitespace_normal()
+                                        .text_size(px(28.))
                                         .text_color(cx.theme().colors().text)
-                                        .min_w_0()
-                                        .child("What do you want to build with /void?"),
+                                        .child("What do you want to build today?"),
                                 ),
                         )
                     })
@@ -8995,24 +8989,43 @@ impl ThreadView {
         let workspace = self.workspace.upgrade()?;
         let active_item = workspace.read(cx).active_item(cx);
 
-        let mut chips = Vec::new();
+        let mut chips = vec![
+            (
+                "Open Project",
+                IconName::FolderOpen,
+                SharedString::from("Help me open and explore a project."),
+            ),
+            (
+                "Explain Repo",
+                IconName::FileTree,
+                SharedString::from(
+                    "Give me an overview of the current repository structure and purpose.",
+                ),
+            ),
+            (
+                "Generate Code",
+                IconName::Plus,
+                SharedString::from("I want to generate some new code. What should we build?"),
+            ),
+            (
+                "Ask Void",
+                IconName::Sparkle,
+                SharedString::from("I have a general question about coding or /void."),
+            ),
+        ];
+
         let mut info_text = None;
 
         if let Some(item) = active_item {
             let filename = item.tab_content_text(0, cx);
             let project_path = item.project_path(cx);
-            let abs_path = project_path
-                .as_ref()
+            let display_name = project_path
                 .and_then(|project_path| {
-                    let project = workspace.read(cx).project().read(cx);
-                    let worktree = project.worktree_for_id(project_path.worktree_id, cx)?;
-                    Some(
-                        worktree
-                            .read(cx)
-                            .absolutize(&project_path.path)
-                            .to_string_lossy()
-                            .to_string(),
-                    )
+                    workspace
+                        .read(cx)
+                        .project()
+                        .read(cx)
+                        .short_full_path_for_project_path(&project_path, cx)
                 })
                 .unwrap_or_else(|| filename.to_string());
 
@@ -9022,148 +9035,47 @@ impl ThreadView {
                 let snapshot = buffer.snapshot(cx);
 
                 let language = snapshot
-                    .language_at(language::Point::zero())
+                    .language_at(Point::zero())
                     .map(|l| l.name())
                     .unwrap_or_else(|| "Plain Text".into());
                 let line_count = snapshot.max_point().row + 1;
 
-                let metadata = format!("{} • {} • {} lines", filename, language, line_count);
-                info_text = Some(metadata);
+                info_text = Some(format!(
+                    "{} • {} • {} lines",
+                    filename, language, line_count
+                ));
 
-                let is_modified = project_path
-                    .as_ref()
-                    .and_then(|pp| {
-                        let project = workspace.read(cx).project().read(cx);
-                        project
-                            .git_store()
-                            .read(cx)
-                            .repository_and_path_for_project_path(pp, cx)
-                    })
-                    .map(|(repo, repo_path)| {
-                        repo.read(cx).status_for_path(&repo_path).is_some()
-                    })
-                    .unwrap_or(false);
-
-                // Contextual Pro-Actions
-                if is_modified {
-                    chips.push((
-                        "Summarize Changes",
-                        IconName::Check,
+                chips.insert(
+                    0,
+                    (
+                        "Find Bug",
+                        IconName::Debug,
                         format!(
-                            "Summarize the recent uncommitted changes in: {}. Use `git diff` to provide a concise summary.",
-                            abs_path
+                            "Analyze the file `{}` for potential bugs or edge cases.",
+                            display_name
                         )
                         .into(),
-                    ));
-                }
-
-                // General contextual actions
-                chips.push((
-                    "Explain",
-                    IconName::Book,
-                    format!("Explain the file at:\n{}", abs_path).into(),
-                ));
-                chips.push((
-                    "Find Bug",
-                    IconName::Debug,
-                    format!(
-                        "Analyze the file at:\n{}\nfor potential bugs or edge cases.",
-                        abs_path
-                    )
-                    .into(),
-                ));
-                chips.push((
-                    "Refactor",
-                    IconName::AiEdit,
-                    format!("Suggest refactors for the file at:\n{}", abs_path).into(),
-                ));
-                chips.push((
-                    "Optimize",
-                    IconName::BoltFilled,
-                    format!("Suggest performance optimizations for the file at:\n{}", abs_path)
-                        .into(),
-                ));
-
-                // Language-specific chips
-                let lang_lower = language.0.to_lowercase();
-                if lang_lower.contains("html")
-                    || lang_lower.contains("css")
-                    || lang_lower.contains("javascript")
-                    || lang_lower.contains("typescript")
-                    || lang_lower.contains("tsx")
-                    || lang_lower.contains("jsx")
-                {
-                    chips.push((
-                        "Improve UI",
-                        IconName::Sparkle,
-                        format!("Suggest UI improvements for the file at:\n{}", abs_path).into(),
-                    ));
-                    chips.push((
-                        "Improve Accessibility",
-                        IconName::Person,
-                        format!("Suggest accessibility improvements for the file at:\n{}", abs_path)
-                            .into(),
-                    ));
-                } else if lang_lower.contains("markdown") {
-                    chips.push((
-                        "Summarize",
-                        IconName::TextSnippet,
-                        format!("Summarize the file at:\n{}", abs_path).into(),
-                    ));
-                    chips.push((
-                        "Improve Writing",
-                        IconName::Pencil,
-                        format!("Suggest writing improvements for the file at:\n{}", abs_path)
-                            .into(),
-                    ));
-                }
-            } else {
-                // Non-editor but still an active item
-                let is_search = filename.to_lowercase().contains("search") || filename.to_lowercase() == "json";
-                if !is_search {
-                    info_text = Some(filename.clone().to_string());
-                    chips.push((
+                    ),
+                );
+                chips.insert(
+                    0,
+                    (
                         "Explain",
                         IconName::Book,
-                        format!("Explain what {} is at:\n{}", filename, abs_path).into(),
-                    ));
-                } else {
-                    // It's a search window or similar system view, show global project chips instead
-                    chips.push((
-                        "Explain Repo",
+                        format!("Explain the file `{}` step-by-step.", display_name).into(),
+                    ),
+                );
+            } else {
+                info_text = Some(filename.clone().to_string());
+                chips.insert(
+                    0,
+                    (
+                        "Explain",
                         IconName::Book,
-                        SharedString::from(
-                            "Give me a high-level overview of this repository's structure and purpose.",
-                        ),
-                    ));
-                    chips.push((
-                        "Ask Void",
-                        IconName::Sparkle,
-                        SharedString::from("Ask a general question about the codebase or search for specific logic."),
-                    ));
-                }
+                        format!("Explain what {} is.", display_name).into(),
+                    ),
+                );
             }
-        } else {
-            // Global/Project level chips when NO file is open
-            chips.push((
-                "Explain Repo",
-                IconName::Book,
-                SharedString::from(
-                    "Give me a high-level overview of this repository's structure and purpose.",
-                ),
-            ));
-            chips.push((
-                "Start a Feature",
-                IconName::Plus,
-                SharedString::from(
-                    "I want to build a new feature. Help me plan the architecture and implementation.",
-                ),
-            ));
-            chips.push((
-                "Ask Void",
-                IconName::Sparkle,
-                SharedString::from("Ask a general question about the codebase or search for specific logic."),
-            ));
         }
 
         let mut rendered_chips = Vec::new();
@@ -9195,8 +9107,6 @@ impl ThreadView {
         prompt: SharedString,
         cx: &Context<Self>,
     ) -> impl IntoElement {
-        let color = Color::Muted;
-
         div()
             .id(label)
             .flex()
@@ -9212,14 +9122,14 @@ impl ThreadView {
             .child(
                 Icon::new(icon)
                     .size(IconSize::Small)
-                    .color(color),
+                    .color(Color::Muted),
             )
             .child(div().text_size(px(13.)).child(label))
             .on_click(cx.listener(move |this, _, window, cx| {
                 this.message_editor.update(cx, |editor, cx| {
                     editor.set_text(prompt.as_ref(), window, cx);
+                    editor.focus_handle(cx).focus(window, cx);
                 });
-                this.send(window, cx);
             }))
     }
 }
@@ -9230,29 +9140,20 @@ impl Render for ThreadView {
         let list_state = self.list_state.clone();
 
         let conversation = v_flex()
-            .flex_1()
             .when(self.resumed_without_history, |this| {
                 this.child(Self::render_resume_notice(cx))
             })
-            .child(
-                v_flex()
-                    .flex_1()
-                    .size_full()
-                    .child(
-                        v_flex()
-                            .when(has_messages, |this| {
-                                this.flex_1()
-                                    .size_full()
-                                    .child(
-                                        div()
-                                            .flex_1()
-                                            .size_full()
-                                            .child(self.render_entries(cx))
-                                            .vertical_scrollbar_for(&list_state, window, cx),
-                                    )
-                            })
-                    )
-            );
+            .map(|this| {
+                if has_messages {
+                    this.flex_1()
+                        .size_full()
+                        .child(self.render_entries(cx))
+                        .vertical_scrollbar_for(&list_state, window, cx)
+                        .into_any()
+                } else {
+                    this.into_any()
+                }
+            });
 
         v_flex()
             .key_context("AcpThread")
@@ -9430,30 +9331,25 @@ impl Render for ThreadView {
             }))
             .size_full()
             .children(self.render_subagent_titlebar(cx))
-            .child(
-                v_flex()
-                    .flex_1()
-                    .size_full()
-                    .child(conversation)
-                    .children(self.render_multi_root_callout(cx))
-                    .children(self.render_activity_bar(window, cx))
-                    .when(self.show_external_source_prompt_warning, |this| {
-                        this.child(self.render_external_source_prompt_warning(cx))
-                    })
-                    .when(self.show_codex_windows_warning, |this| {
-                        this.child(self.render_codex_windows_warning(cx))
-                    })
-                    .children(self.render_thread_retry_status_callout())
-                    .children(self.render_thread_error(window, cx))
-                    .when_some(
-                        match has_messages {
-                            true => None,
-                            false => self.new_server_version_available.clone(),
-                        },
-                        |this, version| this.child(self.render_new_version_callout(&version, cx)),
-                    )
-                    .children(self.render_token_limit_callout(cx)),
+            .child(conversation)
+            .children(self.render_multi_root_callout(cx))
+            .children(self.render_activity_bar(window, cx))
+            .when(self.show_external_source_prompt_warning, |this| {
+                this.child(self.render_external_source_prompt_warning(cx))
+            })
+            .when(self.show_codex_windows_warning, |this| {
+                this.child(self.render_codex_windows_warning(cx))
+            })
+            .children(self.render_thread_retry_status_callout())
+            .children(self.render_thread_error(window, cx))
+            .when_some(
+                match has_messages {
+                    true => None,
+                    false => self.new_server_version_available.clone(),
+                },
+                |this, version| this.child(self.render_new_version_callout(&version, cx)),
             )
+            .children(self.render_token_limit_callout(cx))
             .child(self.render_message_editor(window, cx))
     }
 }
@@ -9565,8 +9461,4 @@ pub(crate) fn open_link(
     } else {
         cx.open_url(&url);
     }
-}
-
-fn get_time_greeting() -> &'static str {
-    "What do you want to build with /void?"
 }

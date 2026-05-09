@@ -742,7 +742,7 @@ mod tests {
                 "Recommended",
                 "zed/claude",
                 "anthropic/claude",
-                "/void",
+                "Zed",
                 "zed/claude",
                 "zed/gpt-5",
                 "Antropic",
