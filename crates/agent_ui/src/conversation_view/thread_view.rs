@@ -3195,7 +3195,7 @@ impl ThreadView {
         let fills_container = !has_messages || editor_expanded;
 
         h_flex()
-            .px_2()
+            .px_4()
             .pb_2()
             .pt_1()
             .bg(cx.theme().colors().panel_background)
@@ -3217,10 +3217,8 @@ impl ThreadView {
                         this.child(
                             div()
                                 .flex()
-                                .w_full()
-                                .justify_center()
                                 .items_center()
-                                .gap_3()
+                                .gap_2()
                                 .mb_3()
                                 .child(
                                     Icon::new(IconName::Sparkle)
@@ -3229,11 +3227,10 @@ impl ThreadView {
                                 )
                                 .child(
                                     div()
-                                        .flex_shrink()
-                                        .whitespace_normal()
-                                        .text_size(px(28.))
+                                        .text_xl()
                                         .text_color(cx.theme().colors().text)
-                                        .child("What do you want to build today?"),
+                                        .min_w_0()
+                                        .child("What do you want to build with /void?"),
                                 ),
                         )
                     })
