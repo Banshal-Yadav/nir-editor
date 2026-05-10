@@ -1,4 +1,5 @@
 pub mod active_file_name;
+pub mod agent_launcher;
 pub mod dock;
 pub mod history_manager;
 pub mod invalid_item_view;
@@ -165,6 +166,7 @@ use crate::{
     },
     security_modal::SecurityModal,
 };
+use crate::agent_launcher::AgentLauncherButton;
 
 pub const SERIALIZATION_THROTTLE_TIME: Duration = Duration::from_millis(200);
 
@@ -1697,12 +1699,18 @@ impl Workspace {
             .root::<MultiWorkspace>()
             .flatten()
             .map(|mw| mw.downgrade());
+        let workspace_entity = cx.entity();
         let status_bar = cx.new(|cx| {
             let mut status_bar =
                 StatusBar::new(&center_pane.clone(), multi_workspace.clone(), window, cx);
             status_bar.add_left_item(left_dock_buttons, window, cx);
             status_bar.add_right_item(right_dock_buttons, window, cx);
             status_bar.add_right_item(bottom_dock_buttons, window, cx);
+            status_bar.add_right_item(
+                cx.new(|_| AgentLauncherButton::new(workspace_entity)),
+                window,
+                cx,
+            );
             status_bar
         });
 
