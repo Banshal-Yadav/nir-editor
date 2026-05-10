@@ -1463,6 +1463,10 @@ impl Item for TerminalView {
         None
     }
 
+    fn act_as_terminal(&self, _cx: &App) -> Option<Entity<terminal::Terminal>> {
+        Some(self.terminal().clone())
+    }
+
     fn handle_drop(
         &self,
         active_pane: &Pane,

@@ -23,6 +23,7 @@ pub use settings::{
     ShowDiagnostics,
 };
 use smallvec::SmallVec;
+use terminal::Terminal;
 use std::{
     any::{Any, TypeId},
     cell::RefCell,
@@ -381,6 +382,10 @@ pub trait Item: Focusable + EventEmitter<Self::Event> + Render + Sized {
     ) -> Vec<(SharedString, Box<dyn Action>)> {
         Vec::new()
     }
+
+    fn act_as_terminal(&self, _cx: &App) -> Option<Entity<Terminal>> {
+        None
+    }
 }
 
 pub trait SerializableItem: Item {
@@ -563,6 +568,7 @@ pub trait ItemHandle: 'static + Send {
         window: &mut Window,
         cx: &mut App,
     ) -> Vec<(SharedString, Box<dyn Action>)>;
+    fn act_as_terminal(&self, cx: &App) -> Option<Entity<Terminal>>;
     fn can_autosave(&self, cx: &App) -> bool {
         let is_deleted = self.project_entry_ids(cx).is_empty();
         self.is_dirty(cx) && !self.has_conflict(cx) && self.can_save(cx) && !is_deleted
@@ -643,6 +649,10 @@ impl<T: Item> ItemHandle for Entity<T> {
             window,
             cx,
         )
+    }
+
+    fn act_as_terminal(&self, cx: &App) -> Option<Entity<Terminal>> {
+        self.read(cx).act_as_terminal(cx)
     }
 
     fn project_path(&self, cx: &App) -> Option<ProjectPath> {

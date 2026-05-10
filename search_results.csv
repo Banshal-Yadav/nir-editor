@@ -1,0 +1,4 @@
+#TYPE Selected.Microsoft.PowerShell.Commands.MatchInfo
+"Path","LineNumber","Line"
+"C:\Users\bansa\OneDrive\Desktop\zed\zed\crates\agent\src\agent.rs","883","                        command = command.input(acp::AvailableCommandInput::Unstructured("
+"C:\Users\bansa\OneDrive\Desktop\zed\zed\crates\agent_ui\src\message_editor.rs","1204","            editor.update(cx, |editor, cx| editor.paste(&Paste, window, cx));"
