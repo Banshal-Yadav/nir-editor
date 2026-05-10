@@ -18,7 +18,7 @@ use markdown::{
     CodeBlockRenderer, CopyButtonVisibility, Markdown, MarkdownElement, MarkdownFont,
     MarkdownOptions, MarkdownStyle,
 };
-use project::search::SearchQuery;
+use project::{Project, search::SearchQuery};
 use settings::Settings;
 use theme::{SystemAppearance, Theme, ThemeRegistry};
 use theme_settings::ThemeSettings;
@@ -879,6 +879,16 @@ impl Item for MarkdownPreviewView {
 
     fn telemetry_event_text(&self) -> Option<&'static str> {
         Some("Markdown Preview Opened")
+    }
+
+    fn reload(
+        &mut self,
+        _project: Entity<Project>,
+        _window: &mut Window,
+        _cx: &mut Context<Self>,
+    ) -> Task<Result<()>> {
+        // The preview is not the owner of the source editor's buffer, so force-closing it should not discard editor changes.
+        Task::ready(Ok(()))
     }
 
     fn to_item_events(_event: &Self::Event, _f: &mut dyn FnMut(workspace::item::ItemEvent)) {}
