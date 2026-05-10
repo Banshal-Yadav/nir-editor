@@ -51,7 +51,8 @@ use ui::{
 use update_version::UpdateVersion;
 use util::ResultExt;
 use workspace::{
-    MultiWorkspace, ToggleWorkspaceSidebar, ToggleWorktreeSecurity, Workspace, notifications::NotifyResultExt,
+    agent_launcher::AgentLauncherButton, MultiWorkspace, ToggleWorkspaceSidebar,
+    ToggleWorktreeSecurity, Workspace, notifications::NotifyResultExt,
 };
 
 use zed_actions::{OpenRemote, assistant::Toggle as ToggleAgent};
@@ -158,6 +159,7 @@ pub struct TitleBar {
     _subscriptions: Vec<Subscription>,
     banner: Option<Entity<OnboardingBanner>>,
     update_version: Entity<UpdateVersion>,
+    agent_launcher: Entity<AgentLauncherButton>,
     screen_share_popover_handle: PopoverMenuHandle<ContextMenu>,
     _diagnostics_subscription: Option<gpui::Subscription>,
 }
@@ -309,19 +311,26 @@ impl Render for TitleBar {
                             ),
                     )
                 })
-                .when(
-                    matches!(
-                        agent_settings::AgentSettings::get_layout(cx),
-                        agent_settings::WindowLayout::Editor(_)
-                    ),
-                    |this| {
-                        this.when_some(
-                            self.render_agent_panel_toggle(cx),
-                            |this, btn| this.child(btn),
-                        )
-                        .child(self.render_history_sidebar_toggle(cx))
-                    },
-                )
+                .map(|this| {
+                    let layout = agent_settings::AgentSettings::get_layout(cx);
+                    let is_editor = matches!(layout, agent_settings::WindowLayout::Editor(_));
+                    let is_agent = matches!(layout, agent_settings::WindowLayout::Agent(_));
+
+                    this.when(is_editor || is_agent, |this| {
+                        this.child(self.agent_launcher.clone()).when(is_editor, |this| {
+                            this.child(
+                                h_flex()
+                                    .gap_1()
+                                    .ml_2()
+                                    .when_some(
+                                        self.render_agent_panel_toggle(cx),
+                                        |this, btn| this.child(btn),
+                                    )
+                                    .child(self.render_history_sidebar_toggle(cx)),
+                            )
+                        })
+                    })
+                })
                 .when(TitleBarSettings::get_global(cx).show_user_menu, |this| {
                     this.child(self.render_user_menu_button(cx))
                 })
@@ -450,6 +459,9 @@ impl TitleBar {
             _subscriptions: subscriptions,
             banner: None,
             update_version,
+            agent_launcher: cx.new(|_| {
+                AgentLauncherButton::new(workspace.weak_handle().upgrade().unwrap())
+            }),
             screen_share_popover_handle: PopoverMenuHandle::default(),
             _diagnostics_subscription: None,
         };

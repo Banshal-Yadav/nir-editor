@@ -1,7 +1,7 @@
 use crate::{ItemHandle, NewCenterTerminal, StatusItemView, Workspace};
 use futures_lite::future::yield_now;
 use gpui::{Action, Context, Entity, Window};
-use ui::prelude::*;
+use ui::{prelude::*, Tooltip};
 
 pub struct AgentLauncherButton {
     workspace: Entity<Workspace>,
@@ -19,6 +19,9 @@ impl Render for AgentLauncherButton {
         Button::new("agent-launcher", "Terminal Agent")
             .label_size(LabelSize::Small)
             .style(ButtonStyle::Subtle)
+            .color(Color::Muted)
+            .start_icon(Icon::new(IconName::Terminal).color(Color::Muted))
+            .tooltip(Tooltip::text("Launch Terminal Agent"))
             .on_click(move |_clicked, window, cx| {
                 window.dispatch_action(NewCenterTerminal::default().boxed_clone(), cx);
 
