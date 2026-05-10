@@ -419,6 +419,8 @@ pub enum TerminalBell {
     System,
     /// Do not play any sound.
     Off,
+    /// Play Zed's built-in audible bell sound.
+    Audible,
 }
 
 #[derive(
