@@ -1,6 +1,6 @@
 use crate::{
     ContextServerRegistry, CopyPathTool, CreateDirectoryTool, DbLanguageModel, DbThread,
-    DeletePathTool, DiagnosticsTool, EditFileTool, FetchTool, FindPathTool, GrepTool,
+    DeletePathTool, DiagnosticsTool, FetchTool, FindPathTool, GrepTool,
     ListDirectoryTool, MovePathTool, NowTool, OpenTool, ProjectSnapshot, ReadFileTool,
     RestoreFileFromDiskTool, SaveFileTool, SpawnAgentTool, StreamingEditFileTool,
     SystemPromptTemplate, Template, Templates, TerminalTool, ToolPermissionDecision,
@@ -820,7 +820,7 @@ impl ToolPermissionContext {
                 )
             } else if tool_name == CopyPathTool::NAME
                 || tool_name == MovePathTool::NAME
-                || tool_name == EditFileTool::NAME
+                || tool_name == StreamingEditFileTool::NAME
                 || tool_name == DeletePathTool::NAME
                 || tool_name == CreateDirectoryTool::NAME
                 || tool_name == SaveFileTool::NAME
@@ -1543,12 +1543,6 @@ impl Thread {
             self.action_log.clone(),
         ));
         self.add_tool(DiagnosticsTool::new(self.project.clone()));
-        self.add_tool(EditFileTool::new(
-            self.project.clone(),
-            cx.weak_entity(),
-            language_registry.clone(),
-            Templates::new(),
-        ));
         self.add_tool(StreamingEditFileTool::new(
             self.project.clone(),
             cx.weak_entity(),
@@ -2845,7 +2839,7 @@ impl Thread {
             .filter_map(|(tool_name, tool)| {
                 // For streaming_edit_file, check profile against "edit_file" since that's what users configure
                 let profile_tool_name = if tool_name == StreamingEditFileTool::NAME {
-                    EditFileTool::NAME
+                    "edit_file"
                 } else {
                     tool_name.as_ref()
                 };
@@ -2854,10 +2848,10 @@ impl Thread {
                     && profile.is_tool_enabled(profile_tool_name)
                 {
                     match (tool_name.as_ref(), use_streaming_edit_tool) {
-                        (StreamingEditFileTool::NAME, false) | (EditFileTool::NAME, true) => None,
+                        (StreamingEditFileTool::NAME, false) => None,
                         (StreamingEditFileTool::NAME, true) => {
                             // Expose streaming tool as "edit_file"
-                            Some((SharedString::from(EditFileTool::NAME), tool.clone()))
+                            Some((SharedString::from("edit_file"), tool.clone()))
                         }
                         _ => Some((truncate(tool_name), tool.clone())),
                     }

@@ -1,4 +1,3 @@
-use super::edit_file_tool::EditFileTool;
 use super::restore_file_from_disk_tool::RestoreFileFromDiskTool;
 use super::save_file_tool::SaveFileTool;
 use super::tool_edit_parser::{ToolEditEvent, ToolEditParser};
@@ -288,7 +287,7 @@ impl StreamingEditFileTool {
         cx: &mut App,
     ) -> Task<Result<()>> {
         super::tool_permissions::authorize_file_edit(
-            EditFileTool::NAME,
+            "edit_file",
             path,
             description,
             &self.thread,
@@ -466,7 +465,7 @@ impl AgentTool for StreamingEditFileTool {
     type Input = StreamingEditFileToolInput;
     type Output = StreamingEditFileToolOutput;
 
-    const NAME: &'static str = "streaming_edit_file";
+    const NAME: &'static str = "edit_file";
 
     fn supports_input_streaming() -> bool {
         true
