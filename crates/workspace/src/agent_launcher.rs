@@ -1,4 +1,7 @@
-use crate::{StatusItemView, Workspace};
+use crate::{
+    SplitDirection, StatusItemView, Workspace,
+    agent_launcher_page::AgentLauncherPage,
+};
 use gpui::{Context, Entity, Window};
 use ui::{prelude::*, Tooltip};
 
@@ -20,16 +23,49 @@ impl Render for AgentLauncherButton {
             .style(ButtonStyle::Subtle)
             .color(Color::Muted)
             .start_icon(Icon::new(IconName::Terminal).color(Color::Muted))
-            .tooltip(Tooltip::text("Launch Terminal Agent"))
+            .tooltip(Tooltip::text("Launch Terminal AI Agents"))
             .on_click(move |_clicked, window, cx| {
                 workspace.update(cx, |workspace, cx| {
+                    //  1. If a launcher tab already exists anywhere, just focus it 
+                    // Collect eagerly so the immutable borrow on workspace/cx from the
+                    // iterator is dropped before we call activate_item (mutable borrow).
+                    let existing = workspace
+                        .items_of_type::<AgentLauncherPage>(cx)
+                        .next();
+                    if let Some(existing) = existing {
+                        workspace.activate_item(&existing, true, true, window, cx);
+                        return;
+                    }
+
+                    // ── 2. No existing tab — decide where to open it ──
                     let item = cx.new(|cx| {
-                        crate::agent_launcher_page::AgentLauncherPage::new(workspace.weak_handle(), cx)
+                        AgentLauncherPage::new(workspace.weak_handle(), cx)
                     });
-                    if workspace.items(cx).next().is_some() {
-                        workspace.split_item(crate::SplitDirection::Right, Box::new(item), window, cx);
+
+                    // Count editor/file items in the active pane (ignore non-file items)
+                    let active_pane_has_files = workspace
+                        .active_pane()
+                        .read(cx)
+                        .items()
+                        .any(|i| i.project_path(cx).is_some());
+
+                    if active_pane_has_files {
+                        // Files are open → open launcher in a split to the right
+                        workspace.split_item(
+                            SplitDirection::Right,
+                            Box::new(item),
+                            window,
+                            cx,
+                        );
                     } else {
-                        workspace.add_item_to_active_pane(Box::new(item), None, true, window, cx);
+                        // Empty workspace or no files open → open in active pane
+                        workspace.add_item_to_active_pane(
+                            Box::new(item),
+                            None,
+                            true,
+                            window,
+                            cx,
+                        );
                     }
                 });
             })
@@ -44,4 +80,4 @@ impl StatusItemView for AgentLauncherButton {
         _cx: &mut Context<Self>,
     ) {
     }
-}
+}
