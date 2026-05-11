@@ -3266,6 +3266,7 @@ impl ThreadView {
                                     .min_h_0()
                                     .when(fills_container, |this| this.flex_1())
                                     .p_2p5()
+                                    .children(self.render_selection_chip(cx))
                                     .child(self.message_editor.clone())
                                     .when(has_messages, |this| {
                                         this.child(
@@ -3300,7 +3301,6 @@ impl ThreadView {
                                         )
                                     }),
                             )
-                            .children(self.render_selection_chip(cx))
                             .child(
                                 h_flex()
                                     .w_full()
@@ -9163,6 +9163,15 @@ impl ThreadView {
             }
             let selections = editor.selections.all::<rope::Point>(&snapshot);
             let sel = selections.iter().find(|s| !s.is_empty())?;
+
+            // Skip whitespace-only selections
+            let buffer_snap = editor.buffer().read(cx).snapshot(cx);
+            let selected_text: String =
+                buffer_snap.text_for_range(sel.start..sel.end).collect();
+            if selected_text.trim().is_empty() {
+                return None;
+            }
+
             Some((sel.start.row, sel.end.row))
         })?;
 
@@ -9174,8 +9183,8 @@ impl ThreadView {
         }
 
         let line_count = end_row.saturating_sub(start_row) + 1;
-        let label = format!(
-            "{} {}\u{2013}{} ({} {})",
+        let chip_label = format!(
+            "+ {} {}\u{2013}{} \u{00b7} {} {}",
             filename,
             start_row + 1,
             end_row + 1,
@@ -9189,33 +9198,30 @@ impl ThreadView {
         Some(
             h_flex()
                 .id("selection-chip-row")
-                .px_1p5()
-                .pt_1()
-                .gap_0p5()
+                .pb_0p5()
+                .gap_1()
                 .items_center()
                 .child(
                     div()
                         .id("selection-chip")
                         .flex()
                         .items_center()
-                        .gap_1p5()
-                        .px_2()
+                        .gap_1()
+                        .px_1p5()
                         .py_0p5()
-                        .border_1()
-                        .border_color(cx.theme().colors().border)
-                        .rounded_md()
+                        .bg(cx.theme().colors().element_background)
+                        .rounded(px(4.))
                         .cursor_pointer()
-                        .hover(|s| s.bg(cx.theme().colors().ghost_element_hover))
+                        .hover(|s| s.bg(cx.theme().colors().element_hover))
                         .child(
-                            Icon::new(IconName::Sparkle)
+                            Icon::new(IconName::File)
                                 .size(IconSize::XSmall)
-                                .color(Color::Accent),
+                                .color(Color::Muted),
                         )
                         .child(
-                            div()
-                                .text_size(px(12.))
-                                .text_color(cx.theme().colors().text_muted)
-                                .child(format!("Add selected \u{00b7} {}", label)),
+                            Label::new(chip_label)
+                                .size(LabelSize::Small)
+                                .color(Color::Muted),
                         )
                         .on_click(cx.listener(move |this, _, window, cx| {
                             this.selection_chip_dismissed = Some(add_key.clone());
