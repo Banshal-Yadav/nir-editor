@@ -895,6 +895,30 @@ impl MessageEditor {
         self.insert_context_prefix(&prefix, window, cx);
     }
 
+    /// Directly insert a file mention for the given project path,
+    /// bypassing the completion menu (single-click insertion).
+    pub fn insert_file_mention(
+        &mut self,
+        project_path: &ProjectPath,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Option<Task<()>> {
+        let workspace = self.workspace.upgrade()?;
+        let project = workspace.read(cx).project().clone();
+        let supports_images = self.session_capabilities.read().supports_images();
+        insert_mention_for_project_path(
+            project_path,
+            MentionInsertPosition::AtCursor,
+            &self.editor,
+            &self.mention_set,
+            &project,
+            &workspace,
+            supports_images,
+            window,
+            cx,
+        )
+    }
+
     fn insert_context_prefix(&mut self, prefix: &str, window: &mut Window, cx: &mut Context<Self>) {
         let editor = self.editor.clone();
         let prefix = prefix.to_string();

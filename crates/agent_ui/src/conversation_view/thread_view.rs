@@ -9261,19 +9261,10 @@ impl ThreadView {
         let item = ws.active_item(cx)?;
 
         // Only show for actual file-backed editors, not settings/launcher/etc.
-        let editor_entity = item.downcast::<Editor>()?;
+        let _ = item.downcast::<Editor>()?;
 
-        // Check file-backed + no selection using update for mutable cx access
-        let has_file = editor_entity.update(cx, |editor, cx| {
-            let buffer = editor.buffer().read(cx);
-            let singleton = buffer.as_singleton()?;
-            let file = singleton.read(cx).file()?;
-            let _ = file.path();
-            Some(())
-        });
-        if has_file.is_none() {
-            return None;
-        }
+        // Get the project path for direct mention insertion
+        let project_path = item.project_path(cx)?;
 
         let filename = item.tab_content_text(0, cx).to_string();
 
@@ -9291,7 +9282,6 @@ impl ThreadView {
 
         let chip_label = filename.clone();
         let dismiss_name = filename.clone();
-        let file_for_insert = filename.clone();
 
         Some(
             h_flex()
@@ -9328,7 +9318,7 @@ impl ThreadView {
                                 this.file_chip_dismissed = Some(dismiss_name.clone());
                                 this.message_editor.focus_handle(cx).focus(window, cx);
                                 this.message_editor.update(cx, |editor, cx| {
-                                    editor.insert_file_context(&file_for_insert, window, cx);
+                                    editor.insert_file_mention(&project_path, window, cx);
                                 });
                             })
                         }),
