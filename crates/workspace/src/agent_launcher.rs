@@ -1,6 +1,8 @@
-use crate::{ItemHandle, NewCenterTerminal, StatusItemView, Workspace};
-use futures_lite::future::yield_now;
-use gpui::{Action, Context, Entity, Window};
+use crate::{SplitDirection, StatusItemView, Workspace};
+use gpui::{Context, Entity, Window};
+use task::{
+    HideStrategy, RevealStrategy, RevealTarget, SaveStrategy, Shell, SpawnInTerminal, TaskId,
+};
 use ui::{prelude::*, Tooltip};
 
 pub struct AgentLauncherButton {
@@ -23,28 +25,34 @@ impl Render for AgentLauncherButton {
             .start_icon(Icon::new(IconName::Terminal).color(Color::Muted))
             .tooltip(Tooltip::text("Launch Terminal Agent"))
             .on_click(move |_clicked, window, cx| {
-                window.dispatch_action(NewCenterTerminal::default().boxed_clone(), cx);
+                workspace.update(cx, |workspace, cx| {
+                    if workspace.items(cx).next().is_some() {
+                        let active_pane = workspace.active_pane().clone();
+                        workspace.split_pane(active_pane, SplitDirection::Right, window, cx);
+                    }
 
-                let workspace = workspace.clone();
-                window
-                    .spawn(cx, async move |cx| {
-                        for _ in 0..100 {
-                            let terminal = workspace.update(cx, |workspace, cx| {
-                                workspace
-                                    .active_item(cx)
-                                    .and_then(|item| item.act_as_terminal(cx))
-                            });
-
-                            if let Some(terminal) = terminal {
-                                terminal.update(cx, |terminal, _| {
-                                    terminal.input(b"npx @google/gemini-cli\x0d".to_vec());
-                                });
-                                return;
-                            }
-                            yield_now().await;
-                        }
-                    })
-                    .detach();
+                    let action = SpawnInTerminal {
+                        id: TaskId("terminal-agent".into()),
+                        full_label: "Terminal Agent".into(),
+                        label: "Terminal Agent".into(),
+                        command: Some("npx @google/gemini-cli".into()),
+                        args: Vec::new(),
+                        command_label: "npx @google/gemini-cli".into(),
+                        cwd: None,
+                        env: Default::default(),
+                        use_new_terminal: true,
+                        allow_concurrent_runs: true,
+                        reveal: RevealStrategy::Always,
+                        reveal_target: RevealTarget::Center,
+                        hide: HideStrategy::Never,
+                        shell: Shell::System,
+                        show_summary: false,
+                        show_command: false,
+                        show_rerun: false,
+                        save: SaveStrategy::default(),
+                    };
+                    workspace.spawn_in_terminal(action, window, cx).detach();
+                });
             })
     }
 }
@@ -52,10 +60,9 @@ impl Render for AgentLauncherButton {
 impl StatusItemView for AgentLauncherButton {
     fn set_active_pane_item(
         &mut self,
-        _active_pane_item: Option<&dyn ItemHandle>,
+        _active_pane_item: Option<&dyn crate::ItemHandle>,
         _window: &mut Window,
         _cx: &mut Context<Self>,
     ) {
-        
     }
-}
+}
