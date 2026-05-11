@@ -26,6 +26,7 @@ mod theme_preview;
 mod toast_layer;
 mod toolbar;
 pub mod welcome;
+pub mod agent_launcher_page;
 mod workspace_settings;
 
 pub use crate::notifications::NotificationFrame;
