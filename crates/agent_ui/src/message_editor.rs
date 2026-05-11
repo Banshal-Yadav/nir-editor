@@ -883,6 +883,18 @@ impl MessageEditor {
         self.insert_context_prefix(&prefix, window, cx);
     }
 
+    /// Insert a file context mention pre-filled with the given filename,
+    /// so the completion menu auto-filters to that specific file.
+    pub fn insert_file_context(
+        &mut self,
+        filename: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let prefix = format!("@file {}", filename);
+        self.insert_context_prefix(&prefix, window, cx);
+    }
+
     fn insert_context_prefix(&mut self, prefix: &str, window: &mut Window, cx: &mut Context<Self>) {
         let editor = self.editor.clone();
         let prefix = prefix.to_string();

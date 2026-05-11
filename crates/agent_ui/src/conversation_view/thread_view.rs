@@ -331,6 +331,8 @@ pub struct ThreadView {
     pub generating_indicator_in_list: bool,
     /// Tracks the dismissed selection chip so it doesn't reappear for the same selection.
     pub selection_chip_dismissed: Option<(String, u32, u32)>,
+    /// Tracks the dismissed file chip so it doesn't reappear for the same file.
+    pub file_chip_dismissed: Option<String>,
 }
 impl Focusable for ThreadView {
     fn focus_handle(&self, cx: &App) -> FocusHandle {
@@ -556,6 +558,7 @@ impl ThreadView {
             multi_root_callout_dismissed: false,
             generating_indicator_in_list: false,
             selection_chip_dismissed: None,
+            file_chip_dismissed: None,
         };
 
         this.sync_generating_indicator(cx);
@@ -3301,6 +3304,7 @@ impl ThreadView {
                                         )
                                     }),
                             )
+                            .children(self.render_file_chip(window, cx))
                             .child(
                                 h_flex()
                                     .w_full()
@@ -9198,7 +9202,7 @@ impl ThreadView {
         Some(
             h_flex()
                 .id("selection-chip-row")
-                .pb_0p5()
+                .pb_1p5()
                 .gap_1()
                 .items_center()
                 .child(
@@ -9237,6 +9241,104 @@ impl ThreadView {
                         .icon_color(Color::Muted)
                         .on_click(cx.listener(move |this, _, _, cx| {
                             this.selection_chip_dismissed = Some(dismiss_key.clone());
+                            cx.notify();
+                        })),
+                ),
+        )
+    }
+
+    fn render_file_chip(
+        &mut self,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Option<impl IntoElement> {
+        if self.is_subagent() {
+            return None;
+        }
+
+        let workspace = self.workspace.upgrade()?;
+        let ws = workspace.read(cx);
+        let item = ws.active_item(cx)?;
+
+        // Only show for actual file-backed editors, not settings/launcher/etc.
+        let editor_entity = item.downcast::<Editor>()?;
+
+        // Check file-backed + no selection using update for mutable cx access
+        let has_file = editor_entity.update(cx, |editor, cx| {
+            let buffer = editor.buffer().read(cx);
+            let singleton = buffer.as_singleton()?;
+            let file = singleton.read(cx).file()?;
+            let _ = file.path();
+            Some(())
+        });
+        if has_file.is_none() {
+            return None;
+        }
+
+        let filename = item.tab_content_text(0, cx).to_string();
+
+        // Reset dismiss when active file changes
+        if let Some(ref dismissed) = self.file_chip_dismissed {
+            if dismissed != &filename {
+                self.file_chip_dismissed = None;
+            }
+        }
+
+        // If this file was dismissed, don't show
+        if self.file_chip_dismissed.as_ref() == Some(&filename) {
+            return None;
+        }
+
+        let chip_label = filename.clone();
+        let dismiss_name = filename.clone();
+        let file_for_insert = filename.clone();
+
+        Some(
+            h_flex()
+                .id("file-chip-row")
+                .px_1p5()
+                .pb_1p5()
+                .gap_1()
+                .items_center()
+                .child(
+                    div()
+                        .id("file-chip")
+                        .flex()
+                        .items_center()
+                        .gap_1()
+                        .px_1p5()
+                        .py_0p5()
+                        .border_1()
+                        .border_color(cx.theme().colors().border)
+                        .rounded_md()
+                        .cursor_pointer()
+                        .hover(|s| s.bg(cx.theme().colors().ghost_element_hover))
+                        .child(
+                            Icon::new(IconName::Plus)
+                                .size(IconSize::XSmall)
+                                .color(Color::Muted),
+                        )
+                        .child(
+                            Label::new(chip_label)
+                                .size(LabelSize::Small)
+                                .color(Color::Muted),
+                        )
+                        .on_click({
+                            cx.listener(move |this, _, window, cx| {
+                                this.file_chip_dismissed = Some(dismiss_name.clone());
+                                this.message_editor.focus_handle(cx).focus(window, cx);
+                                this.message_editor.update(cx, |editor, cx| {
+                                    editor.insert_file_context(&file_for_insert, window, cx);
+                                });
+                            })
+                        }),
+                )
+                .child(
+                    IconButton::new("dismiss-file-chip", IconName::Close)
+                        .icon_size(IconSize::XSmall)
+                        .icon_color(Color::Muted)
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.file_chip_dismissed = Some(filename.clone());
                             cx.notify();
                         })),
                 ),
