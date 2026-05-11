@@ -1424,6 +1424,9 @@ mod tests {
             // update_plan updates UI-visible planning state but does not use
             // tool permission rules.
             "update_plan",
+            // memory tools manage internal .void files and don't need regex permissions
+            "save_memory",
+            "recall_memory",
         ];
 
         let tool_info_ids: Vec<&str> = TOOLS.iter().map(|t| t.id).collect();

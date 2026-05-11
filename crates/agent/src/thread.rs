@@ -2,9 +2,10 @@ use crate::{
     ContextServerRegistry, CopyPathTool, CreateDirectoryTool, DbLanguageModel, DbThread,
     DeletePathTool, DiagnosticsTool, FetchTool, FindPathTool, GrepTool,
     ListDirectoryTool, MovePathTool, NowTool, OpenTool, ProjectSnapshot, ReadFileTool,
-    RestoreFileFromDiskTool, SaveFileTool, SpawnAgentTool, StreamingEditFileTool,
-    SystemPromptTemplate, Template, Templates, TerminalTool, ToolPermissionDecision,
-    UpdatePlanTool, WebSearchTool, decide_permission_from_settings,
+    RecallMemoryTool, RestoreFileFromDiskTool, SaveFileTool, SaveMemoryTool, SpawnAgentTool,
+    StreamingEditFileTool, SystemPromptTemplate, Template, Templates, TerminalTool,
+    ToolPermissionDecision, UpdatePlanTool, WebSearchTool, decide_permission_from_settings,
+    global_memory_path, project_memory_path, read_memories,
 };
 use acp_thread::{MentionUri, UserMessageId};
 use action_log::ActionLog;
@@ -1583,6 +1584,8 @@ impl Thread {
         self.add_tool(RestoreFileFromDiskTool::new(self.project.clone()));
         self.add_tool(TerminalTool::new(self.project.clone(), environment.clone()));
         self.add_tool(WebSearchTool);
+        self.add_tool(SaveMemoryTool::new(self.project.clone()));
+        self.add_tool(RecallMemoryTool::new(self.project.clone()));
 
         if self.depth() < MAX_SUBAGENT_DEPTH {
             self.add_tool(SpawnAgentTool::new(environment));
@@ -2882,8 +2885,11 @@ impl Thread {
                     tool_name.as_ref()
                 };
 
-                if tool.supports_provider(&model.provider_id())
-                    && profile.is_tool_enabled(profile_tool_name)
+                let is_enabled = profile.is_tool_enabled(profile_tool_name)
+                    || profile_tool_name == SaveMemoryTool::NAME
+                    || profile_tool_name == RecallMemoryTool::NAME;
+
+                if tool.supports_provider(&model.provider_id()) && is_enabled
                 {
                     match (tool_name.as_ref(), use_streaming_edit_tool) {
                         (StreamingEditFileTool::NAME, false) => None,
@@ -3010,6 +3016,30 @@ impl Thread {
         self.running_turn.is_none()
     }
 
+    fn get_recent_memories(&self, cx: &App) -> Vec<String> {
+        let mut memories = Vec::new();
+
+        // Project memories
+        if let Some(path) = project_memory_path(&self.project, cx) {
+            for entry in read_memories(&path) {
+                memories.push(format!("[project]: {}", entry.content));
+            }
+        }
+
+        // Global memories
+        let global_path = global_memory_path();
+        for entry in read_memories(&global_path) {
+            memories.push(format!("[global]: {}", entry.content));
+        }
+
+        // Take last 20 memories to keep the prompt size reasonable
+        if memories.len() > 20 {
+            memories.drain(0..memories.len() - 20);
+        }
+
+        memories
+    }
+
     fn build_request_messages(
         &self,
         available_tools: Vec<SharedString>,
@@ -3024,6 +3054,7 @@ impl Thread {
             project: self.project_context.read(cx),
             available_tools,
             model_name: self.model.as_ref().map(|m| m.name().0.to_string()),
+            memories: self.get_recent_memories(cx),
         }
         .render(&self.templates)
         .context("failed to build system prompt")

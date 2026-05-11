@@ -9,6 +9,7 @@ mod fetch_tool;
 mod find_path_tool;
 mod grep_tool;
 mod list_directory_tool;
+mod memory_tool;
 mod move_path_tool;
 mod now_tool;
 mod open_tool;
@@ -36,6 +37,7 @@ pub use fetch_tool::*;
 pub use find_path_tool::*;
 pub use grep_tool::*;
 pub use list_directory_tool::*;
+pub use memory_tool::*;
 pub use move_path_tool::*;
 pub use now_tool::*;
 pub use open_tool::*;
@@ -129,6 +131,8 @@ tools! {
     MovePathTool,
     NowTool,
     OpenTool,
+    RecallMemoryTool,
+    SaveMemoryTool,
     ReadFileTool,
     RestoreFileFromDiskTool,
     SaveFileTool,
