@@ -1,15 +1,21 @@
 use gpui::{
-    App, AsyncApp, Context, Entity, EventEmitter, FocusHandle, Focusable, Render, WeakEntity, Window,
-    SharedString, StatefulInteractiveElement,
+    App, AsyncApp, Context, Entity, EventEmitter, FocusHandle, Focusable, Render, WeakEntity,
+    Window, SharedString, StatefulInteractiveElement,
 };
 use ui::prelude::*;
 use ui::Tooltip;
-use crate::{Workspace, item::{Item, ItemEvent}};
+use crate::{
+    OpenOptions, Workspace,
+    agent_config::{AgentConfig, config_path, load_config},
+    item::{Item, ItemEvent},
+};
 use task::{
     HideStrategy, RevealStrategy, RevealTarget, SaveStrategy, Shell, SpawnInTerminal, TaskId,
 };
 use std::collections::HashSet;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
+
+// ─── Runtime state per agent ─────────────────────────────────────────────────
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum AgentStatus {
@@ -18,119 +24,36 @@ enum AgentStatus {
     NotInstalled,
 }
 
-struct Agent {
-    name: &'static str,
-    /// Short single-line description shown in expanded panel
-    description: &'static str,
-    /// Requirements shown as a badge/hint (runtime, platform caveats)
-    requires: &'static str,
-    binary: &'static str,
-    command: &'static str,
-    install_command: &'static str,
-    docs_url: &'static str,
+struct AgentEntry {
+    config: AgentConfig,
     status: AgentStatus,
 }
+
+// ─── Page state ──────────────────────────────────────────────────────────────
 
 pub struct AgentLauncherPage {
     workspace: WeakEntity<Workspace>,
     focus_handle: FocusHandle,
-    agents: Vec<Agent>,
+    agents: Vec<AgentEntry>,
     expanded_indices: HashSet<usize>,
     copied_indices: HashSet<usize>,
     is_refreshing: bool,
     pending_probes: usize,
+    config_error: Option<String>,
+    config_last_modified: Option<SystemTime>,
 }
 
 impl AgentLauncherPage {
     pub fn new(workspace: WeakEntity<Workspace>, cx: &mut Context<Self>) -> Self {
-        let agents = vec![
-            Agent {
-                name: "Gemini CLI",
-                description: "Google's multimodal AI agent for terminal-based chat, code generation, and project analysis. Free tier available with Google account.",
-                requires: "Node.js 18+",
-                binary: "npx",
-                command: "npx @google/gemini-cli",
-                install_command: "npx @google/gemini-cli  # no install needed",
-                docs_url: "https://github.com/google/gemini-cli",
-                status: AgentStatus::Checking,
-            },
-            Agent {
-                name: "Claude Code",
-                description: "Anthropic's agentic coding tool. Reads files, runs commands, and edits code across your entire project. Requires Anthropic API key or Pro/Team subscription.",
-                requires: "Node.js 18+ • Anthropic account",
-                binary: "claude",
-                command: "claude",
-                install_command: "npm install -g @anthropic-ai/claude-code",
-                docs_url: "https://docs.anthropic.com/en/docs/claude-code",
-                status: AgentStatus::Checking,
-            },
-            Agent {
-                name: "OpenAI Codex",
-                description: "OpenAI's lightweight terminal coding agent. Runs tasks, edits files, and handles multi-step reasoning. Requires OPENAI_API_KEY environment variable.",
-                requires: "Node.js 18+ • OPENAI_API_KEY",
-                binary: "codex",
-                command: "npx -y @openai/codex",
-                install_command: "npx -y @openai/codex  # no install needed",
-                docs_url: "https://github.com/openai/codex",
-                status: AgentStatus::Checking,
-            },
-            Agent {
-                name: "OpenCode",
-                description: "Open-source TUI agent that analyzes and evolves entire codebases. Supports OpenAI, Anthropic, Gemini, Ollama and more. Run /init to analyze your project.",
-                requires: "Node.js 18+ • Modern terminal (true color)",
-                binary: "opencode",
-                command: "opencode",
-                install_command: if cfg!(windows) { "npm install -g opencode-ai" } else { "curl -fsSL https://opencode.ai/install | bash" },
-                docs_url: "https://opencode.ai/",
-                status: AgentStatus::Checking,
-            },
-            Agent {
-                name: "Aider",
-                description: "AI pair programmer with deep Git integration. Supports 100+ LLMs. Works best with Claude Sonnet or GPT-4o. Requires an API key for your chosen provider.",
-                requires: "Python 3.8–3.13 • Git • API key",
-                binary: "aider",
-                command: "aider",
-                install_command: "python -m pip install aider-install && aider-install",
-                docs_url: "https://aider.chat/",
-                status: AgentStatus::Checking,
-            },
-            Agent {
-                name: "Open Interpreter",
-                description: "Executes code locally to complete tasks: browse the web, create files, control apps. Supports local models via Ollama. Review code before approving execution.",
-                requires: "Python 3.10–3.11 • API key or Ollama",
-                binary: "interpreter",
-                command: "interpreter",
-                install_command: "pip install open-interpreter",
-                docs_url: "https://openinterpreter.com/",
-                status: AgentStatus::Checking,
-            },
-            Agent {
-                name: "Hermes Agent",
-                description: "NousResearch's self-improving autonomous agent. Installs its own environment (Python 3.11, Node.js). Windows users should use WSL2 for best results.",
-                requires: "curl • bash • (WSL2 on Windows)",
-                binary: "hermes",
-                command: "hermes",
-                install_command: if cfg!(windows) {
-                    "irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1 | iex"
-                } else {
-                    "curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash"
-                },
-                docs_url: "https://github.com/NousResearch/hermes-agent",
-                status: AgentStatus::Checking,
-            },
-            Agent {
-                name: "Plandex",
-                description: "Multi-file AI coding agent with a client-server architecture. Excels at large, complex engineering tasks spanning many files. Windows requires WSL.",
-                requires: "Linux / macOS / WSL2 • API key",
-                binary: "plandex",
-                command: "plandex",
-                install_command: "curl -sL https://plandex.ai/install.sh | bash",
-                docs_url: "https://plandex.ai/",
-                status: AgentStatus::Checking,
-            },
-        ];
-
         let focus_handle = cx.focus_handle();
+        let loaded = load_config();
+
+        let agents = loaded
+            .agents
+            .into_iter()
+            .map(|c| AgentEntry { config: c, status: AgentStatus::Checking })
+            .collect();
+
         let mut this = Self {
             workspace,
             focus_handle,
@@ -139,41 +62,80 @@ impl AgentLauncherPage {
             copied_indices: HashSet::new(),
             is_refreshing: false,
             pending_probes: 0,
+            config_error: loaded.error,
+            config_last_modified: loaded.modified,
         };
-        
+
         this.check_all_binaries(cx);
-        
+
+        // Background: probe every 15s and watch for config changes
         cx.spawn(|this: WeakEntity<Self>, cx: &mut AsyncApp| {
             let mut cx = cx.clone();
             async move {
                 loop {
                     cx.background_executor().timer(Duration::from_secs(15)).await;
-                    let success = this.update(&mut cx, |this, cx| {
-                        this.check_all_binaries(cx);
-                    }).is_ok();
-                    if !success { break; }
+                    let ok = this
+                        .update(&mut cx, |this, cx| {
+                            this.check_config_reload(cx);
+                            this.check_all_binaries(cx);
+                        })
+                        .is_ok();
+                    if !ok {
+                        break;
+                    }
                 }
             }
-        }).detach();
+        })
+        .detach();
 
         this
     }
+
+    // ── Config hot-reload ─────────────────────────────────────────────────────
+
+    fn check_config_reload(&mut self, cx: &mut Context<Self>) {
+        let path = config_path();
+        let current_mod = std::fs::metadata(&path).ok().and_then(|m| m.modified().ok());
+        if current_mod != self.config_last_modified {
+            self.reload_config(cx);
+        }
+    }
+
+    fn reload_config(&mut self, cx: &mut Context<Self>) {
+        let loaded = load_config();
+        self.config_error = loaded.error;
+        self.config_last_modified = loaded.modified;
+        self.agents = loaded
+            .agents
+            .into_iter()
+            .map(|c| AgentEntry { config: c, status: AgentStatus::Checking })
+            .collect();
+        self.expanded_indices.clear();
+        cx.notify();
+        self.check_all_binaries(cx);
+    }
+
+    // ── Binary probing ────────────────────────────────────────────────────────
 
     fn check_all_binaries(&mut self, cx: &mut Context<Self>) {
         self.is_refreshing = true;
         self.pending_probes = self.agents.len();
         cx.notify();
 
-        for (i, agent) in self.agents.iter().enumerate() {
-            let binary = agent.binary;
+        for (i, entry) in self.agents.iter().enumerate() {
+            let binary = entry.config.probe_binary().to_string();
             cx.spawn(move |this: WeakEntity<Self>, cx: &mut AsyncApp| {
                 let mut cx = cx.clone();
                 async move {
-                    let installed = check_binary(binary).await;
+                    let installed = check_binary(&binary).await;
                     let _ = this.update(&mut cx, |this, cx: &mut Context<Self>| {
-                        let new_status = if installed { AgentStatus::Installed } else { AgentStatus::NotInstalled };
-                        this.agents[i].status = new_status;
-                        // Decrement shared counter — when zero, clear the spinner
+                        if i < this.agents.len() {
+                            this.agents[i].status = if installed {
+                                AgentStatus::Installed
+                            } else {
+                                AgentStatus::NotInstalled
+                            };
+                        }
                         this.pending_probes = this.pending_probes.saturating_sub(1);
                         if this.pending_probes == 0 {
                             this.is_refreshing = false;
@@ -186,20 +148,21 @@ impl AgentLauncherPage {
         }
     }
 
-    fn launch_agent(&mut self, agent_name: &str, window: &mut Window, cx: &mut Context<Self>) {
+    // ── Actions ───────────────────────────────────────────────────────────────
+
+    fn launch_agent(&mut self, index: usize, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(entry) = self.agents.get(index) else { return };
+        let command = entry.config.launch_cmd.clone();
+        let name = entry.config.name.clone();
+
         if let Some(workspace) = self.workspace.upgrade() {
-            let (command, name) = {
-                let agent = self.agents.iter().find(|a| a.name == agent_name).unwrap();
-                (agent.command.to_string(), agent.name.to_string())
-            };
-            
             workspace.update(cx, |workspace, cx| {
                 let action = SpawnInTerminal {
-                    id: TaskId(format!("terminal-agent-{}", name.to_lowercase().replace(' ', "-"))),
-                    full_label: format!("Launch {}", name),
+                    id: TaskId(format!("agent-{}", name.to_lowercase().replace(' ', "-"))),
+                    full_label: format!("Launch {name}"),
                     label: name.clone(),
                     command: Some(command.clone()),
-                    args: Vec::new(),
+                    args: vec![],
                     command_label: command,
                     cwd: None,
                     env: Default::default(),
@@ -216,9 +179,17 @@ impl AgentLauncherPage {
                 };
                 workspace.spawn_in_terminal(action, window, cx).detach();
             });
-            // we intentionally do NOT close the launcher tab here.
-            // Keeping it alive means clicking the status bar button again will
-            // focus this existing tab instead of failing to reopen.
+        }
+    }
+
+    fn open_config_file(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let path = config_path();
+        if let Some(workspace) = self.workspace.upgrade() {
+            workspace.update(cx, |workspace, cx| {
+                workspace
+                    .open_abs_path(path, OpenOptions::default(), window, cx)
+                    .detach();
+            });
         }
     }
 
@@ -230,12 +201,12 @@ impl AgentLauncherPage {
         }
         cx.notify();
     }
-    
+
     fn copy_install_command(&mut self, index: usize, cmd: String, cx: &mut Context<Self>) {
         cx.write_to_clipboard(gpui::ClipboardItem::new_string(cmd));
         self.copied_indices.insert(index);
         cx.notify();
-        
+
         cx.spawn(move |this: WeakEntity<Self>, cx: &mut AsyncApp| {
             let mut cx = cx.clone();
             async move {
@@ -245,7 +216,8 @@ impl AgentLauncherPage {
                     cx.notify();
                 });
             }
-        }).detach();
+        })
+        .detach();
     }
 }
 
@@ -255,11 +227,13 @@ async fn check_binary(binary: &str) -> bool {
     #[cfg(not(windows))]
     let cmd = "which";
 
-    match std::process::Command::new(cmd).arg(binary).output() {
-        Ok(output) => output.status.success(),
-        Err(_) => false,
-    }
+    matches!(
+        std::process::Command::new(cmd).arg(binary).output(),
+        Ok(o) if o.status.success()
+    )
 }
+
+// ─── GPUI traits ─────────────────────────────────────────────────────────────
 
 impl EventEmitter<ItemEvent> for AgentLauncherPage {}
 
@@ -272,11 +246,15 @@ impl Focusable for AgentLauncherPage {
 impl Render for AgentLauncherPage {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let border_color = cx.theme().colors().border;
-        let accent_color = cx.theme().colors().text_accent;
-        let surface_color = cx.theme().colors().elevated_surface_background;
-        let success_color = cx.theme().status().success;
-        let warning_color = cx.theme().status().warning;
+        let accent = cx.theme().colors().text_accent;
+        let surface = cx.theme().colors().elevated_surface_background;
+        let success = cx.theme().status().success;
         let is_refreshing = self.is_refreshing;
+        let has_error = self.config_error.is_some();
+        let error_msg = self.config_error.clone().unwrap_or_default();
+        let installed_count =
+            self.agents.iter().filter(|a| a.status == AgentStatus::Installed).count();
+        let total = self.agents.len();
 
         div()
             .id("agent-launcher-root")
@@ -284,7 +262,7 @@ impl Render for AgentLauncherPage {
             .flex()
             .flex_col()
             .bg(cx.theme().colors().editor_background)
-            // ─── Header ───────────────────────────────────────────────
+            // ── Header ───────────────────────────────────────────────
             .child(
                 h_flex()
                     .w_full()
@@ -307,7 +285,7 @@ impl Render for AgentLauncherPage {
                                         div()
                                             .text_size(px(22.))
                                             .font_weight(gpui::FontWeight::EXTRA_BOLD)
-                                            .text_color(accent_color)
+                                            .text_color(accent)
                                             .child("[/]"),
                                     )
                                     .child(
@@ -323,7 +301,7 @@ impl Render for AgentLauncherPage {
                                                     .size(LabelSize::XSmall)
                                                     .color(Color::Muted),
                                             ),
-                                    )
+                                    ),
                             )
                             .child(
                                 h_flex()
@@ -333,255 +311,367 @@ impl Render for AgentLauncherPage {
                                         this.child(
                                             Label::new("probing...")
                                                 .size(LabelSize::XSmall)
-                                                .color(Color::Muted)
+                                                .color(Color::Muted),
                                         )
                                     })
                                     .child(
                                         IconButton::new("refresh", IconName::RotateCw)
                                             .icon_size(IconSize::Small)
-                                            .icon_color(if is_refreshing { Color::Accent } else { Color::Muted })
+                                            .icon_color(if is_refreshing {
+                                                Color::Accent
+                                            } else {
+                                                Color::Muted
+                                            })
                                             .on_click(cx.listener(|this, _, _, cx| {
                                                 this.check_all_binaries(cx);
                                             }))
-                                            .tooltip(|window, cx| Tooltip::text("Re-probe all binaries")(window, cx))
-                                    )
-                            )
-                    )
+                                            .tooltip(|window, cx| {
+                                                Tooltip::text("Re-probe all binaries")(window, cx)
+                                            }),
+                                    ),
+                            ),
+                    ),
             )
-            // ─── Scrollable Agent List ────────────────────────────────
+            // ── Config error banner ───────────────────────────────────
+            .when(has_error, |this| {
+                this.child(
+                    h_flex()
+                        .w_full()
+                        .px_5()
+                        .py_2()
+                        .bg(cx.theme().status().error_background)
+                        .gap_2()
+                        .child(Icon::new(IconName::Warning).size(IconSize::XSmall).color(Color::Error))
+                        .child(
+                            div()
+                                .text_size(px(12.))
+                                .text_color(cx.theme().status().error)
+                                .child(error_msg),
+                        ),
+                )
+            })
+            // ── Scrollable agent list ─────────────────────────────────
             .child(
                 div()
                     .id("launcher-scroll-container")
                     .flex_1()
                     .overflow_y_scroll()
                     .child(
-                        h_flex()
-                            .justify_center()
-                            .child(
-                                v_flex()
-                                    .w_full()
-                                    .max_w(rems(48.))
-                                    .p_5()
-                                    .gap_2()
-                                    .children(self.agents.iter().enumerate().map(|(i, agent)| {
-                                        let agent_name = agent.name;
-                                        let is_installed = agent.status == AgentStatus::Installed;
-                                        let is_checking = agent.status == AgentStatus::Checking;
-                                        let is_not_installed = agent.status == AgentStatus::NotInstalled;
-                                        let is_expanded = self.expanded_indices.contains(&i);
-                                        let is_copied = self.copied_indices.contains(&i);
-                                        
-                                        v_flex()
-                                            .w_full()
-                                            .bg(surface_color.opacity(0.2))
-                                            .border_1()
-                                            .border_color(if is_expanded {
-                                                accent_color.opacity(0.4)
-                                            } else {
-                                                border_color.opacity(0.4)
-                                            })
-                                            .rounded_md()
-                                            // ── Collapsed Header Row ──────────────────
-                                            .child(
-                                                div()
-                                                    .id(("agent-row", i))
-                                                    .flex()
-                                                    .w_full()
-                                                    .justify_between()
-                                                    .items_center()
-                                                    .px_3()
-                                                    .py_2()
-                                                    .cursor_pointer()
-                                                    .hover(|style| style.bg(cx.theme().colors().element_hover))
-                                                    .on_click(cx.listener(move |this, _, _, cx| this.toggle_expanded(i, cx)))
-                                                    .child(
-                                                        // Left: chevron + name + status dot
-                                                        h_flex()
-                                                            .gap_2()
-                                                            .items_center()
-                                                            .child(
-                                                                Icon::new(if is_expanded { IconName::ChevronDown } else { IconName::ChevronRight })
-                                                                    .size(IconSize::XSmall)
-                                                                    .color(if is_expanded { Color::Accent } else { Color::Muted })
-                                                            )
-                                                            .child(
-                                                                Label::new(agent_name)
-                                                                    .weight(gpui::FontWeight::SEMIBOLD)
-                                                                    .size(LabelSize::Small)
-                                                            )
-                                                            // Status indicator dot
-                                                            .child(
-                                                                div()
-                                                                    .w(px(6.))
-                                                                    .h(px(6.))
-                                                                    .rounded_full()
-                                                                    .bg(if is_installed {
-                                                                        success_color
-                                                                    } else if is_checking {
-                                                                        cx.theme().colors().text_muted.opacity(0.4)
-                                                                    } else {
-                                                                        warning_color.opacity(0.7)
-                                                                    })
-                                                            )
-                                                    )
-                                                    .child(
-                                                        // Right: state label + launch button
-                                                        h_flex()
-                                                            .gap_2()
-                                                            .items_center()
-                                                            .when(is_not_installed, |this| {
-                                                                this.child(
-                                                                    Label::new("not installed")
-                                                                        .size(LabelSize::XSmall)
-                                                                        .color(Color::Accent)
-                                                                )
+                        h_flex().justify_center().child(
+                            v_flex()
+                                .w_full()
+                                .max_w(rems(48.))
+                                .p_5()
+                                .gap_2()
+                                .children(self.agents.iter().enumerate().map(|(i, entry)| {
+                                    let is_installed = entry.status == AgentStatus::Installed;
+                                    let is_not_installed =
+                                        entry.status == AgentStatus::NotInstalled;
+                                    let is_expanded = self.expanded_indices.contains(&i);
+                                    let is_copied = self.copied_indices.contains(&i);
+                                    let name = entry.config.name.clone();
+                                    let description = entry.config.description.clone();
+                                    let requires = entry.config.requires.clone();
+                                    let install_cmd = entry.config.install_cmd.clone();
+                                    let docs_url = entry.config.docs_url.clone();
+
+                                    v_flex()
+                                        .w_full()
+                                        .bg(surface.opacity(0.2))
+                                        .border_1()
+                                        .border_color(if is_expanded {
+                                            accent.opacity(0.4)
+                                        } else {
+                                            border_color.opacity(0.4)
+                                        })
+                                        .rounded_md()
+                                        // Collapsed row
+                                        .child(
+                                            div()
+                                                .id(("agent-row", i))
+                                                .flex()
+                                                .w_full()
+                                                .justify_between()
+                                                .items_center()
+                                                .px_3()
+                                                .py_2()
+                                                .cursor_pointer()
+                                                .hover(|s| {
+                                                    s.bg(cx.theme().colors().element_hover)
+                                                })
+                                                .on_click(cx.listener(
+                                                    move |this, _, _, cx| {
+                                                        this.toggle_expanded(i, cx);
+                                                    },
+                                                ))
+                                                .child(
+                                                    h_flex()
+                                                        .gap_2()
+                                                        .items_center()
+                                                        .child(
+                                                            Icon::new(if is_expanded {
+                                                                IconName::ChevronDown
+                                                            } else {
+                                                                IconName::ChevronRight
                                                             })
-                                                            .when(is_installed, |this| {
-                                                                this.child(
-                                                                    Button::new(format!("launch-{}", agent_name), "LAUNCH")
-                                                                        .style(ButtonStyle::Filled)
-                                                                        .size(ButtonSize::Compact)
-                                                                        .on_click(cx.listener({
-                                                                            let agent_name = agent.name;
-                                                                            move |this, _, window, cx| {
-                                                                                this.launch_agent(agent_name, window, cx);
-                                                                            }
-                                                                        }))
-                                                                )
-                                                            })
-                                                    )
-                                            )
-                                            // ── Expanded Detail Panel ─────────────────
-                                            .when(is_expanded, |this| {
-                                                this.child(
-                                                    v_flex()
-                                                        .px_4()
-                                                        .py_3()
-                                                        .bg(cx.theme().colors().editor_background.opacity(0.5))
-                                                        .border_t_1()
-                                                        .border_color(border_color.opacity(0.25))
-                                                        .gap_3()
-                                                        // Description
+                                                            .size(IconSize::XSmall)
+                                                            .color(if is_expanded {
+                                                                Color::Accent
+                                                            } else {
+                                                                Color::Muted
+                                                            }),
+                                                        )
+                                                        .child(
+                                                            Label::new(name.clone())
+                                                                .weight(gpui::FontWeight::SEMIBOLD)
+                                                                .size(LabelSize::Small),
+                                                        )
                                                         .child(
                                                             div()
-                                                                .text_size(px(13.))
-                                                                .text_color(cx.theme().colors().text)
-                                                                .child(agent.description)
-                                                        )
-                                                        // Requirements badge row
-                                                        .child(
+                                                                .w(px(6.))
+                                                                .h(px(6.))
+                                                                .rounded_full()
+                                                                .bg(if is_installed {
+                                                                    success
+                                                                } else if is_not_installed {
+                                                                    accent.opacity(0.6)
+                                                                } else {
+                                                                    cx.theme()
+                                                                        .colors()
+                                                                        .text_muted
+                                                                        .opacity(0.3)
+                                                                }),
+                                                        ),
+                                                )
+                                                .child(
+                                                    h_flex()
+                                                        .gap_2()
+                                                        .items_center()
+                                                        .when(is_not_installed, |this| {
+                                                            this.child(
+                                                                Label::new("not installed")
+                                                                    .size(LabelSize::XSmall)
+                                                                    .color(Color::Accent),
+                                                            )
+                                                        })
+                                                        .when(is_installed, |this| {
+                                                            this.child(
+                                                                Button::new(
+                                                                    format!("launch-{i}"),
+                                                                    "LAUNCH",
+                                                                )
+                                                                .style(ButtonStyle::Filled)
+                                                                .size(ButtonSize::Compact)
+                                                                .on_click(cx.listener(
+                                                                    move |this, _, window, cx| {
+                                                                        this.launch_agent(
+                                                                            i, window, cx,
+                                                                        );
+                                                                    },
+                                                                )),
+                                                            )
+                                                        }),
+                                                ),
+                                        )
+                                        // Expanded panel
+                                        .when(is_expanded, |this| {
+                                            this.child(
+                                                v_flex()
+                                                    .px_4()
+                                                    .py_3()
+                                                    .bg(cx
+                                                        .theme()
+                                                        .colors()
+                                                        .editor_background
+                                                        .opacity(0.5))
+                                                    .border_t_1()
+                                                    .border_color(border_color.opacity(0.25))
+                                                    .gap_3()
+                                                    // Description
+                                                    .child(
+                                                        div()
+                                                            .text_size(px(13.))
+                                                            .text_color(
+                                                                cx.theme().colors().text,
+                                                            )
+                                                            .child(description),
+                                                    )
+                                                    // Requirements badge
+                                                    .when(!requires.is_empty(), |this| {
+                                                        this.child(
                                                             h_flex()
                                                                 .gap_2()
                                                                 .items_center()
                                                                 .child(
                                                                     Icon::new(IconName::Info)
                                                                         .size(IconSize::XSmall)
-                                                                        .color(Color::Muted)
+                                                                        .color(Color::Muted),
                                                                 )
                                                                 .child(
                                                                     div()
                                                                         .text_size(px(11.))
-                                                                        .font_family(SharedString::from("JetBrains Mono"))
-                                                                        .text_color(cx.theme().colors().text_muted)
-                                                                        .child(agent.requires)
-                                                                )
+                                                                        .font_family(
+                                                                            SharedString::from(
+                                                                                "JetBrains Mono",
+                                                                            ),
+                                                                        )
+                                                                        .text_color(
+                                                                            cx.theme()
+                                                                                .colors()
+                                                                                .text_muted,
+                                                                        )
+                                                                        .child(requires),
+                                                                ),
                                                         )
-                                                        // Install command box
-                                                        .child(
+                                                    })
+                                                    // Install command box
+                                                    .when(!install_cmd.is_empty(), |this| {
+                                                        this.child(
                                                             h_flex()
                                                                 .items_center()
-                                                                .bg(cx.theme().colors().editor_background)
+                                                                .bg(cx
+                                                                    .theme()
+                                                                    .colors()
+                                                                    .editor_background)
                                                                 .px_3()
                                                                 .py_2()
                                                                 .rounded_md()
                                                                 .border_1()
-                                                                .border_color(accent_color.opacity(0.15))
+                                                                .border_color(
+                                                                    accent.opacity(0.15),
+                                                                )
                                                                 .justify_between()
                                                                 .child(
                                                                     div()
-                                                                        .id(("command-box", i))
+                                                                        .id(("cmd-box", i))
                                                                         .flex_1()
                                                                         .overflow_x_scroll()
                                                                         .child(
                                                                             div()
                                                                                 .text_size(px(12.))
-                                                                                .font_family(SharedString::from("JetBrains Mono"))
-                                                                                .text_color(accent_color)
+                                                                                .font_family(
+                                                                                    SharedString::from("JetBrains Mono"),
+                                                                                )
+                                                                                .text_color(accent)
                                                                                 .whitespace_nowrap()
-                                                                                .child(agent.install_command)
-                                                                        )
+                                                                                .child(
+                                                                                    install_cmd
+                                                                                        .clone(),
+                                                                                ),
+                                                                        ),
                                                                 )
                                                                 .child(
-                                                                    IconButton::new(format!("copy-{}", i), if is_copied { IconName::Check } else { IconName::Copy })
-                                                                        .icon_size(IconSize::XSmall)
-                                                                        .icon_color(if is_copied { Color::Success } else { Color::Muted })
-                                                                        .on_click(cx.listener({
-                                                                            let cmd = agent.install_command.to_string();
-                                                                            move |this, _, _, cx| {
-                                                                                this.copy_install_command(i, cmd.clone(), cx);
-                                                                            }
-                                                                        }))
-                                                                        .tooltip(move |window, cx| {
-                                                                            Tooltip::text(if is_copied { "Copied!" } else { "Copy command" })(window, cx)
-                                                                        })
-                                                                )
-                                                        )
-                                                        // Footer row: "not installed" tip + docs link
-                                                        .child(
-                                                            h_flex()
-                                                                .justify_between()
-                                                                .items_center()
-                                                                .when(is_not_installed, |this| {
-                                                                    this.child(
-                                                                        Label::new("↑ Copy & run in your terminal to install")
-                                                                            .size(LabelSize::XSmall)
-                                                                            .color(Color::Accent)
+                                                                    IconButton::new(
+                                                                        format!("copy-{i}"),
+                                                                        if is_copied {
+                                                                            IconName::Check
+                                                                        } else {
+                                                                            IconName::Copy
+                                                                        },
                                                                     )
-                                                                })
-                                                                .when(!is_not_installed, |this| this.child(div()))
-                                                                .child(
-                                                                    Button::new(format!("docs-{}", agent_name), "Docs →")
-                                                                        .size(ButtonSize::Compact)
-                                                                        .style(ButtonStyle::Subtle)
-                                                                        .on_click({
-                                                                            let url = agent.docs_url;
-                                                                            move |_, _, cx| cx.open_url(url)
-                                                                        })
-                                                                )
+                                                                    .icon_size(IconSize::XSmall)
+                                                                    .icon_color(if is_copied {
+                                                                        Color::Success
+                                                                    } else {
+                                                                        Color::Muted
+                                                                    })
+                                                                    .on_click(cx.listener({
+                                                                        let cmd =
+                                                                            install_cmd.clone();
+                                                                        move |this, _, _, cx| {
+                                                                            this.copy_install_command(
+                                                                                i,
+                                                                                cmd.clone(),
+                                                                                cx,
+                                                                            );
+                                                                        }
+                                                                    }))
+                                                                    .tooltip(move |window, cx| {
+                                                                        Tooltip::text(
+                                                                            if is_copied {
+                                                                                "Copied!"
+                                                                            } else {
+                                                                                "Copy command"
+                                                                            },
+                                                                        )(window, cx)
+                                                                    }),
+                                                                ),
                                                         )
-                                                )
-                                            })
-                                    }))
-                            )
-                    )
+                                                    })
+                                                    // Footer: hint + docs
+                                                    .child(
+                                                        h_flex()
+                                                            .justify_between()
+                                                            .items_center()
+                                                            .when(is_not_installed, |this| {
+                                                                this.child(
+                                                                    Label::new(
+                                                                        "↑ Copy & run in terminal to install",
+                                                                    )
+                                                                    .size(LabelSize::XSmall)
+                                                                    .color(Color::Accent),
+                                                                )
+                                                            })
+                                                            .when(!is_not_installed, |this| {
+                                                                this.child(div())
+                                                            })
+                                                            .when(!docs_url.is_empty(), |this| {
+                                                                this.child(
+                                                                    Button::new(
+                                                                        format!("docs-{i}"),
+                                                                        "Docs →",
+                                                                    )
+                                                                    .size(ButtonSize::Compact)
+                                                                    .style(ButtonStyle::Subtle)
+                                                                    .on_click({
+                                                                        let url = docs_url.clone();
+                                                                        move |_, _, cx| {
+                                                                            cx.open_url(&url);
+                                                                        }
+                                                                    }),
+                                                                )
+                                                            }),
+                                                    ),
+                                            )
+                                        })
+                                })),
+                        ),
+                    ),
             )
-            // ─── Footer ───────────────────────────────────────────────
+            // ── Footer ────────────────────────────────────────────────
             .child(
                 h_flex()
                     .w_full()
                     .px_5()
                     .py_2()
                     .justify_between()
+                    .items_center()
                     .border_t_1()
                     .border_color(border_color.opacity(0.2))
                     .child(
-                        Label::new("VOID AI Terminal Hub")
-                            .size(LabelSize::XSmall)
-                            .color(Color::Muted)
+                        Button::new("edit-config", "terminal-agents.json")
+                            .size(ButtonSize::Compact)
+                            .style(ButtonStyle::Subtle)
+                            .start_icon(Icon::new(IconName::Settings).size(IconSize::XSmall))
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                this.open_config_file(window, cx);
+                            }))
+                            .tooltip(|window, cx| {
+                                Tooltip::text("Open config in editor — save to hot-reload")(
+                                    window, cx,
+                                )
+                            }),
                     )
                     .child(
-                        // Installed count summary
-                        {
-                            let installed_count = self.agents.iter().filter(|a| a.status == AgentStatus::Installed).count();
-                            let total = self.agents.len();
-                            Label::new(format!("{}/{} installed", installed_count, total))
-                                .size(LabelSize::XSmall)
-                                .color(Color::Muted)
-                        }
-                    )
+                        Label::new(format!("{installed_count}/{total} installed"))
+                            .size(LabelSize::XSmall)
+                            .color(Color::Muted),
+                    ),
             )
     }
 }
+
+// ─── Item impl ────────────────────────────────────────────────────────────────
 
 impl Item for AgentLauncherPage {
     type Event = ItemEvent;
@@ -604,7 +694,9 @@ impl Item for AgentLauncherPage {
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) -> gpui::Task<Option<Entity<Self>>> {
-        gpui::Task::ready(Some(cx.new(|cx| AgentLauncherPage::new(self.workspace.clone(), cx))))
+        gpui::Task::ready(Some(
+            cx.new(|cx| AgentLauncherPage::new(self.workspace.clone(), cx)),
+        ))
     }
 
     fn to_item_events(event: &Self::Event, f: &mut dyn FnMut(ItemEvent)) {
