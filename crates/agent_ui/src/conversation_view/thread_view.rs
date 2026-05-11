@@ -329,6 +329,8 @@ pub struct ThreadView {
     pub show_codex_windows_warning: bool,
     pub multi_root_callout_dismissed: bool,
     pub generating_indicator_in_list: bool,
+    /// Tracks the dismissed selection chip so it doesn't reappear for the same selection.
+    pub selection_chip_dismissed: Option<(String, u32, u32)>,
 }
 impl Focusable for ThreadView {
     fn focus_handle(&self, cx: &App) -> FocusHandle {
@@ -553,6 +555,7 @@ impl ThreadView {
             show_codex_windows_warning,
             multi_root_callout_dismissed: false,
             generating_indicator_in_list: false,
+            selection_chip_dismissed: None,
         };
 
         this.sync_generating_indicator(cx);
@@ -3297,6 +3300,7 @@ impl ThreadView {
                                         )
                                     }),
                             )
+                            .children(self.render_selection_chip(cx))
                             .child(
                                 h_flex()
                                     .w_full()
@@ -9137,6 +9141,100 @@ impl ThreadView {
                     editor.focus_handle(cx).focus(window, cx);
                 });
             }))
+    }
+
+    fn render_selection_chip(
+        &mut self,
+        cx: &mut Context<Self>,
+    ) -> Option<impl IntoElement> {
+        if self.is_subagent() {
+            return None;
+        }
+
+        let workspace = self.workspace.upgrade()?;
+        let item = workspace.read(cx).active_item(cx)?;
+        let editor_entity = item.downcast::<Editor>()?;
+        let filename = item.tab_content_text(0, cx).to_string();
+
+        let (start_row, end_row) = editor_entity.update(cx, |editor, cx| {
+            let snapshot = editor.display_snapshot(cx);
+            if !editor.has_non_empty_selection(&snapshot) {
+                return None;
+            }
+            let selections = editor.selections.all::<rope::Point>(&snapshot);
+            let sel = selections.iter().find(|s| !s.is_empty())?;
+            Some((sel.start.row, sel.end.row))
+        })?;
+
+        let key = (filename.clone(), start_row, end_row);
+
+        // If this exact selection was dismissed, don't show
+        if self.selection_chip_dismissed.as_ref() == Some(&key) {
+            return None;
+        }
+
+        let line_count = end_row.saturating_sub(start_row) + 1;
+        let label = format!(
+            "{} {}\u{2013}{} ({} {})",
+            filename,
+            start_row + 1,
+            end_row + 1,
+            line_count,
+            if line_count == 1 { "line" } else { "lines" }
+        );
+
+        let dismiss_key = key.clone();
+        let add_key = key;
+
+        Some(
+            h_flex()
+                .id("selection-chip-row")
+                .px_1p5()
+                .pt_1()
+                .gap_0p5()
+                .items_center()
+                .child(
+                    div()
+                        .id("selection-chip")
+                        .flex()
+                        .items_center()
+                        .gap_1p5()
+                        .px_2()
+                        .py_0p5()
+                        .border_1()
+                        .border_color(cx.theme().colors().border)
+                        .rounded_md()
+                        .cursor_pointer()
+                        .hover(|s| s.bg(cx.theme().colors().ghost_element_hover))
+                        .child(
+                            Icon::new(IconName::Sparkle)
+                                .size(IconSize::XSmall)
+                                .color(Color::Accent),
+                        )
+                        .child(
+                            div()
+                                .text_size(px(12.))
+                                .text_color(cx.theme().colors().text_muted)
+                                .child(format!("Add selected \u{00b7} {}", label)),
+                        )
+                        .on_click(cx.listener(move |this, _, window, cx| {
+                            this.selection_chip_dismissed = Some(add_key.clone());
+                            window.dispatch_action(
+                                zed_actions::agent::AddSelectionToThread.boxed_clone(),
+                                cx,
+                            );
+                        })),
+                )
+                .child(
+                    IconButton::new("dismiss-selection-chip", IconName::Close)
+                        .icon_size(IconSize::XSmall)
+                        .icon_color(Color::Muted)
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.selection_chip_dismissed = Some(dismiss_key.clone());
+                            cx.notify();
+                        })),
+                ),
+        )
     }
 }
 

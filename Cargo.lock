@@ -22127,6 +22127,7 @@ dependencies = [
  "task",
  "telemetry",
  "tempfile",
+ "terminal",
  "theme",
  "theme_settings",
  "ui",

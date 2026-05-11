@@ -335,18 +335,34 @@ impl Render for AgentLauncherPage {
             // ── Config error banner ───────────────────────────────────
             .when(has_error, |this| {
                 this.child(
-                    h_flex()
+                    v_flex()
                         .w_full()
                         .px_5()
                         .py_2()
-                        .bg(cx.theme().status().error_background)
-                        .gap_2()
-                        .child(Icon::new(IconName::Warning).size(IconSize::XSmall).color(Color::Error))
+                        .bg(cx.theme().colors().editor_background)
+                        .border_b_1()
+                        .border_color(border_color.opacity(0.3))
+                        .gap_1()
                         .child(
-                            div()
-                                .text_size(px(12.))
-                                .text_color(cx.theme().status().error)
-                                .child(error_msg),
+                            h_flex()
+                                .gap_2()
+                                .items_center()
+                                .child(
+                                    Icon::new(IconName::Warning)
+                                        .size(IconSize::XSmall)
+                                        .color(Color::Muted),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(px(12.))
+                                        .text_color(cx.theme().colors().text_muted)
+                                        .child(error_msg),
+                                ),
+                        )
+                        .child(
+                            Label::new("Fix the error and save, then reopen the launcher to reload.")
+                                .size(LabelSize::XSmall)
+                                .color(Color::Muted),
                         ),
                 )
             })
