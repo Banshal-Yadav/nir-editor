@@ -1,7 +1,6 @@
 use gpui::{
-    Animation, AnimationExt, App, AsyncApp, Context, Entity, EventEmitter, FocusHandle, Focusable,
-    Render, Subscription, WeakEntity, Window, SharedString, StatefulInteractiveElement,
-    pulsating_between,
+    App, AsyncApp, Context, Entity, EventEmitter, FocusHandle, Focusable,
+    Render, Subscription, WeakEntity, Window, SharedString, StatefulInteractiveElement, InteractiveElement,
 };
 use terminal::{
     Terminal,
@@ -53,6 +52,8 @@ struct RunningAgent {
     is_expanded: bool,
     /// When this entry was last updated.
     last_update: Instant,
+    /// When the output buffer last changed. Used to distinguish an actively streaming/responding agent from an idle/waiting session.
+    last_output_change: Instant,
 }
 
 // ─── Page state ──────────────────────────────────────────────────────────────
@@ -263,69 +264,65 @@ impl AgentLauncherPage {
         }
         self.last_agent_scan = now;
 
-        // Prune entries whose terminals have been dropped.
-        self.running_agents.retain(|agent| {
-            agent
-                .terminal
-                .upgrade()
-                .map(|t| t.read_with(cx, |t, _| t.task().is_some()))
-                .unwrap_or(false)
-        });
-
         let Some(workspace) = self.workspace.upgrade() else { return };
         let panes = workspace.read(cx).panes().to_vec();
 
-        // Collect all agent terminals from all panes.
-        // Skip our own AgentLauncherPage item to avoid read-during-update panic.
+        // Collect all active agent names and their latest terminal entities from all panes.
         let self_id = cx.entity().entity_id();
+        let mut active_scanned: Vec<(SharedString, Entity<Terminal>)> = Vec::new();
+
         for pane in &panes {
             let items: Vec<_> = pane.read(cx).items().cloned().collect();
-
             for item in items {
-                // Skip items that are our own tab (same entity).
                 if item.item_id() == self_id {
                     continue;
                 }
                 let Some(terminal) = item.act_as_terminal(cx) else { continue };
-
-                let is_agent = terminal
-                    .read_with(cx, |t, _| {
-                        t.task()
-                            .map(|task| task.spawned_task.id.0.starts_with("agent-"))
-                            .unwrap_or(false)
-                    });
-                if !is_agent {
-                    continue;
-                }
-
-                // Get agent name from task info.
-                let name: SharedString = terminal
-                    .read_with(cx, |t, _| {
-                        t.task()
-                            .map(|task| {
-                                if !task.spawned_task.full_label.is_empty() {
-                                    task.spawned_task
-                                        .full_label
-                                        .trim_start_matches("Launch ")
-                                        .to_string()
-                                } else {
-                                    task.spawned_task
-                                        .id
-                                        .0
-                                        .trim_start_matches("agent-")
-                                        .to_string()
-                                }
-                            })
-                            .unwrap_or_default()
+                let task_info = terminal.read_with(cx, |t, _| {
+                    t.task().map(|task| {
+                        let is_agent = task.spawned_task.id.0.starts_with("agent-");
+                        let name: SharedString = if !task.spawned_task.full_label.is_empty() {
+                            task.spawned_task.full_label.trim_start_matches("Launch ").to_string().into()
+                        } else {
+                            task.spawned_task.id.0.trim_start_matches("agent-").to_string().into()
+                        };
+                        (is_agent, name)
                     })
-                    .into();
-
-                // Already tracked?
-                if self.running_agents.iter().any(|a| a.name == name) {
-                    continue;
+                });
+                if let Some((true, name)) = task_info {
+                    // Only keep the first one found if duplicate views exist for the same agent task
+                    if !active_scanned.iter().any(|(n, _)| n == &name) {
+                        active_scanned.push((name, terminal));
+                    }
                 }
+            }
+        }
 
-                // Subscribe to Wakeup events.
+        // Now update self.running_agents to match active_scanned while strictly preserving insertion order and expansion states!
+        // First, retain only those running_agents whose names are present in active_scanned.
+        self.running_agents.retain(|agent| active_scanned.iter().any(|(n, _)| n == &agent.name));
+
+        // For each scanned active agent, either update its dead terminal handle in-place or append a fresh entry.
+        for (name, terminal) in active_scanned {
+            if let Some(existing) = self.running_agents.iter_mut().find(|a| a.name == name) {
+                // If the terminal view entity changed (e.g. moved to side tab), update handle and resubscribe!
+                if existing.terminal.upgrade().map_or(true, |t| t != terminal) {
+                    existing.terminal = terminal.downgrade();
+                    let weak_term = terminal.downgrade();
+                    let sub = cx.subscribe(
+                        &terminal,
+                        move |this, _term, event, cx| {
+                            if let terminal::Event::Wakeup = event {
+                                if let Some(terminal) = weak_term.upgrade() {
+                                    this.on_agent_output(&terminal, cx);
+                                }
+                            }
+                        },
+                    );
+                    self._terminal_subscriptions.push(sub);
+                }
+            } else {
+                // Brand new agent opened! Append to the end to strictly preserve chronological insertion order.
                 let weak_term = terminal.downgrade();
                 let sub = cx.subscribe(
                     &terminal,
@@ -339,15 +336,15 @@ impl AgentLauncherPage {
                 );
                 self._terminal_subscriptions.push(sub);
 
-                let agent_name = name.clone();
                 self.running_agents.push(RunningAgent {
-                    name: agent_name,
+                    name,
                     terminal: terminal.downgrade(),
                     output_lines: Vec::new(),
                     filtered_line: None,
                     is_active: true,
-                    is_expanded: true,
+                    is_expanded: false,
                     last_update: Instant::now(),
+                    last_output_change: Instant::now(),
                 });
                 cx.notify();
             }
@@ -361,7 +358,7 @@ impl AgentLauncherPage {
         terminal: &Entity<Terminal>,
         cx: &mut Context<Self>,
     ) {
-        let (name, filtered, raw_lines, is_active) = terminal.read_with(cx, |t, _| {
+        let (name, filtered, raw_lines, task_running) = terminal.read_with(cx, |t, _| {
             let name = t
                 .task()
                 .map(|task| {
@@ -381,9 +378,9 @@ impl AgentLauncherPage {
                 .unwrap_or_default();
             let filtered = extract_meaningful_output(t);
             let raw_lines = extract_raw_output(t, 8);
-            let is_active =
+            let task_running =
                 t.task().is_some_and(|task| task.status == terminal::TaskStatus::Running);
-            (name, filtered, raw_lines, is_active)
+            (name, filtered, raw_lines, task_running)
         });
 
         if let Some(agent) = self
@@ -391,9 +388,12 @@ impl AgentLauncherPage {
             .iter_mut()
             .find(|a| a.name == name)
         {
+            if agent.output_lines != raw_lines {
+                agent.last_output_change = Instant::now();
+            }
             agent.output_lines = raw_lines;
             agent.filtered_line = filtered;
-            agent.is_active = is_active;
+            agent.is_active = task_running && agent.last_output_change.elapsed() < Duration::from_secs(2);
             agent.last_update = Instant::now();
         }
         cx.notify();
@@ -404,19 +404,24 @@ impl AgentLauncherPage {
         let mut changed = false;
         for agent in &mut self.running_agents {
             if let Some(term) = agent.terminal.upgrade() {
-                let (filtered, raw_lines, is_active) = term.read_with(cx, |t, _| {
+                let (filtered, raw_lines, task_running) = term.read_with(cx, |t, _| {
                     let filtered = extract_meaningful_output(t);
                     let raw_lines = extract_raw_output(t, 8);
-                    let is_active = t.task().is_some_and(|task| task.status == terminal::TaskStatus::Running);
-                    (filtered, raw_lines, is_active)
+                    let task_running = t.task().is_some_and(|task| task.status == terminal::TaskStatus::Running);
+                    (filtered, raw_lines, task_running)
                 });
-                if agent.output_lines != raw_lines || agent.is_active != is_active {
+                if agent.output_lines != raw_lines {
+                    agent.last_output_change = Instant::now();
                     agent.output_lines = raw_lines;
                     agent.filtered_line = filtered;
-                    agent.is_active = is_active;
-                    agent.last_update = Instant::now();
                     changed = true;
                 }
+                let is_active = task_running && agent.last_output_change.elapsed() < Duration::from_secs(2);
+                if agent.is_active != is_active {
+                    agent.is_active = is_active;
+                    changed = true;
+                }
+                agent.last_update = Instant::now();
             }
         }
         if changed {
@@ -430,12 +435,13 @@ impl AgentLauncherPage {
             return None;
         }
 
-        // Sort by most recent update, take top 3.
-        let mut sorted: Vec<&RunningAgent> = self.running_agents.iter().collect();
-        sorted.sort_by(|a, b| b.last_update.cmp(&a.last_update));
-        let top: Vec<&&RunningAgent> = sorted.iter().take(3).collect();
+        // Maintain pure insertion order (first opened on the first place, second opened on the second place).
+        let sorted: Vec<&RunningAgent> = self.running_agents.iter().collect();
 
         let border_color = cx.theme().colors().border;
+        let active_count = self.running_agents.iter().filter(|a| a.is_active).count();
+
+        let accent = cx.theme().colors().text_accent;
 
         Some(
             // ── Centered wrapper with max width ──────────────────────────
@@ -445,67 +451,87 @@ impl AgentLauncherPage {
                 .px_5()
                 .py_2()
                 .child(
+                    // Outer Card Container matching user design perfectly
                     v_flex()
                         .w_full()
                         .max_w(rems(48.))
-                        .gap_2()
-                        // ── Collapsible header ────────────────────────────
+                        .rounded_lg()
+                        .bg(cx.theme().colors().surface_background)
+                        .border_1()
+                        .border_color(border_color.opacity(0.5))
                         .child(
-                            div()
-                                .id("running-agents-header")
-                                .cursor_pointer()
-                                .rounded_md()
-                                .hover(|s| s.bg(cx.theme().colors().element_hover))
-                                .on_click(cx.listener(|this, _, _, cx| {
-                                    this.preview_expanded = !this.preview_expanded;
-                                    cx.notify();
-                                }))
+                            // Top header row: dot + RUNNING AGENTS + pill badge + collapse/expand button
+                            h_flex()
+                                .w_full()
+                                .justify_between()
+                                .items_center()
+                                .px_3()
+                                .py_2p5()
                                 .child(
                                     h_flex()
-                                        .w_full()
-                                        .items_center()
                                         .gap_2()
-                                        .py_1()
-                                        .px_2()
+                                        .items_center()
                                         .child(
-                                            Icon::new(if self.preview_expanded {
-                                                IconName::ChevronDown
-                                            } else {
-                                                IconName::ChevronRight
-                                            })
-                                            .size(IconSize::XSmall)
-                                            .color(Color::Muted),
+                                            // Status solid circular dot
+                                            div()
+                                                .w(px(8.))
+                                                .h(px(8.))
+                                                .rounded_full()
+                                                .bg(if active_count > 0 {
+                                                    cx.theme().colors().icon_accent.opacity(0.8)
+                                                } else {
+                                                    cx.theme().colors().icon_muted.opacity(0.4)
+                                                }),
                                         )
                                         .child(
-                                            Icon::new(IconName::Terminal)
-                                                .size(IconSize::Small)
-                                                .color(Color::Info),
+                                            div()
+                                                .text_size(px(11.))
+                                                .font_weight(gpui::FontWeight::BOLD)
+                                                .text_color(cx.theme().colors().text)
+                                                .child("RUNNING AGENTS"),
                                         )
                                         .child(
-                                            Label::new("Running Agents")
-                                                .size(LabelSize::Small)
-                                                .weight(gpui::FontWeight::SEMIBOLD),
-                                        )
+                                            // '2 active' pill badge
+                                            div()
+                                                .px_2()
+                                                .py(px(1.))
+                                                .rounded_full()
+                                                .bg(cx.theme().colors().editor_background.opacity(0.5))
+                                                .border_1()
+                                                .border_color(border_color.opacity(0.3))
+                                                .child(
+                                                    div()
+                                                        .text_size(px(10.))
+                                                        .text_color(cx.theme().colors().text_muted)
+                                                        .child(format!("{} active", active_count)),
+                                                ),
+                                        ),
+                                )
+                                .child(
+                                    // Global collapse/expand text button
+                                    div()
+                                        .id("global-collapse-btn")
+                                        .cursor_pointer()
+                                        .on_click(cx.listener(|this, _, _, cx| {
+                                            this.preview_expanded = !this.preview_expanded;
+                                            cx.notify();
+                                        }))
                                         .child(
-                                            Label::new(format!("({})", sorted.len()))
-                                                .size(LabelSize::XSmall)
-                                                .color(Color::Muted),
-                                        )
-                                        .child(div().flex_1())
-                                        .child(
-                                            Label::new(if self.preview_expanded {
-                                                "collapse"
-                                            } else {
-                                                "expand"
-                                            })
-                                            .size(LabelSize::XSmall)
-                                            .color(Color::Muted),
+                                            div()
+                                                .text_size(px(11.))
+                                                .text_color(cx.theme().colors().text_muted)
+                                                .hover(|s| s.text_color(cx.theme().colors().text))
+                                                .child(if self.preview_expanded {
+                                                    "collapse"
+                                                } else {
+                                                    "expand"
+                                                }),
                                         ),
                                 ),
                         )
-                        // ── Expanded agent rows ──────────────────────────
+                        // ── Expandable agent items below header line ──────────────────────────
                         .when(self.preview_expanded, |this| {
-                            this.children(top.into_iter().map(|agent| {
+                            this.children(sorted.into_iter().map(|agent| {
                                 Self::render_agent_row(agent, cx)
                             }))
                         }),
@@ -513,33 +539,12 @@ impl AgentLauncherPage {
         )
     }
 
-    /// Render a single running agent row with pulse dot, output lines, and actions.
+    /// Render a single running agent compact block that expands to reveal streaming console output.
     fn render_agent_row(agent: &RunningAgent, cx: &Context<Self>) -> impl IntoElement {
-        // ── Pulsing dot animation (active only) ──────────────────────────
-        let dot: AnyElement = if agent.is_active {
-            let pulse = Animation::new(Duration::from_secs(2))
-                .repeat()
-                .with_easing(pulsating_between(0.3, 1.0));
-            div()
-                .child(
-                    Icon::new(IconName::ArrowCircle)
-                        .size(IconSize::XSmall)
-                        .color(Color::Info),
-                )
-                .with_animation("agent-pulse", pulse, |el, delta| el.opacity(delta))
-                .into_any_element()
-        } else {
-            div().child(
-                Icon::new(IconName::Check)
-                    .size(IconSize::XSmall)
-                    .color(Color::Created),
-            )
-            .into_any_element()
-        };
+        let border_color = cx.theme().colors().border;
+        let accent = cx.theme().colors().text_accent;
 
-        // ── Output lines ────────────────────────────────────────────────
         let output_lines = if agent.output_lines.is_empty() {
-            // Fall back to filtered line if no raw lines yet.
             if let Some(ref filtered) = agent.filtered_line {
                 vec![filtered.clone()]
             } else {
@@ -549,27 +554,36 @@ impl AgentLauncherPage {
             agent.output_lines.clone()
         };
 
+        let latest_line = agent
+            .filtered_line
+            .clone()
+            .unwrap_or_else(|| SharedString::from("waiting for output..."));
+
+        let first_char = agent
+            .name
+            .chars()
+            .next()
+            .map(|c| c.to_uppercase().to_string())
+            .unwrap_or_else(|| "A".to_string());
+
         let name = agent.name.clone();
         let is_expanded = agent.is_expanded;
 
         v_flex()
             .w_full()
-            .gap_2()
-            .py_2()
-            .px_3()
-            .rounded_lg()
-            .bg(cx.theme().colors().elevated_surface_background.opacity(0.8))
-            .border_1()
-            .border_color(cx.theme().colors().border.opacity(0.5))
+            .border_t_1()
+            .border_color(border_color.opacity(0.2))
             .child(
-                // ── Agent header: collapse chevron + dot + name + go-to button ──────────────
-                div()
-                    .id(format!("agent-hdr-row-{}", agent.name))
-                    .flex()
+                // Compact row: Avatar + stacked Name & Response + right Arrow icon
+                h_flex()
+                    .id(format!("agent-row-compact-{}", agent.name))
                     .w_full()
+                    .justify_between()
                     .items_center()
-                    .gap_2()
+                    .px_3()
+                    .py_2p5()
                     .cursor_pointer()
+                    .hover(|s| s.bg(cx.theme().colors().element_hover))
                     .on_click(cx.listener({
                         let name = name.clone();
                         move |this, _, _, cx| {
@@ -580,46 +594,96 @@ impl AgentLauncherPage {
                         }
                     }))
                     .child(
-                        Icon::new(if is_expanded {
-                            IconName::ChevronDown
-                        } else {
-                            IconName::ChevronRight
-                        })
-                        .size(IconSize::XSmall)
-                        .color(if is_expanded { Color::Accent } else { Color::Muted }),
+                        h_flex()
+                            .gap_3()
+                            .items_center()
+                            .child(
+                                // Sleek dark square avatar badge
+                                div()
+                                    .w(px(28.))
+                                    .h(px(28.))
+                                    .rounded_md()
+                                    .bg(cx.theme().colors().editor_background)
+                                    .border_1()
+                                    .border_color(accent.opacity(0.15))
+                                    .flex()
+                                    .items_center()
+                                    .justify_center()
+                                    .child(
+                                        div()
+                                            .text_size(px(13.))
+                                            .font_weight(gpui::FontWeight::BOLD)
+                                            .text_color(cx.theme().status().success)
+                                            .child(first_char),
+                                    ),
+                            )
+                            .child(
+                                // Stacked text block
+                                v_flex()
+                                    .gap(px(1.))
+                                    .child(
+                                        div()
+                                            .text_size(px(13.))
+                                            .font_weight(gpui::FontWeight::SEMIBOLD)
+                                            .text_color(cx.theme().colors().text)
+                                            .child(agent.name.clone()),
+                                    )
+                                    .child(
+                                        div()
+                                            .text_size(px(11.))
+                                            .text_color(cx.theme().status().success) // Bright green response line
+                                            .child(latest_line),
+                                    ),
+                            ),
                     )
-                    .child(dot)
                     .child(
-                        Label::new(agent.name.clone())
-                            .size(LabelSize::Small)
-                            .weight(gpui::FontWeight::SEMIBOLD),
-                    )
-                    .child(div().flex_1())
-                    .child(
-                        IconButton::new(
-                            format!("goto-agent-{}", agent.name),
-                            IconName::OpenNewWindow,
-                        )
-                        .icon_size(IconSize::XSmall)
-                        .size(ButtonSize::Compact)
-                        .icon_color(Color::Muted)
-                        .on_click(cx.listener(move |this, _, window, cx| {
-                            this.jump_to_agent_terminal(&name, window, cx);
-                        }))
-                        .tooltip(Tooltip::text("Go to agent terminal")),
+                        // Navigation button wrapping ArrowUpRight icon
+                        div()
+                            .id(format!("agent-goto-btn-{}", agent.name))
+                            .cursor_pointer()
+                            .p_1()
+                            .rounded_md()
+                            .hover(|s| s.bg(cx.theme().colors().element_background))
+                            .on_click(cx.listener({
+                                let name = name.clone();
+                                move |this, _, window, cx| {
+                                    this.jump_to_agent_terminal(&name, window, cx);
+                                }
+                            }))
+                            .tooltip(Tooltip::text("Go to agent terminal"))
+                            .child(
+                                Icon::new(IconName::ArrowUpRight)
+                                    .size(IconSize::XSmall)
+                                    .color(Color::Muted),
+                            ),
                     ),
             )
-            // ── Output lines ──────────────────────────────────────────────
+            // ── Output lines box inside when further expanded ──
             .when(is_expanded, |this| {
-                this.children(output_lines.iter().map(|line| {
-                    div()
-                        .pl(DynamicSpacing::Base06.rems(cx))
+                this.child(
+                    v_flex()
+                        .w_full()
+                        .px_3()
+                        .pb_3()
                         .child(
-                            Label::new(line.clone())
-                                .size(LabelSize::XSmall)
-                                .color(Color::Muted),
-                        )
-                }))
+                            v_flex()
+                                .w_full()
+                                .bg(cx.theme().colors().editor_background)
+                                .rounded_md()
+                                .py_1p5()
+                                .px_2p5()
+                                .border_1()
+                                .border_color(border_color.opacity(0.4))
+                                .children(output_lines.iter().map(|line| {
+                                    div()
+                                        .child(
+                                            Label::new(line.clone())
+                                                .size(LabelSize::XSmall)
+                                                .color(Color::Muted),
+                                        )
+                                })),
+                        ),
+                )
             })
     }
 
@@ -915,8 +979,8 @@ impl Render for AgentLauncherPage {
                                                 .w_full()
                                                 .justify_between()
                                                 .items_center()
-                                                .px_3()
-                                                .py_2()
+                                                .px_4()
+                                                .py_3()
                                                 .cursor_pointer()
                                                 .hover(|s| {
                                                     s.bg(cx.theme().colors().element_hover)
@@ -928,7 +992,7 @@ impl Render for AgentLauncherPage {
                                                 ))
                                                 .child(
                                                     h_flex()
-                                                        .gap_2()
+                                                        .gap_3()
                                                         .items_center()
                                                         .child(
                                                             Icon::new(if is_expanded {
@@ -967,7 +1031,8 @@ impl Render for AgentLauncherPage {
                                                 )
                                                 .child(
                                                     h_flex()
-                                                        .gap_2()
+                                                        .gap_3()
+                                                        .px_1()
                                                         .items_center()
                                                         .when(is_not_installed, |this| {
                                                             this.child(
@@ -983,7 +1048,7 @@ impl Render for AgentLauncherPage {
                                                                     "LAUNCH",
                                                                 )
                                                                 .style(ButtonStyle::Filled)
-                                                                .size(ButtonSize::Compact)
+                                                                .size(ButtonSize::Default) // Extremely spacious premium look!
                                                                 .on_click(cx.listener(
                                                                     move |this, _, window, cx| {
                                                                         this.launch_agent(
@@ -1234,6 +1299,67 @@ const NOISE_PREFIXES: &[&str] = &[
     "[", "│", "┌", "├", "└", "─", "━", "╭", "╰", "╰",
 ];
 
+/// Heuristically evaluates whether a terminal output line contains genuine agent response text
+/// by stripping pure borders, status indicators, short stubs, and enforcing a >50% alphanumeric rule.
+fn is_meaningful_line(line: &str) -> bool {
+    let s = line.trim();
+    // 6. Lines that are just whitespace or empty
+    // 5. Lines shorter than 4 characters
+    if s.len() < 4 {
+        return false;
+    }
+
+    // 1. Lines that are purely box-drawing/border characters
+    if s.chars().all(|c| matches!(c, '│' | '─' | '┼' | '+' | '|' | '=' | '-' | '_' | '━' | '═' | ' ' | '\t')) {
+        return false;
+    }
+
+    // Also strip lines containing continuous separator sequences or block fills
+    if s.contains("──") || s.contains("━━") || s.contains("══") || s.contains("___") || s.contains('█') {
+        return false;
+    }
+
+    // 2. Lines matching status bar patterns like "model:", "directory:", "workspace:", "sandbox:", "quota:"
+    let lower = s.to_lowercase();
+    if lower.contains("model:")
+        || lower.contains("directory:")
+        || lower.contains("workspace:")
+        || lower.contains("sandbox")
+        || lower.contains("quota:")
+        || lower.contains("/model to change")
+        || lower.contains("shift+tab")
+        || (lower.contains("gemini") && lower.contains("file"))
+        || lower.contains("type your message")
+        || lower.contains("improve documentation")
+        || lower.starts_with("tip:")
+        || lower.starts_with("~/")
+        || lower.starts_with(".\\")
+        || lower.starts_with("./")
+        || lower.starts_with("workspace ")
+        || lower.contains("flash-preview")
+        || lower.starts_with("gpt-")
+        || lower.starts_with("claude-")
+        || lower.starts_with("gemini-")
+    {
+        return false;
+    }
+
+    // 3. Lines with mostly punctuation/symbols and little actual text
+    // Simple heuristic: if a line has more than 50% alphanumeric characters → show it. Otherwise skip.
+    // Strip leading conversational non-alphanumeric noise (like bullet points or query prompts) before calculating ratio.
+    let cleaned = s.trim_start_matches(|c: char| !c.is_alphanumeric());
+    let total_chars = cleaned.chars().count();
+    if total_chars == 0 {
+        return false;
+    }
+    let alnum_chars = cleaned.chars().filter(|c| c.is_alphanumeric()).count();
+    if (alnum_chars as f64) / (total_chars as f64) <= 0.5 {
+        return false;
+    }
+
+    true
+}
+
 /// Extract the last meaningful line of output from a terminal, filtering out
 /// TUI noise, shell prompts, and progress indicators — preferring code/text.
 fn extract_meaningful_output(terminal: &Terminal) -> Option<SharedString> {
@@ -1284,38 +1410,10 @@ fn extract_meaningful_output(terminal: &Terminal) -> Option<SharedString> {
         .find(|l| !l.trim().is_empty())
         .cloned();
 
-    // Filter: scan from bottom, return first "meaningful" line.
+    // Filter: scan from bottom, return first line that passes is_meaningful_line.
     for line in raw_lines.into_iter().rev() {
-        let line = line.trim().to_string();
-        if line.is_empty() || line.len() < 3 {
-            continue;
-        }
-        // Skip if starts with a noise prefix.
-        if NOISE_PREFIXES.iter().any(|p| line.starts_with(p)) {
-            continue;
-        }
-        // Skip common TUI status messages.
-        if line.contains("──")
-            || line.contains("━━")
-            || line.contains("Analyzing")
-            || line.contains("Loading")
-            || line.contains("Processing")
-            || line.contains("Context")
-            || line.starts_with("context")
-            || line.contains("|/") 
-            || line.contains("/-\\")
-        {
-            continue;
-        }
-        // Looks like meaningful output — prefer lines with code indicators.
-        let has_code_chars = line.contains('{')
-            || line.contains('}')
-            || line.contains('(')
-            || line.contains(')')
-            || line.starts_with("  ")
-            || line.starts_with('\t');
-        if has_code_chars || line.len() > 20 {
-            // Truncate long lines
+        if is_meaningful_line(&line) {
+            let line = line.trim().to_string();
             let truncated = if line.chars().count() > 80 {
                 format!("{}…", line.chars().take(80).collect::<String>())
             } else {
@@ -1380,25 +1478,7 @@ fn extract_raw_output(terminal: &Terminal, max_lines: usize) -> Vec<SharedString
     // Filter out common bottom TUI chrome/status bar lines to capture the actual agent response.
     let filtered_lines: Vec<String> = lines
         .into_iter()
-        .filter(|l| {
-            let s = l.trim();
-            if s.is_empty() {
-                return false;
-            }
-            if s.starts_with("workspace ") || s.starts_with("~/") || s.starts_with(".\\") || s.starts_with("./") {
-                return false;
-            }
-            if s.contains("sandbox") || s.contains("Shift+Tab") || s.starts_with("Shift+Tab") {
-                return false;
-            }
-            if s.contains("───") || s.contains("━━━") || s.contains("════") {
-                return false;
-            }
-            if s.starts_with("> Type your message") || s.starts_with("> █") {
-                return false;
-            }
-            true
-        })
+        .filter(|l| is_meaningful_line(l))
         .collect();
 
     // Take the last `max_lines` of the response content, ordered chronologically.
@@ -1407,6 +1487,7 @@ fn extract_raw_output(terminal: &Terminal, max_lines: usize) -> Vec<SharedString
         .rev()
         .take(max_lines)
         .map(|l| {
+            let l = l.trim().to_string();
             if l.chars().count() > 80 {
                 format!("{}…", l.chars().take(80).collect::<String>()).into()
             } else {
