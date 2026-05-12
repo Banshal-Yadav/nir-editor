@@ -431,110 +431,130 @@ impl AgentLauncherPage {
 
     /// Render the running agents preview card at the top of the launcher.
     fn render_running_agents(&self, cx: &Context<Self>) -> Option<impl IntoElement> {
-        if self.running_agents.is_empty() {
-            return None;
-        }
-
-        // Maintain pure insertion order (first opened on the first place, second opened on the second place).
-        let sorted: Vec<&RunningAgent> = self.running_agents.iter().collect();
-
         let border_color = cx.theme().colors().border;
         let active_count = self.running_agents.iter().filter(|a| a.is_active).count();
+        let is_empty = self.running_agents.is_empty();
 
-        let accent = cx.theme().colors().text_accent;
+        let sorted: Vec<&RunningAgent> = self.running_agents.iter().collect();
 
         Some(
-            // ── Centered wrapper with max width ──────────────────────────
+            // ── Centered wrapper with max width matching below list EXACTLY ──
             h_flex()
                 .w_full()
                 .justify_center()
-                .px_5()
-                .py_2()
                 .child(
-                    // Outer Card Container matching user design perfectly
                     v_flex()
                         .w_full()
                         .max_w(rems(48.))
-                        .rounded_lg()
-                        .bg(cx.theme().colors().surface_background)
-                        .border_1()
-                        .border_color(border_color.opacity(0.5))
+                        .p_5() // Matches below list boundary box exactly!
                         .child(
-                            // Top header row: dot + RUNNING AGENTS + pill badge + collapse/expand button
-                            h_flex()
+                            // Outer Card Container matching below agent list exactly!
+                            v_flex()
                                 .w_full()
-                                .justify_between()
-                                .items_center()
-                                .px_3()
-                                .py_2p5()
+                                .rounded_lg()
+                                .bg(cx.theme().colors().surface_background)
+                                .border_1()
+                                .border_color(border_color.opacity(0.5))
                                 .child(
+                                    // Top header row: idle vs active views matching screenshot
                                     h_flex()
-                                        .gap_2()
+                                        .id("running-agents-header-row")
+                                        .w_full()
+                                        .justify_between()
                                         .items_center()
-                                        .child(
-                                            // Status solid circular dot
-                                            div()
-                                                .w(px(8.))
-                                                .h(px(8.))
-                                                .rounded_full()
-                                                .bg(if active_count > 0 {
-                                                    cx.theme().colors().icon_accent.opacity(0.8)
-                                                } else {
-                                                    cx.theme().colors().icon_muted.opacity(0.4)
-                                                }),
-                                        )
-                                        .child(
-                                            div()
-                                                .text_size(px(11.))
-                                                .font_weight(gpui::FontWeight::BOLD)
-                                                .text_color(cx.theme().colors().text)
-                                                .child("RUNNING AGENTS"),
-                                        )
-                                        .child(
-                                            // '2 active' pill badge
-                                            div()
-                                                .px_2()
-                                                .py(px(1.))
-                                                .rounded_full()
-                                                .bg(cx.theme().colors().editor_background.opacity(0.5))
-                                                .border_1()
-                                                .border_color(border_color.opacity(0.3))
+                                        .px_3()
+                                        .py_2p5()
+                                        .when(is_empty, |this| {
+                                            this.child(
+                                                h_flex()
+                                                    .gap_2()
+                                                    .items_center()
+                                                    .child(
+                                                        div()
+                                                            .w(px(8.))
+                                                            .h(px(8.))
+                                                            .rounded_full()
+                                                            .bg(cx.theme().colors().icon_muted.opacity(0.4)),
+                                                    )
+                                                    .child(
+                                                        div()
+                                                            .text_size(px(11.))
+                                                            .font_weight(gpui::FontWeight::BOLD)
+                                                            .text_color(cx.theme().colors().text_muted)
+                                                            .child("RUNNING AGENTS • 0 active"),
+                                                    ),
+                                            )
+                                            .child(
+                                                div()
+                                                    .text_size(px(11.))
+                                                    .text_color(cx.theme().colors().text_muted.opacity(0.6))
+                                                    .child("launch one below to start"),
+                                            )
+                                        })
+                                        .when(!is_empty, |this| {
+                                            this.cursor_pointer()
+                                                .on_click(cx.listener(|this, _, _, cx| {
+                                                    this.preview_expanded = !this.preview_expanded;
+                                                    cx.notify();
+                                                }))
+                                                .child(
+                                                    h_flex()
+                                                        .gap_2()
+                                                        .items_center()
+                                                        .child(
+                                                            div()
+                                                                .w(px(8.))
+                                                                .h(px(8.))
+                                                                .rounded_full()
+                                                                .bg(if active_count > 0 {
+                                                                    cx.theme().colors().icon_accent.opacity(0.8)
+                                                                } else {
+                                                                    cx.theme().colors().icon_muted.opacity(0.4)
+                                                                }),
+                                                        )
+                                                        .child(
+                                                            div()
+                                                                .text_size(px(11.))
+                                                                .font_weight(gpui::FontWeight::BOLD)
+                                                                .text_color(cx.theme().colors().text)
+                                                                .child("RUNNING AGENTS"),
+                                                        )
+                                                        .child(
+                                                            div()
+                                                                .px_2()
+                                                                .py(px(1.))
+                                                                .rounded_full()
+                                                                .bg(cx.theme().colors().editor_background.opacity(0.5))
+                                                                .border_1()
+                                                                .border_color(border_color.opacity(0.3))
+                                                                .child(
+                                                                    div()
+                                                                        .text_size(px(10.))
+                                                                        .text_color(cx.theme().colors().text_muted)
+                                                                        .child(format!("{} active", active_count)),
+                                                                ),
+                                                        ),
+                                                )
                                                 .child(
                                                     div()
-                                                        .text_size(px(10.))
+                                                        .text_size(px(11.))
                                                         .text_color(cx.theme().colors().text_muted)
-                                                        .child(format!("{} active", active_count)),
-                                                ),
-                                        ),
+                                                        .hover(|s| s.text_color(cx.theme().colors().text))
+                                                        .child(if self.preview_expanded {
+                                                            "collapse"
+                                                        } else {
+                                                            "expand"
+                                                        }),
+                                                )
+                                        }),
                                 )
-                                .child(
-                                    // Global collapse/expand text button
-                                    div()
-                                        .id("global-collapse-btn")
-                                        .cursor_pointer()
-                                        .on_click(cx.listener(|this, _, _, cx| {
-                                            this.preview_expanded = !this.preview_expanded;
-                                            cx.notify();
-                                        }))
-                                        .child(
-                                            div()
-                                                .text_size(px(11.))
-                                                .text_color(cx.theme().colors().text_muted)
-                                                .hover(|s| s.text_color(cx.theme().colors().text))
-                                                .child(if self.preview_expanded {
-                                                    "collapse"
-                                                } else {
-                                                    "expand"
-                                                }),
-                                        ),
-                                ),
-                        )
-                        // ── Expandable agent items below header line ──────────────────────────
-                        .when(self.preview_expanded, |this| {
-                            this.children(sorted.into_iter().map(|agent| {
-                                Self::render_agent_row(agent, cx)
-                            }))
-                        }),
+                                // ── Expandable agent items below header line ──────────────────────────
+                                .when(!is_empty && self.preview_expanded, |this| {
+                                    this.children(sorted.into_iter().map(|agent| {
+                                        Self::render_agent_row(agent, cx)
+                                    }))
+                                }),
+                        ),
                 ),
         )
     }
@@ -1043,19 +1063,32 @@ impl Render for AgentLauncherPage {
                                                         })
                                                         .when(is_installed, |this| {
                                                             this.child(
-                                                                Button::new(
-                                                                    format!("launch-{i}"),
-                                                                    "LAUNCH",
-                                                                )
-                                                                .style(ButtonStyle::Filled)
-                                                                .size(ButtonSize::Default) // Extremely spacious premium look!
-                                                                .on_click(cx.listener(
-                                                                    move |this, _, window, cx| {
-                                                                        this.launch_agent(
-                                                                            i, window, cx,
-                                                                        );
-                                                                    },
-                                                                )),
+                                                                div()
+                                                                    .id(format!("launch-btn-{i}"))
+                                                                    .cursor_pointer()
+                                                                    .px_2()
+                                                                    .py_0p5()
+                                                                    .rounded_md()
+                                                                    .border_1()
+                                                                    .border_color(border_color.opacity(0.4))
+                                                                    .hover(|s| {
+                                                                        s.bg(cx.theme().colors().element_hover)
+                                                                            .border_color(border_color)
+                                                                    })
+                                                                    .child(
+                                                                        div()
+                                                                            .text_size(px(10.))
+                                                                            .font_weight(gpui::FontWeight::SEMIBOLD)
+                                                                            .text_color(cx.theme().colors().text_muted)
+                                                                            .child("LAUNCH"),
+                                                                    )
+                                                                    .on_click(cx.listener(
+                                                                        move |this, _, window, cx| {
+                                                                            this.launch_agent(
+                                                                                i, window, cx,
+                                                                            );
+                                                                        },
+                                                                    )),
                                                             )
                                                         }),
                                                 ),
