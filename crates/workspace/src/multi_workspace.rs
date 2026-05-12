@@ -2026,10 +2026,24 @@ impl MultiWorkspace {
             
             // Generate a color from the hash
             let hue = (hash % 360) as f32 / 360.0;
-            // Muted colors: 15-25% saturation, 18-25% lightness
-            let saturation = 0.15 + (hash % 11) as f32 * 0.01;
-            let lightness = 0.18 + (hash % 8) as f32 * 0.01;
+            let is_light = cx.theme().appearance() == theme::Appearance::Light;
+            
+            let saturation = if is_light {
+                0.60 + (hash % 11) as f32 * 0.02
+            } else {
+                0.15 + (hash % 11) as f32 * 0.01
+            };
+            let lightness = if is_light {
+                0.85 + (hash % 8) as f32 * 0.01
+            } else {
+                0.18 + (hash % 8) as f32 * 0.01
+            };
             let avatar_color = gpui::hsla(hue, saturation, lightness, 1.0);
+            let text_color = if is_light {
+                gpui::hsla(hue, 0.75, 0.25, 1.0)
+            } else {
+                cx.theme().colors().text
+            };
             
             let workspace_clone = workspace.clone();
             let project_group_key = self.project_group_key_for_workspace(&workspace, cx);
@@ -2061,8 +2075,12 @@ impl MultiWorkspace {
                                             el.w(px(3.)).bg(cx.theme().colors().text)
                                         })
                                         .when(!is_active, |el| {
-                                            // Inactive project: subtle border #2a2a2a, 1px
-                                            el.w(px(1.)).bg(gpui::rgb(0x2a2a2a))
+                                            // Inactive project: subtle border matching theme
+                                            el.w(px(1.)).bg(if is_light {
+                                                cx.theme().colors().border
+                                            } else {
+                                                gpui::Hsla::from(gpui::rgb(0x2a2a2a))
+                                            })
                                         })
                                 )
                                 .child(
@@ -2073,7 +2091,7 @@ impl MultiWorkspace {
                                         .flex()
                                         .items_center()
                                         .justify_center()
-                                        .text_color(cx.theme().colors().text)
+                                        .text_color(text_color)
                                         .child(first_letter.to_string())
                                 )
                                 .cursor_pointer()
