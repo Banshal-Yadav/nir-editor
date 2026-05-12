@@ -39,7 +39,6 @@ pub struct SystemPromptTemplate<'a> {
     pub project: &'a prompt_store::ProjectContext,
     pub available_tools: Vec<SharedString>,
     pub model_name: Option<String>,
-    pub memories: Vec<String>,
 }
 
 impl Template for SystemPromptTemplate<'_> {
@@ -82,7 +81,6 @@ mod tests {
             project: &project,
             available_tools: vec!["echo".into()],
             model_name: Some("test-model".to_string()),
-            memories: vec!["Test memory".to_string()],
         };
         let templates = Templates::new();
         let rendered = template.render(&templates).unwrap();

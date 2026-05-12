@@ -315,20 +315,31 @@ impl Render for TitleBar {
                     let layout = agent_settings::AgentSettings::get_layout(cx);
                     let is_editor = matches!(layout, agent_settings::WindowLayout::Editor(_));
                     let is_agent = matches!(layout, agent_settings::WindowLayout::Agent(_));
+                    let is_ai_enabled = agent_settings::AgentSettings::get_global(cx).enabled(cx);
+
+                    if !is_ai_enabled && is_agent {
+                        let fs = <dyn fs::Fs>::global(cx);
+                        drop(agent_settings::AgentSettings::set_layout(
+                            agent_settings::WindowLayout::Editor(None),
+                            fs,
+                            cx,
+                        ));
+                    }
 
                     this.when(is_editor || is_agent, |this| {
-                        this.child(self.agent_launcher.clone()).when(is_editor, |this| {
-                            this.child(
-                                h_flex()
-                                    .gap_1()
-                                    .ml_2()
-                                    .when_some(
-                                        self.render_agent_panel_toggle(cx),
-                                        |this, btn| this.child(btn),
-                                    )
-                                    .child(self.render_history_sidebar_toggle(cx)),
-                            )
-                        })
+                        this.when(is_ai_enabled, |this| this.child(self.agent_launcher.clone()))
+                            .when(is_editor, |this| {
+                                this.child(
+                                    h_flex()
+                                        .gap_1()
+                                        .ml_2()
+                                        .when_some(
+                                            self.render_agent_panel_toggle(cx),
+                                            |this, btn| this.child(btn),
+                                        )
+                                        .child(self.render_history_sidebar_toggle(cx)),
+                                )
+                            })
                     })
                 })
                 .when(TitleBarSettings::get_global(cx).show_user_menu, |this| {

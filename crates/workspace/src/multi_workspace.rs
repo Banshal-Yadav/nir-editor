@@ -2009,7 +2009,7 @@ impl MultiWorkspace {
 
         let active_workspace = self.workspace();
         
-        let mut avatars = Vec::new();
+        let mut avatars: Vec<gpui::AnyElement> = Vec::new();
         for workspace in self.workspaces() {
             let is_active = workspace == active_workspace;
             
@@ -2032,47 +2032,82 @@ impl MultiWorkspace {
             let avatar_color = gpui::hsla(hue, saturation, lightness, 1.0);
             
             let workspace_clone = workspace.clone();
+            let project_group_key = self.project_group_key_for_workspace(&workspace, cx);
+            let weak_self = cx.weak_entity();
             
             let workspace_id = workspace_clone.entity_id().as_u64();
             avatars.push(
-                div()
-                    .id(("workspace_avatar", workspace_id))
-                    .w_full()
-                    .h(px(40.))
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .relative()
-                    .child(
-                        div()
-                            .absolute()
-                            .left_0()
-                            .top_0()
-                            .bottom_0()
-                            .when(is_active, |el| {
-                                // Active project: use theme text color for indicator
-                                el.w(px(3.)).bg(cx.theme().colors().text)
+                right_click_menu(("workspace_avatar_menu", workspace_id))
+                    .trigger({
+                        let weak_self = weak_self.clone();
+                        move |_is_active, _window, cx| {
+                            let workspace_clone = workspace_clone.clone();
+                            div()
+                                .id(("workspace_avatar", workspace_id))
+                                .w_full()
+                                .h(px(40.))
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .relative()
+                                .child(
+                                    div()
+                                        .absolute()
+                                        .left_0()
+                                        .top_0()
+                                        .bottom_0()
+                                        .when(is_active, |el| {
+                                            // Active project: use theme text color for indicator
+                                            el.w(px(3.)).bg(cx.theme().colors().text)
+                                        })
+                                        .when(!is_active, |el| {
+                                            // Inactive project: subtle border #2a2a2a, 1px
+                                            el.w(px(1.)).bg(gpui::rgb(0x2a2a2a))
+                                        })
+                                )
+                                .child(
+                                    div()
+                                        .size(px(32.))
+                                        .rounded_md()
+                                        .bg(avatar_color)
+                                        .flex()
+                                        .items_center()
+                                        .justify_center()
+                                        .text_color(cx.theme().colors().text)
+                                        .child(first_letter.to_string())
+                                )
+                                .cursor_pointer()
+                                .on_click(move |_, window, cx| {
+                                    weak_self.update(cx, |this, cx| {
+                                        this.activate(workspace_clone.clone(), None, window, cx);
+                                    }).ok();
+                                })
+                        }
+                    })
+                    .menu({
+                        let remove_multi_workspace = weak_self;
+                        let project_group_key = project_group_key.clone();
+                        move |window, cx| {
+                            let remove_multi_workspace = remove_multi_workspace.clone();
+                            let project_group_key = project_group_key.clone();
+                            ContextMenu::build(window, cx, move |menu, _window, menu_cx| {
+                                let weak_menu = menu_cx.weak_entity();
+                                let remove_multi_workspace = remove_multi_workspace.clone();
+                                let project_group_key = project_group_key.clone();
+                                menu.entry("Remove Project", None, move |window, cx| {
+                                    remove_multi_workspace
+                                        .update(cx, |multi_workspace, cx| {
+                                            multi_workspace
+                                                .remove_project_group(&project_group_key, window, cx)
+                                                .detach_and_log_err(cx);
+                                        })
+                                        .ok();
+                                    weak_menu.update(cx, |_, cx| cx.emit(gpui::DismissEvent)).ok();
+                                })
                             })
-                            .when(!is_active, |el| {
-                                // Inactive project: subtle border #2a2a2a, 1px
-                                el.w(px(1.)).bg(gpui::rgb(0x2a2a2a))
-                            })
-                    )
-                    .child(
-                        div()
-                            .size(px(32.))
-                            .rounded_md()
-                            .bg(avatar_color)
-                            .flex()
-                            .items_center()
-                            .justify_center()
-                            .text_color(cx.theme().colors().text)
-                            .child(first_letter.to_string())
-                    )
-                    .cursor_pointer()
-                    .on_click(cx.listener(move |this: &mut Self, _, window, cx| {
-                        this.activate(workspace_clone.clone(), None, window, cx);
-                    }))
+                        }
+                    })
+                    .into_any_element(),
             );
         }
         
@@ -2246,7 +2281,7 @@ impl MultiWorkspace {
                     )
                     .children(avatars)
                     .child(
-                        // "+" button to open folder picker
+                        // "+" button to add project to window
                         div()
                             .id("activity_plus")
                             .w_full()
@@ -2260,8 +2295,22 @@ impl MultiWorkspace {
                             )
                             .cursor_pointer()
                             .on_click(cx.listener(|_, _, window, cx| {
-                                window.dispatch_action(Box::new(crate::AddFolderToProject), cx);
+                                window.dispatch_action(
+                                    Box::new(crate::Open {
+                                        create_new_window: false,
+                                    }),
+                                    cx,
+                                );
                             }))
+                            .tooltip(|_, cx| {
+                                Tooltip::for_action(
+                                    "Add Project to Window",
+                                    &crate::Open {
+                                        create_new_window: false,
+                                    },
+                                    cx,
+                                )
+                            })
                     )
             )
             .child(
