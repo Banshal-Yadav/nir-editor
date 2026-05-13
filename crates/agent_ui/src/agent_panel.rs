@@ -4252,34 +4252,6 @@ impl AgentPanel {
                                     }
                                 }),
                         )
-                        .when(supports_terminal, |menu| {
-                            menu.item(
-                                ContextMenuEntry::new("Terminal")
-                                    .when(showing_terminal, |this| this.action(Box::new(NewThread)))
-                                    .icon(IconName::Terminal)
-                                    .icon_color(Color::Muted)
-                                    .handler({
-                                        let workspace = workspace.clone();
-                                        move |window, cx| {
-                                            if let Some(workspace) = workspace.upgrade() {
-                                                workspace.update(cx, |workspace, cx| {
-                                                    if let Some(panel) =
-                                                        workspace.panel::<AgentPanel>(cx)
-                                                    {
-                                                        panel.update(cx, |panel, cx| {
-                                                            panel.new_terminal(
-                                                                Some(workspace),
-                                                                window,
-                                                                cx,
-                                                            );
-                                                        });
-                                                    }
-                                                });
-                                            }
-                                        }
-                                    }),
-                            )
-                        })
                         .map(|mut menu| {
                             let agent_server_store = agent_server_store.read(cx);
                             let registry_store = project::AgentRegistryStore::try_global(cx);
