@@ -83,6 +83,7 @@ impl RenderOnce for VoidLogo {
 
 pub struct WelcomePage {
     focus_handle: FocusHandle,
+
 }
 
 impl WelcomePage {
@@ -110,6 +111,7 @@ impl WelcomePage {
         window.focus_prev(cx);
         cx.notify();
     }
+
 
 }
 

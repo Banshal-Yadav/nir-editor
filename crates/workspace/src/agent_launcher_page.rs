@@ -1327,10 +1327,7 @@ impl Item for AgentLauncherPage {
 // ─── Helpers: extract output lines from terminal content ─────────────────────
 
 /// Noise-line patterns to skip — TUI chrome, shell prompts, progress bars, etc.
-const NOISE_PREFIXES: &[&str] = &[
-    "$ ", "% ", "> ", "# ", "❯ ", "→ ", "λ ",
-    "[", "│", "┌", "├", "└", "─", "━", "╭", "╰", "╰",
-];
+
 
 /// Heuristically evaluates whether a terminal output line contains genuine agent response text
 /// by stripping pure borders, status indicators, short stubs, and enforcing a >50% alphanumeric rule.

@@ -1,8 +1,40 @@
 use crate::{ItemHandle, MultiWorkspace, Pane, SidebarSide};
-use gpui::{AnyView, App, Context, Decorations, Entity, IntoElement, ParentElement, Render, Styled, Subscription, WeakEntity, Window};
-use std::any::TypeId;
+use gpui::{
+    AnyView, App, Context, Decorations, Entity, IntoElement, ParentElement, Render,
+    SharedString, Styled, Subscription, WeakEntity, Window,
+};
+use settings::{SettingsContent, update_settings_file};
+use std::{any::TypeId, sync::Arc};
 use theme::CLIENT_SIDE_DECORATION_ROUNDING;
-use ui::prelude::*;
+use ui::{ContextMenu, IconPosition, prelude::*, right_click_menu};
+
+/// Describes how a status-bar item can be hidden by the user.
+///
+/// Every [`StatusItemView`] must either provide this (so that the user gets a
+/// "Hide Button" entry in the right-click menu) or explicitly return `None`
+/// to opt out. Returning `None` should be reserved for items that are
+/// already conditional on some other setting exposed elsewhere (e.g., the
+/// activity indicator, which disappears on its own once there's no work to
+/// display).
+#[derive(Clone)]
+pub struct HideStatusItem {
+    hide: Arc<dyn Fn(&mut SettingsContent) + Send + Sync>,
+}
+
+impl HideStatusItem {
+    pub fn new(hide: impl Fn(&mut SettingsContent) + Send + Sync + 'static) -> Self {
+        Self {
+            hide: Arc::new(hide),
+        }
+    }
+
+    /// Persists the hide by updating the user settings file.
+    pub fn apply(&self, cx: &App) {
+        let hide = self.hide.clone();
+        let fs = <dyn fs::Fs>::global(cx);
+        update_settings_file(fs, cx, move |settings, _cx| (hide)(settings));
+    }
+}
 
 pub trait StatusItemView: Render {
     /// Event callback that is triggered when the active pane item changes.
@@ -12,6 +44,15 @@ pub trait StatusItemView: Render {
         window: &mut Window,
         cx: &mut Context<Self>,
     );
+
+    /// Returns metadata describing how this item can be hidden from the
+    /// status bar by writing to the user settings file.
+    ///
+    /// Implementors that return `None` must be inherently conditional on
+    /// another user-exposed setting; otherwise, they should return `Some` so
+    /// that the status bar can show a "Hide Button" entry in its
+    /// right-click menu.
+    fn hide_setting(&self, cx: &App) -> Option<HideStatusItem>;
 }
 
 trait StatusItemViewHandle: Send {
@@ -24,6 +65,7 @@ trait StatusItemViewHandle: Send {
     );
     fn item_type(&self) -> TypeId;
     fn item_type_name(&self) -> &'static str;
+    fn hide_setting(&self, cx: &App) -> Option<HideStatusItem>;
 }
 
 #[derive(Default)]
@@ -164,6 +206,41 @@ impl StatusBar {
 
 
 
+}
+
+#[allow(unused)]
+fn render_hideable_item(
+    side: &'static str,
+    index: usize,
+    item: &dyn StatusItemViewHandle,
+    cx: &App,
+) -> impl IntoElement {
+    let view = item.to_any();
+    let Some(hide) = item.hide_setting(cx) else {
+        return view.into_any_element();
+    };
+
+    let menu_id: SharedString = format!("{side}-item-menu-{index}").into();
+    right_click_menu(menu_id)
+        .trigger(move |_is_active, _window, _cx| view)
+        .menu(move |window, cx| {
+            let hide = hide.clone();
+            ContextMenu::build(window, cx, move |menu, _window, _cx| {
+                add_hide_button_entry(menu, hide)
+            })
+        })
+        .into_any_element()
+}
+
+/// Appends a "Hide Button" entry aligned with surrounding toggleable entries.
+pub fn add_hide_button_entry(menu: ContextMenu, hide: HideStatusItem) -> ContextMenu {
+    menu.toggleable_entry(
+        "Hide Button",
+        false,
+        IconPosition::Start,
+        None,
+        move |_window, cx| hide.apply(cx),
+    )
 }
 
 impl StatusBar {
@@ -318,6 +395,10 @@ impl<T: StatusItemView> StatusItemViewHandle for Entity<T> {
 
     fn item_type_name(&self) -> &'static str {
         std::any::type_name::<T>()
+    }
+
+    fn hide_setting(&self, cx: &App) -> Option<HideStatusItem> {
+        self.read(cx).hide_setting(cx)
     }
 }
 

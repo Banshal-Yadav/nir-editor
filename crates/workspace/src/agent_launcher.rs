@@ -80,4 +80,8 @@ impl StatusItemView for AgentLauncherButton {
         _cx: &mut Context<Self>,
     ) {
     }
+
+    fn hide_setting(&self, _cx: &gpui::App) -> Option<crate::status_bar::HideStatusItem> {
+        None
+    }
 }
