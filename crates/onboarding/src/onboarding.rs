@@ -5,8 +5,8 @@ use db::kvp::KeyValueStore;
 use fs::Fs;
 use gpui::{
     Action, AnyElement, App, AppContext, AsyncWindowContext, Context, Entity, EventEmitter,
-    FocusHandle, Focusable, Global, IntoElement, KeyContext, Render, ScrollHandle, SharedString,
-    Subscription, Task, WeakEntity, Window, actions, rgba,
+    FocusHandle, Focusable, FontWeight, Global, IntoElement, KeyContext, Render, ScrollHandle,
+    SharedString, Subscription, Task, WeakEntity, Window, actions, rgba,
 };
 use notifications::status_toast::StatusToast;
 use project::agent_server_store::AllAgentServersSettings;
@@ -351,8 +351,12 @@ impl Render for Onboarding {
                                             .child(
                                                 v_flex()
                                                     .child(
-                                                        Headline::new("/void")
-                                                            .size(HeadlineSize::Small),
+                                                        div()
+                                                            .font_family("Intel One Mono")
+                                                            .font_weight(FontWeight::BLACK)
+                                                            .text_size(rems(1.2))
+                                                            .text_color(cx.theme().colors().text)
+                                                            .child("/nir"),
                                                     )
                                                     .child(
                                                         Label::new("think. build. ship.")

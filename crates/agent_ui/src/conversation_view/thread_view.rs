@@ -14,7 +14,7 @@ use feature_flags::AcpBetaFeatureFlag;
 
 use crate::message_editor::SharedSessionCapabilities;
 
-use gpui::{Animation, AnimationExt, List, TaskExt, pulsating_between};
+use gpui::{Animation, AnimationExt, FontWeight, List, TaskExt, pulsating_between};
 use heapless::Vec as ArrayVec;
 use language_model::{LanguageModelEffortLevel, Speed};
 use settings::{SidebarSide, update_settings_file};
@@ -3333,11 +3333,23 @@ impl ThreadView {
                                     el.opacity(delta)
                                 }))
                                 .child(
-                                    div()
-                                        .text_xl()
-                                        .text_color(cx.theme().colors().text)
-                                        .min_w_0()
-                                        .child("What do you want to build with /void?"),
+                                    h_flex()
+                                        .items_center()
+                                        .flex_wrap()
+                                        .gap_1()
+                                        .child(
+                                            div()
+                                                .text_xl()
+                                                .text_color(cx.theme().colors().text)
+                                                .child("What do you want to build with"),
+                                        )
+                                        .child(
+                                            div()
+                                                .text_xl()
+                                                .font_weight(FontWeight::BOLD)
+                                                .text_color(cx.theme().colors().text_accent)
+                                                .child("/nir?"),
+                                        ),
                                 ),
                         )
                     })
@@ -9170,9 +9182,9 @@ impl ThreadView {
                 SharedString::from("I want to generate some new code. What should we build?"),
             ),
             (
-                "Ask Void",
+                "Ask Nir",
                 IconName::Sparkle,
-                SharedString::from("I have a general question about coding or /void."),
+                SharedString::from("I have a general question about coding or /nir."),
             ),
         ];
 

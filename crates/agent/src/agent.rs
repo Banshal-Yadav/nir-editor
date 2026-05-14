@@ -2061,7 +2061,7 @@ impl acp_thread::AgentModelSelector for NativeAgentModelSelector {
     }
 }
 
-pub static VOID_AGENT_ID: LazyLock<AgentId> = LazyLock::new(|| AgentId::new("/void Agent"));
+pub static VOID_AGENT_ID: LazyLock<AgentId> = LazyLock::new(|| AgentId::new("/nir Agent"));
 
 impl acp_thread::AgentConnection for NativeAgentConnection {
     fn agent_id(&self) -> AgentId {

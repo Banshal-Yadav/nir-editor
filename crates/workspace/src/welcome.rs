@@ -54,18 +54,20 @@ impl RenderOnce for VoidLogo {
             .gap_2()
             .child(
                 div()
+                    .font_family("Intel One Mono")
                     .text_size(px(28.))
                     .line_height(relative(1.))
-                    .font_weight(FontWeight::EXTRA_BOLD)
+                    .font_weight(FontWeight::BLACK)
                     .text_color(cx.theme().colors().text_accent)
                     .child("[/]"),
             )
             .child(
                 div()
+                    .font_family("Intel One Mono")
                     .text_size(px(28.))
                     .line_height(relative(1.))
-                    .font_weight(FontWeight::EXTRA_BOLD)
-                    .child("void"),
+                    .font_weight(FontWeight::BLACK)
+                    .child("nir"),
             )
             .child(div().w(px(4.)))
             .child(
@@ -424,7 +426,7 @@ impl Item for WelcomePage {
     type Event = ItemEvent;
 
     fn tab_content_text(&self, _detail: usize, _cx: &App) -> SharedString {
-        "/void".into()
+        "/nir".into()
     }
 
     fn telemetry_event_text(&self) -> Option<&'static str> {
