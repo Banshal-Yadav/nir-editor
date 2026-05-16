@@ -359,11 +359,11 @@ impl Render for TitleBar {
                                     h_flex()
                                         .gap_1()
                                         .ml_2()
+                                        .child(self.render_history_sidebar_toggle(cx))
                                         .when_some(
                                             self.render_agent_panel_toggle(cx),
                                             |this, btn| this.child(btn),
-                                        )
-                                        .child(self.render_history_sidebar_toggle(cx)),
+                                        ),
                                 )
                             })
                     })
@@ -668,11 +668,7 @@ impl TitleBar {
             })
             .unwrap_or(false);
 
-        let icon = if is_open {
-            IconName::ThreadsSidebarRightOpen
-        } else {
-            IconName::ThreadsSidebarRightClosed
-        };
+        let icon = IconName::HistoryRerun;
 
         IconButton::new("history-sidebar-toggle", icon)
             .icon_size(IconSize::Small)
@@ -694,7 +690,7 @@ impl TitleBar {
         let is_visible = matches!(AgentSettings::get_layout(cx), WindowLayout::Agent(_));
 
         Some(
-            IconButton::new("agent-panel-toggle", IconName::Sparkle)
+            IconButton::new("agent-panel-toggle", IconName::ThreadsSidebarLeftOpen)
                 .icon_size(IconSize::Small)
                 .icon_color(Color::Muted)
                 .selected_icon_color(Color::Default)

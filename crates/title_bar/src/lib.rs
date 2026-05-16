@@ -315,11 +315,11 @@ impl Render for TitleBar {
                         agent_settings::WindowLayout::Editor(_)
                     ),
                     |this| {
-                        this.when_some(
-                            self.render_agent_panel_toggle(cx),
-                            |this, btn| this.child(btn),
-                        )
-                        .child(self.render_history_sidebar_toggle(cx))
+                        this.child(self.render_history_sidebar_toggle(cx))
+                            .when_some(
+                                self.render_agent_panel_toggle(cx),
+                                |this, btn| this.child(btn),
+                            )
                     },
                 )
                 .when(TitleBarSettings::get_global(cx).show_user_menu, |this| {
@@ -619,11 +619,7 @@ impl TitleBar {
             })
             .unwrap_or(false);
 
-        let icon = if is_open {
-            IconName::ThreadsSidebarRightOpen
-        } else {
-            IconName::ThreadsSidebarRightClosed
-        };
+        let icon = IconName::HistoryRerun;
 
         IconButton::new("history-sidebar-toggle", icon)
             .icon_size(IconSize::Small)
@@ -640,7 +636,7 @@ impl TitleBar {
         }
 
         Some(
-            IconButton::new("agent-panel-toggle", IconName::Sparkle)
+            IconButton::new("agent-panel-toggle", IconName::ThreadsSidebarLeftOpen)
                 .icon_size(IconSize::Small)
                 .tooltip(|_, cx| Tooltip::for_action("Toggle Agent Panel", &ToggleAgent, cx))
                 .on_click(|_, window, cx| {

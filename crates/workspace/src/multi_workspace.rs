@@ -2196,7 +2196,7 @@ impl MultiWorkspace {
                                             .id("activity_agent_toggle")
                                             .mt_3()
                                             .child(
-                                                Icon::new(IconName::Sparkle)
+                                                Icon::new(IconName::ThreadsSidebarLeftOpen)
                                                     .size(IconSize::Custom(rems_from_px(22.)))
                                                     .color(if matches!(
                                                         agent_settings::AgentSettings::get_layout(cx),
@@ -2230,20 +2230,15 @@ impl MultiWorkspace {
                                         div()
                                             .id("activity_sidebar_toggle")
                                             .mt_3()
-                                            .child({
-                                                let icon = if self.sidebar_open() {
-                                                    IconName::ThreadsSidebarLeftOpen
-                                                } else {
-                                                    IconName::ThreadsSidebarLeftClosed
-                                                };
-                                                Icon::new(icon)
+                                            .child(
+                                                Icon::new(IconName::HistoryRerun)
                                                     .size(IconSize::Custom(rems_from_px(22.)))
                                                     .color(if self.sidebar_open() {
                                                         Color::Muted
                                                     } else {
                                                         Color::Placeholder
                                                     })
-                                            })
+                                            )
                                             .cursor_pointer()
                                             .on_click(cx.listener(|this, _, window, cx| {
                                                 this.toggle_sidebar(window, cx);
