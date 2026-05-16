@@ -1313,7 +1313,7 @@ impl ThreadView {
                 ThreadError::PaymentRequired => (
                     "payment_required",
                     None,
-                    "You reached your free usage limit. Upgrade to /void Pro for more prompts."
+                    "You reached your free usage limit. Upgrade to /nir Pro for more prompts."
                         .into(),
                 ),
                 ThreadError::Refusal => {
@@ -5163,7 +5163,7 @@ impl ThreadView {
 
             let tooltip_meta = || {
                 SharedString::new(
-                    "Rating the thread sends all of your current conversation to the /void team.",
+                    "Rating the thread sends all of your current conversation to the /nir team.",
                 )
             };
 
@@ -8416,7 +8416,7 @@ impl ThreadView {
             ThreadError::RateLimitExceeded { provider } => self.render_error_callout(
                 "Rate Limit Reached",
                 format!(
-                    "{provider}'s rate limit was reached. /void will retry automatically. \
+                    "{provider}'s rate limit was reached. /nir will retry automatically. \
                     You can also wait a moment and try again."
                 )
                 .into(),
@@ -8509,7 +8509,7 @@ impl ThreadView {
                 "API Error",
                 format!(
                     "{provider}'s API returned an unexpected error. \
-                    If the problem persists, try switching models or restarting /void."
+                    If the problem persists, try switching models or restarting /nir."
                 )
                 .into(),
                 true,
@@ -8560,7 +8560,7 @@ impl ThreadView {
 
     fn render_payment_required_error(&self, cx: &mut Context<Self>) -> Callout {
         const ERROR_MESSAGE: &str =
-            "You reached your free usage limit. Upgrade to /void Pro for more prompts.";
+            "You reached your free usage limit. Upgrade to /nir Pro for more prompts.";
 
         Callout::new()
             .severity(Severity::Error)
@@ -8685,7 +8685,7 @@ impl ThreadView {
     }
 
     fn current_model_name(&self, cx: &App) -> SharedString {
-        // For native agent (/void Agent), use the specific model name (e.g., "Claude 3.5 Sonnet")
+        // For native agent (/nir Agent), use the specific model name (e.g., "Claude 3.5 Sonnet")
         // For ACP agents, use the agent name (e.g., "Claude Agent", "Gemini CLI")
         // This provides better clarity about what refused the request
         if self.as_native_connection(cx).is_some() {

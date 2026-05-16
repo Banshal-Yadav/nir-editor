@@ -1,4 +1,4 @@
-//! Provides constructs for the Void app version and release channel.
+//! Provides constructs for the Nir app version and release channel.
 
 #![deny(missing_docs)]
 
@@ -28,14 +28,14 @@ pub static RELEASE_CHANNEL: LazyLock<ReleaseChannel> =
 #[cfg(target_os = "windows")]
 pub fn app_identifier() -> &'static str {
     match *RELEASE_CHANNEL {
-        ReleaseChannel::Dev => "Void-Editor-Dev",
-        ReleaseChannel::Nightly => "Void-Editor-Nightly",
-        ReleaseChannel::Preview => "Void-Editor-Preview",
-        ReleaseChannel::Stable => "Void-Editor-Stable",
+        ReleaseChannel::Dev => "Nir-Editor-Dev",
+        ReleaseChannel::Nightly => "Nir-Editor-Nightly",
+        ReleaseChannel::Preview => "Nir-Editor-Preview",
+        ReleaseChannel::Stable => "Nir-Editor-Stable",
     }
 }
 
-/// The Git commit SHA that Void was built at.
+/// The Git commit SHA that Nir was built at.
 #[derive(Clone, Eq, Debug, PartialEq)]
 pub struct AppCommitSha(String);
 
@@ -75,7 +75,7 @@ struct GlobalAppVersion(Version);
 
 impl Global for GlobalAppVersion {}
 
-/// The version of Void.
+/// The version of Nir.
 pub struct AppVersion;
 
 impl AppVersion {
@@ -118,12 +118,12 @@ impl AppVersion {
     }
 }
 
-/// A Void release channel.
+/// A Nir release channel.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub enum ReleaseChannel {
     /// The development release channel.
     ///
-    /// Used for local debug builds of Void.
+    /// Used for local debug builds of Nir.
     #[default]
     Dev,
 
@@ -181,10 +181,10 @@ impl ReleaseChannel {
     /// Returns the display name for this [`ReleaseChannel`].
     pub fn display_name(&self) -> &'static str {
         match self {
-            ReleaseChannel::Dev => "Void Dev",
-            ReleaseChannel::Nightly => "Void Nightly",
-            ReleaseChannel::Preview => "Void Preview",
-            ReleaseChannel::Stable => "Void",
+            ReleaseChannel::Dev => "Nir Dev",
+            ReleaseChannel::Nightly => "Nir Nightly",
+            ReleaseChannel::Preview => "Nir Preview",
+            ReleaseChannel::Stable => "Nir",
         }
     }
 
@@ -200,13 +200,13 @@ impl ReleaseChannel {
 
     /// Returns the application ID that's used by Wayland as application ID
     /// and WM_CLASS on X11.
-    /// This also has to match the bundle identifier for Void on macOS.
+    /// This also has to match the bundle identifier for Nir on macOS.
     pub fn app_id(&self) -> &'static str {
         match self {
-            ReleaseChannel::Dev => "dev.void.Void-Dev",
-            ReleaseChannel::Nightly => "dev.void.Void-Nightly",
-            ReleaseChannel::Preview => "dev.void.Void-Preview",
-            ReleaseChannel::Stable => "dev.void.Void",
+            ReleaseChannel::Dev => "dev.niride.Nir-Dev",
+            ReleaseChannel::Nightly => "dev.niride.Nir-Nightly",
+            ReleaseChannel::Preview => "dev.niride.Nir-Preview",
+            ReleaseChannel::Stable => "dev.niride.Nir",
         }
     }
 

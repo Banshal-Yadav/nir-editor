@@ -44,10 +44,10 @@ const MANIFEST_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/resources/mani
 pub fn compile(manifest: bool) -> Result<(), Box<dyn std::error::Error>> {
     let channel = option_env!("RELEASE_CHANNEL").unwrap_or("dev");
     let (icon_filename, product_name) = match channel {
-        "stable" => ("app-icon.ico", "Void"),
-        "preview" => ("app-icon-preview.ico", "Void Preview"),
-        "nightly" => ("app-icon-nightly.ico", "Void Nightly"),
-        _ => ("app-icon-dev.ico", "Void Dev"),
+        "stable" => ("app-icon.ico", "Nir"),
+        "preview" => ("app-icon-preview.ico", "Nir Preview"),
+        "nightly" => ("app-icon-nightly.ico", "Nir Nightly"),
+        _ => ("app-icon-dev.ico", "Nir Dev"),
     };
     let icon = std::path::PathBuf::from(ICON_DIR).join(icon_filename);
     let icon_escaped = icon.to_string_lossy().replace('\\', "\\\\");
@@ -94,8 +94,8 @@ BEGIN
             VALUE "FileVersion", "{pkg_version}\0"
             VALUE "ProductName", "{product_name}\0"
             VALUE "ProductVersion", "{product_version}\0"
-            VALUE "CompanyName", "Void Team\0"
-            VALUE "LegalCopyright", "Copyright 2025 Void Team\0"
+            VALUE "CompanyName", "Nir Team\0"
+            VALUE "LegalCopyright", "Copyright 2025 Nir Team\0"
         END
     END
     BLOCK "VarFileInfo"

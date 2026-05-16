@@ -614,7 +614,7 @@ fn initialize_file_watcher(window: &mut Window, cx: &mut Context<Workspace>) {
             db::indoc! {r#"
             inotify_init returned {}
 
-            This may be due to system-wide limits on inotify instances. For troubleshooting see: https://voideditor.com/docs
+            This may be due to system-wide limits on inotify instances. For troubleshooting see: https://niride.com/docs
             "#},
             e
         );
@@ -628,7 +628,7 @@ fn initialize_file_watcher(window: &mut Window, cx: &mut Context<Workspace>) {
         cx.spawn(async move |_, cx| {
             if prompt.await == Ok(0) {
                 cx.update(|cx| {
-                    cx.open_url("https://voideditor.com/docs/linux#could-not-start-inotify");
+                    cx.open_url("https://niride.com/docs/linux#could-not-start-inotify");
                     cx.quit();
                 });
             }
@@ -645,7 +645,7 @@ fn initialize_file_watcher(window: &mut Window, cx: &mut Context<Workspace>) {
             db::indoc! {r#"
             ReadDirectoryChangesW initialization failed: {}
 
-            This may occur on network filesystems and WSL paths. For troubleshooting see: https://voideditor.com/docs
+            This may occur on network filesystems and WSL paths. For troubleshooting see: https://niride.com/docs
             "#},
             e
         );
@@ -659,7 +659,7 @@ fn initialize_file_watcher(window: &mut Window, cx: &mut Context<Workspace>) {
         cx.spawn(async move |_, cx| {
             if prompt.await == Ok(0) {
                 cx.update(|cx| {
-                    cx.open_url("https://voideditor.com/docs/windows");
+                    cx.open_url("https://niride.com/docs/windows");
                     cx.quit()
                 });
             }
@@ -677,19 +677,19 @@ fn show_software_emulation_warning_if_needed(
         let (graphics_api, docs_url, open_url) = if cfg!(target_os = "windows") {
             (
                 "DirectX",
-                "https://voideditor.com/docs/windows",
-                "https://voideditor.com/docs/windows",
+                "https://niride.com/docs/windows",
+                "https://niride.com/docs/windows",
             )
         } else {
             (
                 "Vulkan",
-                "https://voideditor.com/docs/linux",
-                "https://voideditor.com/docs/linux#void-fails-to-open-windows",
+                "https://niride.com/docs/linux",
+                "https://niride.com/docs/linux#nir-fails-to-open-windows",
             )
         };
         let message = format!(
             db::indoc! {r#"
-            /void uses {} for rendering and requires a compatible GPU.
+            /nir uses {} for rendering and requires a compatible GPU.
 
             Currently you are using a software emulated GPU ({}) which
             will result in awful performance.
@@ -1099,7 +1099,7 @@ fn register_actions(
                         Toast::new(
                             NotificationId::unique::<RegisterZedScheme>(),
                             format!(
-                                "void:// links will now open in {}.",
+                                "nir:// links will now open in {}.",
                                 ReleaseChannel::global(cx).display_name()
                             ),
                         ),
@@ -1109,7 +1109,7 @@ fn register_actions(
                 Ok(())
             })
             .detach_and_prompt_err(
-                "Error registering void:// scheme",
+                "Error registering nir:// scheme",
                 window,
                 cx,
                 |_, _, _| None,
@@ -1529,7 +1529,7 @@ fn open_about_window(cx: &mut App) {
     cx.open_window(
         WindowOptions {
             titlebar: Some(TitlebarOptions {
-                title: Some("About /void".into()),
+                title: Some("About /nir".into()),
                 appears_transparent: true,
                 traffic_light_position: Some(point(px(12.), px(12.))),
             }),
