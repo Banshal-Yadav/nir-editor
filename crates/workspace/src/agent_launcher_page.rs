@@ -964,25 +964,29 @@ impl Render for AgentLauncherPage {
                         ),
                 )
             })
-            // ── Running agents preview ─────────────────────────────────
-            .children(self.render_running_agents(cx))
-            // ── Divider between preview and agent list ──────────────────
-            .when(self.render_running_agents(cx).is_some(), |this| {
-                this.child(
-                    div()
-                        .w_full()
-                        .h_px()
-                        .bg(border_color.opacity(0.3)),
-                )
-            })
-            // ── Scrollable agent list ─────────────────────────────────
+            // ── Scrollable content area ───────────────────────────────
             .child(
                 div()
                     .id("launcher-scroll-container")
                     .flex_1()
                     .overflow_y_scroll()
                     .child(
-                        h_flex().justify_center().child(
+                        v_flex()
+                            .w_full()
+                            // ── Running agents preview ─────────────────────────────────
+                            .children(self.render_running_agents(cx))
+                            // ── Divider between preview and agent list ──────────────────
+                            .when(self.render_running_agents(cx).is_some(), |this| {
+                                this.child(
+                                    div()
+                                        .w_full()
+                                        .h_px()
+                                        .bg(border_color.opacity(0.3)),
+                                )
+                            })
+                            // ── Agent list ─────────────────────────────────
+                            .child(
+                                h_flex().justify_center().child(
                             v_flex()
                                 .w_full()
                                 .max_w(rems(48.))
@@ -1002,14 +1006,12 @@ impl Render for AgentLauncherPage {
 
                                     v_flex()
                                         .w_full()
-                                        .bg(surface.opacity(0.2))
+                                        .bg(surface.opacity(0.3))
                                         .border_1()
-                                        .border_color(if is_expanded {
-                                            accent.opacity(0.4)
-                                        } else {
-                                            border_color.opacity(0.4)
-                                        })
-                                        .rounded_md()
+                                        .border_color(if is_expanded { accent.opacity(0.5) } else { border_color.opacity(0.3) })
+                                        .rounded_lg()
+                                        .overflow_hidden()
+                                        .hover(|s| s.border_color(if is_expanded { accent.opacity(0.6) } else { accent.opacity(0.3) }))
                                         // Collapsed row
                                         .child(
                                             div()
@@ -1018,7 +1020,7 @@ impl Render for AgentLauncherPage {
                                                 .w_full()
                                                 .justify_between()
                                                 .items_center()
-                                                .px_4()
+                                                .px_3()
                                                 .py_3()
                                                 .cursor_pointer()
                                                 .hover(|s| {
@@ -1033,51 +1035,57 @@ impl Render for AgentLauncherPage {
                                                     h_flex()
                                                         .gap_3()
                                                         .items_center()
-                                                        .child(
-                                                            Icon::new(if is_expanded {
-                                                                IconName::ChevronDown
-                                                            } else {
-                                                                IconName::ChevronRight
-                                                            })
-                                                            .size(IconSize::XSmall)
-                                                            .color(if is_expanded {
-                                                                Color::Accent
-                                                            } else {
-                                                                Color::Muted
-                                                            }),
-                                                        )
-                                                        .child(
-                                                            Label::new(name.clone())
-                                                                .weight(gpui::FontWeight::SEMIBOLD)
-                                                                .size(LabelSize::Small),
-                                                        )
+                                                        // 1. Sleek Avatar Badge
                                                         .child(
                                                             div()
-                                                                .w(px(6.))
-                                                                .h(px(6.))
-                                                                .rounded_full()
-                                                                .bg(if is_installed {
-                                                                    success
-                                                                } else if is_not_installed {
-                                                                    accent.opacity(0.6)
-                                                                } else {
-                                                                    cx.theme()
-                                                                        .colors()
-                                                                        .text_muted
-                                                                        .opacity(0.3)
-                                                                }),
-                                                        ),
+                                                                .w(px(34.))
+                                                                .h(px(34.))
+                                                                .rounded_md()
+                                                                .bg(cx.theme().colors().editor_background)
+                                                                .border_1()
+                                                                .border_color(accent.opacity(0.15))
+                                                                .flex().items_center().justify_center()
+                                                                .child(
+                                                                    div()
+                                                                        .text_size(px(15.))
+                                                                        .font_weight(gpui::FontWeight::BOLD)
+                                                                        .text_color(if is_installed { success } else { cx.theme().colors().text_muted })
+                                                                        .child(name.chars().next().map(|c| c.to_uppercase().to_string()).unwrap_or_else(|| "A".to_string()))
+                                                                )
+                                                        )
+                                                        // 2. Name and short description
+                                                        .child(
+                                                            v_flex()
+                                                                .child(
+                                                                    div()
+                                                                        .text_size(px(14.))
+                                                                        .font_weight(gpui::FontWeight::SEMIBOLD)
+                                                                        .text_color(cx.theme().colors().text)
+                                                                        .child(name.clone())
+                                                                )
+                                                                .child(
+                                                                    div()
+                                                                        .text_size(px(12.))
+                                                                        .text_color(cx.theme().colors().text_muted)
+                                                                        .child(if description.chars().count() > 45 { format!("{}...", description.chars().take(45).collect::<String>()) } else { description.clone() })
+                                                                )
+                                                        )
                                                 )
                                                 .child(
                                                     h_flex()
-                                                        .gap_3()
-                                                        .px_1()
+                                                        .gap_4()
                                                         .items_center()
+                                                        // 3. Status Pill / Launch Button
                                                         .when(is_not_installed, |this| {
                                                             this.child(
-                                                                Label::new("not installed")
-                                                                    .size(LabelSize::XSmall)
-                                                                    .color(Color::Accent),
+                                                                div()
+                                                                    .px_2().py_1()
+                                                                    .rounded_md()
+                                                                    .bg(cx.theme().colors().element_background)
+                                                                    .border_1().border_color(border_color.opacity(0.6))
+                                                                    .child(
+                                                                        div().text_size(px(10.)).font_weight(gpui::FontWeight::MEDIUM).text_color(cx.theme().colors().text_muted).child("NOT INSTALLED")
+                                                                    )
                                                             )
                                                         })
                                                         .when(is_installed, |this| {
@@ -1085,31 +1093,41 @@ impl Render for AgentLauncherPage {
                                                                 div()
                                                                     .id(format!("launch-btn-{i}"))
                                                                     .cursor_pointer()
-                                                                    .px_2()
-                                                                    .py_0p5()
+                                                                    .px_3()
+                                                                    .py_1()
                                                                     .rounded_md()
+                                                                    .bg(success.opacity(0.1))
                                                                     .border_1()
-                                                                    .border_color(border_color.opacity(0.4))
-                                                                    .hover(|s| {
-                                                                        s.bg(cx.theme().colors().element_hover)
-                                                                            .border_color(border_color)
-                                                                    })
+                                                                    .border_color(success.opacity(0.4))
+                                                                    .hover(|s| s.bg(success.opacity(0.2)))
                                                                     .child(
-                                                                        div()
-                                                                            .text_size(px(10.))
-                                                                            .font_weight(gpui::FontWeight::SEMIBOLD)
-                                                                            .text_color(cx.theme().colors().text_muted)
-                                                                            .child("LAUNCH"),
+                                                                        h_flex()
+                                                                            .gap_1p5()
+                                                                            .items_center()
+                                                                            .child(
+                                                                                div().w(px(5.)).h(px(5.)).rounded_full().bg(success)
+                                                                            )
+                                                                            .child(
+                                                                                div()
+                                                                                    .text_size(px(11.))
+                                                                                    .font_weight(gpui::FontWeight::BOLD)
+                                                                                    .text_color(success)
+                                                                                    .child("LAUNCH"),
+                                                                            ),
                                                                     )
                                                                     .on_click(cx.listener(
                                                                         move |this, _, window, cx| {
-                                                                            this.launch_agent(
-                                                                                i, window, cx,
-                                                                            );
+                                                                            this.launch_agent(i, window, cx);
                                                                         },
-                                                                    )),
+                                                                    ))
                                                             )
-                                                        }),
+                                                        })
+                                                        // Chevron
+                                                        .child(
+                                                            Icon::new(if is_expanded { IconName::ChevronDown } else { IconName::ChevronRight })
+                                                                .size(IconSize::Small)
+                                                                .color(Color::Muted)
+                                                        )
                                                 ),
                                         )
                                         // Expanded panel
@@ -1274,6 +1292,7 @@ impl Render for AgentLauncherPage {
                                             )
                                         })
                                 })),
+                            ),
                         ),
                     ),
             )
