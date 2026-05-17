@@ -2107,7 +2107,7 @@ impl MultiWorkspace {
                                     .items_center()
                                     .justify_center()
                                     .child(
-                                        Icon::new(IconName::Dash)
+                                        Icon::new(IconName::SquareDot)
                                             .size(IconSize::Medium)
                                             .color(Color::Muted)
                                     )
@@ -2127,7 +2127,31 @@ impl MultiWorkspace {
                             let weak_self = weak_self.clone();
                             move |_is_active, _window, cx| {
                                 let workspace_clone = workspace_clone.clone();
+                                let project_name = workspace_clone.read(cx).project().read(cx).worktree_root_names(cx).next().map(|n| n.to_string()).unwrap_or_else(|| "File".to_string());
+                                let hash = {
+                                    let mut hasher = DefaultHasher::new();
+                                    project_name.hash(&mut hasher);
+                                    hasher.finish()
+                                };
+                                let hue = (hash % 360) as f32 / 360.0;
                                 let is_light = cx.theme().appearance() == theme::Appearance::Light;
+                                
+                                let saturation = if is_light {
+                                    0.60 + (hash % 11) as f32 * 0.02
+                                } else {
+                                    0.15 + (hash % 11) as f32 * 0.01
+                                };
+                                let lightness = if is_light {
+                                    0.85 + (hash % 8) as f32 * 0.01
+                                } else {
+                                    0.18 + (hash % 8) as f32 * 0.01
+                                };
+                                let file_bg = gpui::hsla(hue, saturation, lightness, 1.0);
+                                let file_fg = Color::Custom(if is_light {
+                                    gpui::hsla(hue, 0.75, 0.25, 1.0)
+                                } else {
+                                    cx.theme().colors().text
+                                });
                                 div()
                                     .id(("workspace_avatar", workspace_id))
                                     .w_full()
@@ -2157,14 +2181,14 @@ impl MultiWorkspace {
                                         div()
                                             .size(px(32.))
                                             .rounded_md()
-                                            .bg(cx.theme().colors().element_background)
+                                            .bg(file_bg)
                                             .flex()
                                             .items_center()
                                             .justify_center()
                                             .child(
-                                                Icon::new(IconName::FileGeneric)
+                                                Icon::new(IconName::File)
                                                     .size(IconSize::Medium)
-                                                    .color(Color::Muted)
+                                                    .color(file_fg)
                                             )
                                     )
                                     .cursor_pointer()
