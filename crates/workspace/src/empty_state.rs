@@ -34,17 +34,18 @@ impl RenderOnce for EmptyState {
             .items_center()
             .child(
                 div()
-                    .opacity(0.06)
-                    .child(Vector::square(VectorName::VoidLogo, rems_from_px(84.)))
+                    .opacity(0.1)
+                    .child(Vector::square(VectorName::VoidLogo, rems_from_px(100.)))
             )
             .child(
                 v_flex()
                     .mt_8()
                     .gap_2()
-                    .items_center()
+                    .w_64()
                     .children(shortcuts.iter().map(|(action, key)| {
                         h_flex()
-                            .gap_3()
+                            .w_full()
+                            .justify_between()
                             .child(
                                 Label::new(*action)
                                     .color(Color::Muted)

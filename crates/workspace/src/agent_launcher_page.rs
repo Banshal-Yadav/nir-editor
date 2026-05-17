@@ -686,22 +686,41 @@ impl AgentLauncherPage {
                         .px_3()
                         .pb_3()
                         .child(
-                            v_flex()
+                            h_flex()
                                 .w_full()
-                                .bg(cx.theme().colors().editor_background)
                                 .rounded_md()
-                                .py_1p5()
-                                .px_2p5()
+                                .overflow_hidden()
                                 .border_1()
-                                .border_color(border_color.opacity(0.4))
-                                .children(output_lines.iter().map(|line| {
+                                .border_color(border_color.opacity(0.3))
+                                .items_stretch()
+                                .child(
+                                    // Left accent bar reflecting active status
                                     div()
-                                        .child(
-                                            Label::new(line.clone())
-                                                .size(LabelSize::XSmall)
-                                                .color(Color::Muted),
-                                        )
-                                })),
+                                        .w(px(2.))
+                                        .bg(if agent.is_active {
+                                            cx.theme().status().success
+                                        } else {
+                                            border_color.opacity(0.5)
+                                        }),
+                                )
+                                .child(
+                                    // Console output area
+                                    v_flex()
+                                        .flex_1()
+                                        .bg(cx.theme().colors().editor_background)
+                                        .py_2()
+                                        .px_3()
+                                        .children(output_lines.iter().map(|line| {
+                                            div()
+                                                .text_size(px(11.))
+                                                .text_color(if agent.is_active {
+                                                    cx.theme().colors().text
+                                                } else {
+                                                    cx.theme().colors().text_muted
+                                                })
+                                                .child(line.clone())
+                                        })),
+                                ),
                         ),
                 )
             })
@@ -1393,52 +1412,8 @@ fn is_meaningful_line(line: &str) -> bool {
 /// Extract the last meaningful line of output from a terminal, filtering out
 /// TUI noise, shell prompts, and progress indicators — preferring code/text.
 fn extract_meaningful_output(terminal: &Terminal) -> Option<SharedString> {
-    let content = terminal.last_content();
-    if content.cells.is_empty() {
-        return None;
-    }
-
-    // Group cells into lines.
-    let mut raw_lines: Vec<String> = Vec::new();
-    let mut current_line = String::new();
-    let mut prev_line: Option<usize> = None;
-
-    for ic in &content.cells {
-        if ic.flags.contains(Flags::WIDE_CHAR_SPACER) {
-            continue;
-        }
-        let line_num = ic.point.line.0 as usize;
-        match prev_line {
-            None => {
-                current_line.push(ic.c);
-                prev_line = Some(line_num);
-            }
-            Some(p) if p == line_num => {
-                current_line.push(ic.c);
-            }
-            Some(_) => {
-                let trimmed = current_line.trim_end().to_string();
-                if !trimmed.is_empty() {
-                    raw_lines.push(trimmed);
-                }
-                current_line = String::new();
-                current_line.push(ic.c);
-                prev_line = Some(line_num);
-            }
-        }
-    }
-    // Flush last line.
-    let trimmed = current_line.trim_end().to_string();
-    if !trimmed.is_empty() {
-        raw_lines.push(trimmed);
-    }
-
-    // Save a copy for the fallback before consuming raw_lines.
-    let last_non_empty: Option<String> = raw_lines
-        .iter()
-        .rev()
-        .find(|l| !l.trim().is_empty())
-        .cloned();
+    let raw_lines = terminal.last_n_non_empty_lines(20);
+    let last_non_empty = raw_lines.last().cloned();
 
     // Filter: scan from bottom, return first line that passes is_meaningful_line.
     for line in raw_lines.into_iter().rev() {
@@ -1467,46 +1442,10 @@ fn extract_meaningful_output(terminal: &Terminal) -> Option<SharedString> {
 /// Extract up to `max_lines` raw lines from the terminal (unfiltered),
 /// taking the most recent lines from the visible content.
 fn extract_raw_output(terminal: &Terminal, max_lines: usize) -> Vec<SharedString> {
-    let content = terminal.last_content();
-    if content.cells.is_empty() {
-        return Vec::new();
-    }
-
-    let mut lines: Vec<String> = Vec::new();
-    let mut current = String::new();
-    let mut prev_line: Option<usize> = None;
-
-    for ic in &content.cells {
-        if ic.flags.contains(Flags::WIDE_CHAR_SPACER) {
-            continue;
-        }
-        let line_num = ic.point.line.0 as usize;
-        match prev_line {
-            None => {
-                current.push(ic.c);
-                prev_line = Some(line_num);
-            }
-            Some(p) if p == line_num => {
-                current.push(ic.c);
-            }
-            Some(_) => {
-                let trimmed = current.trim_end().to_string();
-                if !trimmed.is_empty() {
-                    lines.push(trimmed);
-                }
-                current = String::new();
-                current.push(ic.c);
-                prev_line = Some(line_num);
-            }
-        }
-    }
-    let trimmed = current.trim_end().to_string();
-    if !trimmed.is_empty() {
-        lines.push(trimmed);
-    }
+    let raw_lines = terminal.last_n_non_empty_lines(50);
 
     // Filter out common bottom TUI chrome/status bar lines to capture the actual agent response.
-    let filtered_lines: Vec<String> = lines
+    let filtered_lines: Vec<String> = raw_lines
         .into_iter()
         .filter(|l| is_meaningful_line(l))
         .collect();
