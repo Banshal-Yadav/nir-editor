@@ -4509,7 +4509,7 @@ impl Render for Pane {
                                     },
                                 ));
                             if has_worktrees || !self.should_display_welcome_page {
-                                placeholder
+                                placeholder.child(crate::EmptyState::new(has_worktrees))
                             } else {
                                 if self.welcome_page.is_none() {
                                     let workspace = self.workspace.clone();

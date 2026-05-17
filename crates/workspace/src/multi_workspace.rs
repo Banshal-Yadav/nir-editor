@@ -980,24 +980,53 @@ impl MultiWorkspace {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Task<Result<bool>> {
+        // Find the group by key. If the key has no paths (zero-worktree or
+        // single-file workspace that was never registered), or if there happen
+        // to be multiple groups sharing the same empty key, we must NOT use
+        // retain-by-key because that would wipe every group with that key.
+        //
+        // Instead: if there is no uniquely-registered group for this key,
+        // fall back to closing just the active workspace so that only the
+        // current project is removed.
         let pos = self
             .project_groups
             .iter()
             .position(|group| group.key == *group_key);
-        let workspaces = self
-            .workspaces_for_project_group(group_key, cx)
-            .unwrap_or_default();
+
+        // If we found no group for this key, OR the key has empty paths
+        // (which means all zero-worktree workspaces share it and key-based
+        // matching would over-remove), close only the active workspace.
+        let Some(pos) = pos else {
+            let active_workspace = self.workspace().clone();
+            return self.close_workspace(&active_workspace, window, cx);
+        };
+        if group_key.path_list().paths().is_empty() {
+            self.project_groups.remove(pos);
+            cx.emit(MultiWorkspaceEvent::ProjectGroupsChanged);
+            let active_workspace = self.workspace().clone();
+            return self.close_workspace(&active_workspace, window, cx);
+        }
+
+        // Collect only the workspaces that belong to the group at `pos`.
+        // We match by key equality restricted to this single position's key so
+        // that if two groups happen to share a key we only close the right one.
+        let group_key_at_pos = self.project_groups[pos].key.clone();
+        let workspaces: Vec<_> = self
+            .retained_workspaces
+            .iter()
+            .filter(|ws| ws.read(cx).project_group_key(cx) == group_key_at_pos)
+            .cloned()
+            .collect();
 
         // Compute the neighbor while the group is still in the list.
-        let neighbor_key = pos.and_then(|pos| {
-            self.project_groups
-                .get(pos + 1)
-                .or_else(|| pos.checked_sub(1).and_then(|i| self.project_groups.get(i)))
-                .map(|group| group.key.clone())
-        });
+        let neighbor_key = self
+            .project_groups
+            .get(pos + 1)
+            .or_else(|| pos.checked_sub(1).and_then(|i| self.project_groups.get(i)))
+            .map(|group| group.key.clone());
 
-        // Now remove the group.
-        self.project_groups.retain(|group| group.key != *group_key);
+        // Remove only the single group at `pos`, not every group sharing the key.
+        self.project_groups.remove(pos);
         cx.emit(MultiWorkspaceEvent::ProjectGroupsChanged);
 
         let excluded_workspaces = workspaces.clone();
@@ -1942,37 +1971,37 @@ impl MultiWorkspace {
         cx: &mut Context<Self>,
     ) -> Task<Result<Entity<Workspace>>> {
         if self.multi_workspace_enabled(cx) {
-            let empty_workspace = if self
-                .active_workspace
-                .read(cx)
-                .project()
-                .read(cx)
-                .visible_worktrees(cx)
-                .next()
-                .is_none()
-            {
-                Some(self.active_workspace.clone())
-            } else {
-                None
-            };
+            // Collect ALL zero-worktree workspaces for cleanup, not just
+            // the active one. This ensures empty-state workspaces never
+            // linger in the activity bar after a project is opened.
+            let empty_workspaces: Vec<_> = self
+                .retained_workspaces
+                .iter()
+                .filter(|ws| {
+                    ws.read(cx)
+                        .project()
+                        .read(cx)
+                        .visible_worktrees(cx)
+                        .next()
+                        .is_none()
+                })
+                .cloned()
+                .collect();
 
             cx.spawn_in(window, async move |this, cx| {
-                if let Some(empty_workspace) = empty_workspace.as_ref() {
-                    let should_continue = empty_workspace
+                for ew in &empty_workspaces {
+                    let _ = ew
                         .update_in(cx, |workspace, window, cx| {
                             workspace.prepare_to_close(CloseIntent::ReplaceWindow, window, cx)
                         })?
-                        .await?;
-                    if !should_continue {
-                        return Ok(empty_workspace.clone());
-                    }
+                        .await;
                 }
 
                 let create_task = this.update_in(cx, |this, window, cx| {
                     this.find_or_create_local_workspace(
                         PathList::new(&paths),
                         None,
-                        empty_workspace.as_slice(),
+                        &empty_workspaces,
                         None,
                         OpenMode::Activate,
                         window,
@@ -1981,13 +2010,14 @@ impl MultiWorkspace {
                 })?;
                 let new_workspace = create_task.await?;
 
-                if let Some(empty_workspace) = empty_workspace {
-                    this.update(cx, |this, cx| {
-                        if this.is_workspace_retained(&empty_workspace) {
-                            this.detach_workspace(&empty_workspace, cx);
+                // Remove all empty workspaces now that the new one is active.
+                this.update(cx, |this, cx| {
+                    for ew in &empty_workspaces {
+                        if this.is_workspace_retained(ew) {
+                            this.detach_workspace(ew, cx);
                         }
-                    })?;
-                }
+                    }
+                })?;
 
                 Ok(new_workspace)
             })
@@ -2019,10 +2049,161 @@ impl MultiWorkspace {
         let active_workspace = self.workspace();
         
         let mut avatars: Vec<gpui::AnyElement> = Vec::new();
+        let workspace_count = self.retained_workspaces.len();
         for workspace in self.workspaces() {
             let is_active = workspace == active_workspace;
-            
-            // Get project name
+
+            // Case 1 — No worktrees or single-file worktrees only: push a muted file icon.
+            // (zero-worktree workspaces satisfy .all() vacuously, so no separate check needed)
+            let project = workspace.read(cx).project();
+            let is_files_only = project.read(cx)
+                .visible_worktrees(cx)
+                .all(|wt| wt.read(cx).root_entry().map(|e| !e.is_dir()).unwrap_or(true));
+            if is_files_only {
+                let has_worktrees = workspace.read(cx)
+                    .project().read(cx)
+                    .visible_worktrees(cx).next().is_some();
+
+                if !has_worktrees {
+                    // Skip rendering the empty-state avatar entirely when
+                    // other workspaces exist — the empty workspace is just
+                    // a placeholder and shouldn't clutter the activity bar.
+                    if workspace_count > 1 {
+                        continue;
+                    }
+                    // Only workspace — show a Home icon as the empty-state avatar.
+                    let is_light = cx.theme().appearance() == theme::Appearance::Light;
+                    avatars.push(
+                        div()
+                            .w_full()
+                            .h(px(40.))
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .relative()
+                            .child(
+                                div()
+                                    .absolute()
+                                    .left_0()
+                                    .top_0()
+                                    .bottom_0()
+                                    .when(is_active, |el| {
+                                        el.w(px(3.)).bg(cx.theme().colors().text)
+                                    })
+                                    .when(!is_active, |el| {
+                                        el.w(px(1.)).bg(if is_light {
+                                            cx.theme().colors().border
+                                        } else {
+                                            gpui::Hsla::from(gpui::rgb(0x2a2a2a))
+                                        })
+                                    })
+                            )
+                            .child(
+                                div()
+                                    .size(px(32.))
+                                    .rounded_md()
+                                    .bg(cx.theme().colors().element_background)
+                                    .flex()
+                                    .items_center()
+                                    .justify_center()
+                                    .child(
+                                        Icon::new(IconName::Dash)
+                                            .size(IconSize::Medium)
+                                            .color(Color::Muted)
+                                    )
+                            )
+                            .into_any_element()
+                    );
+                    continue;
+                }
+
+                let workspace_clone = workspace.clone();
+                let project_group_key = self.project_group_key_for_workspace(&workspace, cx);
+                let weak_self = cx.weak_entity();
+                let workspace_id = workspace_clone.entity_id().as_u64();
+                avatars.push(
+                    right_click_menu(("workspace_avatar_menu", workspace_id))
+                        .trigger({
+                            let weak_self = weak_self.clone();
+                            move |_is_active, _window, cx| {
+                                let workspace_clone = workspace_clone.clone();
+                                let is_light = cx.theme().appearance() == theme::Appearance::Light;
+                                div()
+                                    .id(("workspace_avatar", workspace_id))
+                                    .w_full()
+                                    .h(px(40.))
+                                    .flex()
+                                    .items_center()
+                                    .justify_center()
+                                    .relative()
+                                    .child(
+                                        div()
+                                            .absolute()
+                                            .left_0()
+                                            .top_0()
+                                            .bottom_0()
+                                            .when(is_active, |el| {
+                                                el.w(px(3.)).bg(cx.theme().colors().text)
+                                            })
+                                            .when(!is_active, |el| {
+                                                el.w(px(1.)).bg(if is_light {
+                                                    cx.theme().colors().border
+                                                } else {
+                                                    gpui::Hsla::from(gpui::rgb(0x2a2a2a))
+                                                })
+                                            })
+                                    )
+                                    .child(
+                                        div()
+                                            .size(px(32.))
+                                            .rounded_md()
+                                            .bg(cx.theme().colors().element_background)
+                                            .flex()
+                                            .items_center()
+                                            .justify_center()
+                                            .child(
+                                                Icon::new(IconName::FileGeneric)
+                                                    .size(IconSize::Medium)
+                                                    .color(Color::Muted)
+                                            )
+                                    )
+                                    .cursor_pointer()
+                                    .on_click(move |_, window, cx| {
+                                        weak_self.update(cx, |this, cx| {
+                                            this.activate(workspace_clone.clone(), None, window, cx);
+                                        }).ok();
+                                    })
+                            }
+                        })
+                        .menu({
+                            let remove_multi_workspace = weak_self;
+                            let project_group_key = project_group_key.clone();
+                            move |window, cx| {
+                                let remove_multi_workspace = remove_multi_workspace.clone();
+                                let project_group_key = project_group_key.clone();
+                                ContextMenu::build(window, cx, move |menu, _window, menu_cx| {
+                                    let weak_menu = menu_cx.weak_entity();
+                                    let remove_multi_workspace = remove_multi_workspace.clone();
+                                    let project_group_key = project_group_key.clone();
+                                    menu.entry("Remove Project", None, move |window, cx| {
+                                        remove_multi_workspace
+                                            .update(cx, |multi_workspace, cx| {
+                                                multi_workspace
+                                                    .remove_project_group(&project_group_key, window, cx)
+                                                    .detach_and_log_err(cx);
+                                            })
+                                            .ok();
+                                        weak_menu.update(cx, |_, cx| cx.emit(gpui::DismissEvent)).ok();
+                                    })
+                                })
+                            }
+                        })
+                        .into_any_element()
+                );
+                continue;
+            }
+
+            // Case 3 — Project/folder open: letter avatar with hash color.
             let project_name = workspace.read(cx).project().read(cx).worktree_root_names(cx).next().map(|n| n.to_string()).unwrap_or_else(|| "P".to_string());
             let first_letter = project_name.chars().next().unwrap_or('P').to_ascii_uppercase();
             
@@ -2167,12 +2348,12 @@ impl MultiWorkspace {
                     .py_2()
                     .child(
                         v_flex()
-                            .pt(px(6.))
-                            .pb_1()
+                            .pt(px(8.))
+                            .pb(px(12.))
                             .w_full()
                             .items_center()
                             .child(
-                                Vector::square(VectorName::VoidLogo, rems_from_px(28.))
+                                Vector::square(VectorName::VoidLogo, rems_from_px(24.))
                             )
                             .child(
                                 div()
@@ -2221,7 +2402,7 @@ impl MultiWorkspace {
                                 },
                             )
                             .when(
-                                self.multi_workspace_enabled(cx) && !matches!(
+                                self.multi_workspace_enabled(cx) && agent_settings::AgentSettings::get_global(cx).enabled(cx) && !matches!(
                                     agent_settings::AgentSettings::get_layout(cx),
                                     agent_settings::WindowLayout::Editor(_)
                                 ),

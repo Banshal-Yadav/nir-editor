@@ -322,30 +322,30 @@ impl RenderOnce for ZedAiConfiguration {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
         let (_subscription_text, _has_paid_plan) = match self.plan {
             Some(Plan::ZedPro) => (
-                "You have access to /void hosted models through your Pro subscription.",
+                "You have access to /nir hosted models through your Pro subscription.",
                 true,
             ),
             Some(Plan::ZedProTrial) => (
-                "You have access to /void hosted models through your Pro trial.",
+                "You have access to /nir hosted models through your Pro trial.",
                 false,
             ),
             Some(Plan::ZedStudent) => (
-                "You have access to /void hosted models through your Student subscription.",
+                "You have access to /nir hosted models through your Student subscription.",
                 true,
             ),
             Some(Plan::ZedBusiness) => (
                 if self.is_zed_model_provider_enabled {
-                    "You have access to /void hosted models through your organization."
+                    "You have access to /nir hosted models through your organization."
                 } else {
-                    "/void hosted models are disabled by your organization's configuration."
+                    "/nir hosted models are disabled by your organization's configuration."
                 },
                 true,
             ),
             Some(Plan::ZedFree) | None => (
                 if self.eligible_for_trial {
-                    "Subscribe for access to /void hosted models. Start with a 14 day free trial."
+                    "Subscribe for access to /nir hosted models. Start with a 14 day free trial."
                 } else {
-                    "Subscribe for access to /void hosted models."
+                    "Subscribe for access to /nir hosted models."
                 },
                 false,
             ),
@@ -375,9 +375,9 @@ impl RenderOnce for ZedAiConfiguration {
         if false && !self.is_connected {
             return v_flex()
                 .gap_2()
-                .child(Label::new("Sign in to have access to /void's complete agentic experience with hosted models."))
+                .child(Label::new("Sign in to have access to /nir's complete agentic experience with hosted models."))
                 .child(
-                    Button::new("sign_in", "Sign In to use /void AI")
+                    Button::new("sign_in", "Sign In to use /nir AI")
                         .start_icon(Icon::new(IconName::Github).size(IconSize::Small).color(Color::Muted))
                         .full_width()
                         .on_click({
@@ -396,7 +396,7 @@ impl RenderOnce for ZedAiConfiguration {
                         .on_click(|_, _, cx| cx.open_url(&zed_urls::upgrade_to_zed_pro_url(cx))),
                 )
             } else {
-                this.child(Label::new("/void AI is available in this build."))
+                this.child(Label::new("/nir AI is available in this build."))
             }
         })
     }
@@ -734,7 +734,7 @@ impl Component for ZedAiConfiguration {
                         }),
                     ),
                     single_example(
-                        "/void Pro Trial Plan",
+                        "/nir Pro Trial Plan",
                         configuration(PreviewConfiguration {
                             plan: Some(Plan::ZedProTrial),
                             is_connected: true,
@@ -743,7 +743,7 @@ impl Component for ZedAiConfiguration {
                         }),
                     ),
                     single_example(
-                        "/void Pro Plan",
+                        "/nir Pro Plan",
                         configuration(PreviewConfiguration {
                             plan: Some(Plan::ZedPro),
                             is_connected: true,

@@ -1180,59 +1180,31 @@ fn register_actions(
             }
         })
         .register_action({
-            let app_state = app_state.clone();
             move |workspace, _: &CloseProject, window, cx| {
                 let Some(window_handle) = window.window_handle().downcast::<MultiWorkspace>() else {
                     return;
                 };
-                let app_state = app_state.clone();
                 let old_group_key = workspace.project_group_key(cx);
-                cx.spawn_in(window, async move |this, cx| {
-                    let should_continue = this
-                        .update_in(cx, |workspace, window, cx| {
-                            workspace.prepare_to_close(
-                                CloseIntent::ReplaceWindow,
-                                window,
-                                cx,
-                            )
-                        })?
-                        .await?;
-                    if should_continue {
-                        let task = cx.update(|_window, cx| {
-                            open_new(
-                                workspace::OpenOptions {
-                                    requesting_window: Some(window_handle),
-                                    ..Default::default()
-                                },
-                                app_state,
-                                cx,
-                                |workspace, window, cx| {
-                                    cx.activate(true);
-                                    let project = workspace.project().clone();
-                                    let buffer = project.update(cx, |project, cx| {
-                                        project.create_local_buffer("", None, true, cx)
-                                    });
-                                    let editor = cx.new(|cx| {
-                                        Editor::for_buffer(buffer, Some(project), window, cx)
-                                    });
-                                    workspace.add_item_to_active_pane(
-                                        Box::new(editor),
-                                        None,
-                                        true,
-                                        window,
-                                        cx,
-                                    );
-                                },
-                            )
-                        })?;
-                        task.await?;
-                        window_handle.update(cx, |mw, window, cx| {
-                            mw.remove_project_group(&old_group_key, window, cx)
-                        })?.await.log_err();
-                        Ok::<(), anyhow::Error>(())
-                    } else {
-                        Ok(())
+                // Capture the DB id now, before the workspace is torn down.
+                let old_db_id = workspace.database_id();
+                cx.spawn_in(window, async move |_this, cx| {
+                    // remove_project_group handles prepare_to_close, save
+                    // prompts, and workspace teardown internally via
+                    // self.remove(). Do NOT call prepare_to_close separately
+                    // — that causes double session-detachment and can corrupt
+                    // the workspace lifecycle.
+                    window_handle.update(cx, |mw, window, cx| {
+                        mw.remove_project_group(&old_group_key, window, cx)
+                    })?.await.log_err();
+
+                    // Delete the old workspace session from the DB so that
+                    // reopening the same paths does not restore this session.
+                    if let Some(db_id) = old_db_id {
+                        let db = cx.update(|_, cx| workspace::WorkspaceDb::global(cx))?;
+                        db.delete_workspace_by_id(db_id).await.log_err();
                     }
+
+                    Ok::<(), anyhow::Error>(())
                 })
                 .detach_and_log_err(cx);
             }

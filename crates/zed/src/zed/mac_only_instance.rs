@@ -72,10 +72,10 @@ fn get_uid_as_u32(uid: &sysinfo::Uid) -> u32 {
 
 fn instance_handshake() -> &'static str {
     match *release_channel::RELEASE_CHANNEL {
-        ReleaseChannel::Dev => "/void Editor Dev Instance Running",
-        ReleaseChannel::Nightly => "/void Editor Nightly Instance Running",
-        ReleaseChannel::Preview => "/void Editor Preview Instance Running",
-        ReleaseChannel::Stable => "/void Editor Stable Instance Running",
+        ReleaseChannel::Dev => "/nir Editor Dev Instance Running",
+        ReleaseChannel::Nightly => "/nir Editor Nightly Instance Running",
+        ReleaseChannel::Preview => "/nir Editor Preview Instance Running",
+        ReleaseChannel::Stable => "/nir Editor Stable Instance Running",
     }
 }
 

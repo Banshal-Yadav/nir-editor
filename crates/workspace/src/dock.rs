@@ -1264,7 +1264,8 @@ impl Render for PanelButtons {
                 let focus_handle = dock.focus_handle(cx);
                 let icon_label = entry.panel.icon_label(window, cx);
 
-                Some(
+                Some((
+                    name,
                     right_click_menu(name)
                         .menu(move |window, cx| {
                             const POSITIONS: [DockPosition; 3] = [
@@ -1408,8 +1409,9 @@ impl Render for PanelButtons {
                                     .and_then(|label| label.parse::<usize>().ok()),
                                 |this, count| this.child(CountBadge::new(count)),
                             )
-                        }),
-                )
+                        })
+                        .into_any_element(),
+                ))
             })
             .collect();
 
@@ -1419,18 +1421,27 @@ impl Render for PanelButtons {
 
         let has_buttons = !buttons.is_empty();
 
+        let mut children = Vec::new();
+        if has_buttons {
+            children.push(Divider::vertical().color(DividerColor::Border).into_any_element());
+        }
+
+        let len = buttons.len();
+        for (i, (name, button)) in buttons.into_iter().enumerate() {
+            if name == "Project Panel" && i > 0 {
+                children.push(Divider::vertical().color(DividerColor::Border).into_any_element());
+            }
+            
+            children.push(button);
+            
+            if name == "Project Panel" && i < len - 1 {
+                children.push(Divider::vertical().color(DividerColor::Border).into_any_element());
+            }
+        }
+
         h_flex()
             .gap_1()
-            .when(
-                has_buttons
-                    && (dock.position == DockPosition::Bottom
-                        || dock.position == DockPosition::Right),
-                |this| this.child(Divider::vertical().color(DividerColor::Border)),
-            )
-            .children(buttons)
-            .when(has_buttons && dock.position == DockPosition::Left, |this| {
-                this.child(Divider::vertical().color(DividerColor::Border))
-            })
+            .children(children)
     }
 }
 

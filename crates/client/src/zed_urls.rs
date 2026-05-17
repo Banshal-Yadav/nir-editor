@@ -1,4 +1,4 @@
-//! Contains helper functions for constructing URLs to various /void-related pages.
+//! Contains helper functions for constructing URLs to various /nir-related pages.
 //!
 //! These URLs will adapt to the configured server URL in order to construct
 //! links appropriate for the environment (e.g., by linking to a local copy of
@@ -31,12 +31,12 @@ pub fn upgrade_to_zed_pro_url(cx: &App) -> String {
     format!("{server_url}/account/upgrade", server_url = server_url(cx))
 }
 
-/// Returns the URL to /void's terms of service.
+/// Returns the URL to /nir's terms of service.
 pub fn terms_of_service(cx: &App) -> String {
     format!("{server_url}/terms-of-service", server_url = server_url(cx))
 }
 
-/// Returns the URL to /void AI's privacy and security docs.
+/// Returns the URL to /nir AI's privacy and security docs.
 pub fn ai_privacy_and_security(cx: &App) -> String {
     format!(
         "{server_url}/docs/ai/privacy-and-security",
@@ -44,7 +44,7 @@ pub fn ai_privacy_and_security(cx: &App) -> String {
     )
 }
 
-/// Returns the URL to /void's edit prediction documentation.
+/// Returns the URL to /nir's edit prediction documentation.
 pub fn edit_prediction_docs(cx: &App) -> String {
     format!(
         "{server_url}/docs/ai/edit-prediction",
@@ -52,7 +52,7 @@ pub fn edit_prediction_docs(cx: &App) -> String {
     )
 }
 
-/// Returns the URL to /void's ACP registry blog post.
+/// Returns the URL to /nir's ACP registry blog post.
 pub fn acp_registry_blog(cx: &App) -> String {
     format!(
         "{server_url}/blog/acp-registry",

@@ -86,7 +86,7 @@ use crate::zed::{CrashHandler, OpenRequestKind, eager_load_active_theme_and_icon
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 fn files_not_created_on_launch(errors: HashMap<io::ErrorKind, Vec<&Path>>) {
-    let message = "/void failed to launch";
+    let message = "/nir failed to launch";
     let error_details = errors
         .into_iter()
         .flat_map(|(kind, paths)| {
@@ -148,7 +148,7 @@ fn fail_to_open_window_async(e: anyhow::Error, cx: &mut AsyncApp) {
 
 fn fail_to_open_window(e: anyhow::Error, _cx: &mut App) {
     eprintln!(
-        "/void failed to open a window: {e:?}. See /void docs for troubleshooting steps."
+        "/nir failed to open a window: {e:?}. See /nir docs for troubleshooting steps."
     );
     #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
     {
@@ -170,7 +170,7 @@ fn fail_to_open_window(e: anyhow::Error, _cx: &mut App) {
             proxy
                 .add_notification(
                     notification_id,
-                    Notification::new("/void failed to launch")
+                    Notification::new("/nir failed to launch")
                         .body(Some(body.as_str()))
                         .priority(Priority::High)
                         .icon(ashpd::desktop::Icon::with_names(&[
@@ -311,7 +311,7 @@ fn main() {
             client::telemetry::os_name(),
             client::telemetry::os_version(),
         );
-        println!("/void System Specs (from CLI):\n{}", system_specs);
+        println!("/nir System Specs (from CLI):\n{}", system_specs);
         return;
     }
 
@@ -323,7 +323,7 @@ fn main() {
         .unwrap();
 
     log::info!(
-        "========== starting void version {}, sha {} ==========",
+        "========== starting nir version {}, sha {} ==========",
         app_version,
         app_commit_sha
             .as_ref()
@@ -374,7 +374,7 @@ fn main() {
         }
     };
     if failed_single_instance_check {
-        println!("void is already running");
+        println!("nir is already running");
         return;
     }
 
@@ -498,7 +498,7 @@ fn main() {
         handle_keymap_file_changes(user_keymap_file_rx, user_keymap_watcher, cx);
 
         let user_agent = format!(
-            "/void/{} ({}; {})",
+            "/nir/{} ({}; {})",
             AppVersion::global(cx),
             std::env::consts::OS,
             std::env::consts::ARCH
@@ -1423,6 +1423,14 @@ pub(crate) async fn restore_or_create_workspace(
     if let Some(multi_workspaces) = restorable_workspaces(cx, &app_state).await {
         let mut error_count = 0;
         for multi_workspace in multi_workspaces {
+            // Skip zero-path (empty) workspaces — they have no meaningful state
+            // to restore. Restoring them would create a duplicate empty workspace
+            // alongside the one MultiWorkspace::new already provides.
+            if multi_workspace.active_workspace.paths.is_empty() {
+                log::debug!("Skipping restoration of zero-path workspace (empty state).");
+                continue;
+            }
+
             let result = match &multi_workspace.active_workspace.location {
                 SerializedWorkspaceLocation::Local => {
                     restore_multiworkspace(multi_workspace, app_state.clone(), cx)

@@ -105,7 +105,7 @@ impl EditPredictionProvider {
 
     pub fn display_name(&self) -> Option<&'static str> {
         match self {
-            EditPredictionProvider::Zed => Some("/void AI"),
+            EditPredictionProvider::Zed => Some("/nir AI"),
             EditPredictionProvider::Copilot => Some("GitHub Copilot"),
             EditPredictionProvider::Codestral => Some("Codestral"),
             EditPredictionProvider::Mercury => Some("Mercury"),
@@ -139,7 +139,7 @@ pub struct EditPredictionSettingsContent {
     pub open_ai_compatible_api: Option<CustomEditPredictionProviderSettingsContent>,
     /// The directory where manually captured edit prediction examples are stored.
     pub examples_dir: Option<Arc<Path>>,
-    /// Controls whether /void may collect training data when using /void's Edit Predictions.
+    /// Controls whether /nir may collect training data when using /nir's Edit Predictions.
     /// Data is only ever captured for files in projects that are detected as open source.
     ///
     /// - `"default"`: use the preference previously set via the status-bar toggle,
@@ -284,7 +284,7 @@ pub struct OllamaEditPredictionSettingsContent {
     pub prompt_format: Option<EditPredictionPromptFormatContent>,
 }
 
-/// Controls whether /void collects training data when using /void's Edit Predictions.
+/// Controls whether /nir collects training data when using /nir's Edit Predictions.
 #[derive(
     Copy,
     Clone,
@@ -305,7 +305,7 @@ pub enum EditPredictionDataCollectionChoice {
     /// if no preference has been stored.
     #[default]
     Default,
-    /// Allow /void to collect training data from open-source projects.
+    /// Allow /nir to collect training data from open-source projects.
     Yes,
     /// Never allow training data collection.
     No,
@@ -463,7 +463,7 @@ pub struct LanguageSettingsContent {
     ///
     /// Default: auto
     pub formatter: Option<FormatterList>,
-    /// /void's Prettier integration settings.
+    /// /nir's Prettier integration settings.
     /// Allows to enable/disable formatting with Prettier
     /// and configure default Prettier, used when no project-level Prettier installation is found.
     ///
@@ -550,12 +550,12 @@ pub struct LanguageSettingsContent {
     /// Inlay hint related settings.
     pub inlay_hints: Option<InlayHintSettingsContent>,
     /// Whether to automatically type closing characters for you. For example,
-    /// when you type '(', /void will automatically add a closing ')' at the correct position.
+    /// when you type '(', /nir will automatically add a closing ')' at the correct position.
     ///
     /// Default: true
     pub use_autoclose: Option<bool>,
     /// Whether to automatically surround text with characters for you. For example,
-    /// when you select text and type '(', /void will automatically surround text with ().
+    /// when you select text and type '(', /nir will automatically surround text with ().
     ///
     /// Default: true
     pub use_auto_surround: Option<bool>,

@@ -28,10 +28,12 @@ mod toolbar;
 pub mod welcome;
 pub mod agent_launcher_page;
 pub mod agent_config;
+pub mod empty_state;
 mod workspace_settings;
 
 pub use crate::notifications::NotificationFrame;
 pub use dock::Panel;
+pub use empty_state::EmptyState;
 pub use multi_workspace::{
     CloseWorkspaceSidebar, DraggedSidebar, FocusWorkspaceSidebar, MoveProjectToNewWindow,
     MultiWorkspace, MultiWorkspaceEvent, NewThread, NextProject, NextThread, PreviousProject,
@@ -674,7 +676,18 @@ fn prompt_and_open_paths(
     create_new_window: bool,
     cx: &mut App,
 ) {
-    if let Some(workspace_window) = local_workspace_windows(cx).into_iter().next() {
+    // Try to find an existing local workspace window. Fall back to the
+    // active window if none qualifies — this handles zero-worktree
+    // (empty-state) windows whose workspace_location() returns
+    // DetachFromSession instead of Location(Local).
+    let workspace_window = local_workspace_windows(cx)
+        .into_iter()
+        .next()
+        .or_else(|| {
+            cx.active_window()
+                .and_then(|w| w.downcast::<MultiWorkspace>())
+        });
+    if let Some(workspace_window) = workspace_window {
         workspace_window
             .update(cx, |multi_workspace, window, cx| {
                 let workspace = multi_workspace.workspace().clone();
@@ -799,7 +812,7 @@ pub fn init(app_state: Arc<AppState>, cx: &mut App) {
                     multiple: true,
                     prompt: None,
                 },
-                true,
+                false,
                 cx,
             );
         });
@@ -1655,7 +1668,17 @@ impl Workspace {
                 cx,
             );
             center_pane.set_can_split(Some(Arc::new(|_, _, _, _| true)));
-            center_pane.set_should_display_welcome_page(true);
+            // Only show the welcome page on the very first launch.
+            // "first_open" is the key written by onboarding::show_onboarding_view
+            // once the user has completed their first run. If it is absent (Ok(None))
+            // the user has never seen the welcome page, so show it.
+            let is_first_open = db::kvp::KeyValueStore::global(cx)
+                .read_kvp("first_open")
+                .ok()
+                .is_none_or(|v| v.is_none());
+            if is_first_open {
+                center_pane.set_should_display_welcome_page(true);
+            }
             center_pane
         });
         cx.subscribe_in(&center_pane, window, Self::handle_pane_event)
@@ -7105,6 +7128,21 @@ impl Workspace {
                     workspace.center.set_is_center(true);
                     workspace.center.mark_positions(cx);
 
+                    // Cull any empty panes left over from a stale serialized layout.
+                    // We only remove non-root panes (center.remove returns false for
+                    // the root) so that a single empty root pane is preserved as the
+                    // EmptyState placeholder.
+                    let empty_panes: Vec<_> = workspace.panes
+                        .iter()
+                        .filter(|p| p.read(cx).items().count() == 0)
+                        .cloned()
+                        .collect();
+                    for pane in empty_panes {
+                        if workspace.center.remove(&pane, cx).unwrap_or(false) {
+                            workspace.force_remove_pane(&pane, &None, window, cx);
+                        }
+                    }
+
                     if let Some(active_pane) = active_pane {
                         workspace.set_active_pane(&active_pane, window, cx);
                         cx.focus_self(window);
@@ -9024,12 +9062,18 @@ pub async fn restore_multiworkspace(
         state,
     } = multi_workspace;
 
-    let workspace_result = if active_workspace.paths.is_empty() {
-        cx.update(|cx| {
-            open_workspace_by_id(active_workspace.workspace_id, app_state.clone(), None, cx)
-        })
-        .await
-    } else {
+    // A zero-path workspace is just an empty state (no project, no files).
+    // Restoring it via open_workspace_by_id would add a *second* empty
+    // workspace inside the MultiWorkspace that was just created, producing
+    // two visible empty states. Skip restoration entirely — the window that
+    // called us already starts with a single empty workspace.
+    if active_workspace.paths.is_empty() {
+        return Err(anyhow::anyhow!(
+            "Skipping restoration of zero-path workspace — nothing to restore"
+        ));
+    }
+
+    let workspace_result = {
         cx.update(|cx| {
             Workspace::new_local(
                 active_workspace.paths.paths().to_vec(),

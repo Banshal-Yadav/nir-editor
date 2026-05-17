@@ -359,7 +359,10 @@ impl Render for TitleBar {
                                     h_flex()
                                         .gap_1()
                                         .ml_2()
-                                        .child(self.render_history_sidebar_toggle(cx))
+                                        .when_some(
+                                            self.render_history_sidebar_toggle(cx),
+                                            |this, btn| this.child(btn),
+                                        )
                                         .when_some(
                                             self.render_agent_panel_toggle(cx),
                                             |this, btn| this.child(btn),
@@ -656,7 +659,11 @@ impl TitleBar {
         )
     }
 
-    fn render_history_sidebar_toggle(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_history_sidebar_toggle(&self, cx: &mut Context<Self>) -> Option<impl IntoElement> {
+        if !agent_settings::AgentSettings::get_global(cx).enabled(cx) {
+            return None;
+        }
+
         let is_open = self
             .workspace
             .upgrade()
@@ -670,15 +677,17 @@ impl TitleBar {
 
         let icon = IconName::HistoryRerun;
 
-        IconButton::new("history-sidebar-toggle", icon)
-            .icon_size(IconSize::Small)
-            .icon_color(Color::Muted)
-            .selected_icon_color(Color::Default)
-            .toggle_state(is_open)
-            .tooltip(|_, cx| Tooltip::for_action("Toggle History Sidebar", &ToggleWorkspaceSidebar, cx))
-            .on_click(|_, window, cx| {
-                window.dispatch_action(Box::new(ToggleWorkspaceSidebar), cx);
-            })
+        Some(
+            IconButton::new("history-sidebar-toggle", icon)
+                .icon_size(IconSize::Small)
+                .icon_color(Color::Muted)
+                .selected_icon_color(Color::Default)
+                .toggle_state(is_open)
+                .tooltip(|_, cx| Tooltip::for_action("Toggle History Sidebar", &ToggleWorkspaceSidebar, cx))
+                .on_click(|_, window, cx| {
+                    window.dispatch_action(Box::new(ToggleWorkspaceSidebar), cx);
+                })
+        )
     }
 
     fn render_agent_panel_toggle(&self, cx: &mut Context<Self>) -> Option<impl IntoElement> {
