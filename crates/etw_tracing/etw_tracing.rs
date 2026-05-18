@@ -265,7 +265,7 @@ fn heap_tracing_profile(heap_pid: Option<u32>) -> String {
 
     format!(
         r#"<?xml version="1.0" encoding="utf-8"?>
-<WindowsPerformanceRecorder Version="1.0" Author="Zed Industries">
+<WindowsPerformanceRecorder Version="1.0" Author="/nir">
   <Profiles>
     {heap_provider}
 
