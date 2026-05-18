@@ -40,12 +40,6 @@ cargo run --release
 
 Detailed guides for [Windows](./docs/src/development/windows.md), [macOS](./docs/src/development/macos.md), and [Linux](./docs/src/development/linux.md).
 
-## ✨ Aesthetics
-Choose your environment:
-- **Antigravity**: A high-contrast, obsidian-inspired interface.
-- **Claude**: A refined, warm-toned workspace for deep focus.
-- **Gemini**: A vibrant, modern aesthetic for creative engineering.
-
 ---
 
 <p align="center">
