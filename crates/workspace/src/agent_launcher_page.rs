@@ -821,8 +821,10 @@ async fn check_binary(binary: &str) -> bool {
     #[cfg(not(windows))]
     let cmd = "which";
 
+    let mut cmd = util::command::Command::new(cmd);
+    cmd.arg(binary);
     matches!(
-        std::process::Command::new(cmd).arg(binary).output(),
+        cmd.output().await,
         Ok(o) if o.status.success()
     )
 }
@@ -895,7 +897,7 @@ impl Render for AgentLauncherPage {
                                                     .child("terminal agent launcher"),
                                             )
                                             .child(
-                                                Label::new("AI Command Center for Void")
+                                                Label::new("AI Command Center for /nir")
                                                     .size(LabelSize::XSmall)
                                                     .color(Color::Muted),
                                             ),
