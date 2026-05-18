@@ -8,10 +8,10 @@
   // - "dark": Use the theme indicated by the "dark" field
   "theme": {
     "mode": "system",
-    "light": "Void Chalk",
-    "dark": "Void Dark",
+    "light": "Nir Chalk",
+    "dark": "Nir Dark",
   },
-  "icon_theme": "Zed (Default)",
+  "icon_theme": "Nir (Default)",
   // The name of a base set of key bindings to use.
   // This setting can take six values, each named after another
   // text editor:

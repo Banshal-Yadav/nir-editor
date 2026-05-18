@@ -750,7 +750,7 @@ impl TitleBar {
         let display_name = if let Some(ref name) = name {
             util::truncate_and_trailoff(name, MAX_PROJECT_NAME_LENGTH)
         } else {
-            "/void".to_string()
+            "/nir".to_string()
         };
 
         Button::new("project_name_label", display_name)

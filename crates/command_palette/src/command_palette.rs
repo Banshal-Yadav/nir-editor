@@ -697,7 +697,7 @@ impl PickerDelegate for CommandPaletteDelegate {
 
 pub fn humanize_action_name(name: &str) -> String {
     let name = if name.starts_with("zed::") {
-        let mut new_name = "/void".to_string();
+        let mut new_name = "/nir".to_string();
         new_name.push_str(&name[3..]);
         new_name
     } else {

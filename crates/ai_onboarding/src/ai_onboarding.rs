@@ -154,7 +154,7 @@ impl ZedAiOnboarding {
             .w_full()
             .relative()
             .gap_1()
-            .child(Headline::new("/void"))
+            .child(Headline::new("/nir"))
             .child(
                 Label::new("Sign in to try /void Pro for 14 days, no credit card required.")
                     .color(Color::Muted)
@@ -184,7 +184,7 @@ impl ZedAiOnboarding {
                 .relative()
                 .min_w_0()
                 .gap_1()
-                .child(Headline::new("/void"))
+                .child(Headline::new("/nir"))
                 .child(YoungAccountBanner)
                 .child(
                     v_flex()
@@ -221,7 +221,7 @@ impl ZedAiOnboarding {
                 .w_full()
                 .relative()
                 .gap_1()
-                .child(Headline::new("/void"))
+                .child(Headline::new("/nir"))
                 .child(
                     v_flex()
                         .mt_2()
