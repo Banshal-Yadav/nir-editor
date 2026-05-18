@@ -1,10 +1,10 @@
 {
   "$schema": "https://voideditor.com/schema/themes/v0.2.0.json",
-  "name": "Void",
-  "author": "/void",
+  "name": "Nir",
+  "author": "/nir",
   "themes": [
     {
-      "name": "Void Dark",
+      "name": "Nir Dark",
       "appearance": "dark",
       "style": {
         "border": "#2a2a2aff",
@@ -183,7 +183,7 @@
       }
     },
     {
-      "name": "Void Mono",
+      "name": "Nir Mono",
       "appearance": "dark",
       "style": {
         "border": "#242424",
@@ -356,7 +356,7 @@
       }
     },
     {
-      "name": "Void Abyss",
+      "name": "Nir Abyss",
       "appearance": "dark",
       "style": {
         "border": "#1e2e2e",
@@ -487,7 +487,7 @@
       }
     },
     {
-      "name": "Void Forest",
+      "name": "Nir Forest",
       "appearance": "dark",
       "style": {
         "border": "#2c2e2cff",
@@ -616,7 +616,7 @@
       }
     },
     {
-      "name": "Void Chalk",
+      "name": "Nir Chalk",
       "appearance": "light",
       "style": {
         "border": "#d0d0d8",
@@ -740,7 +740,7 @@
       }
     },
     {
-      "name": "Void Claudious",
+      "name": "Nir Claudious",
       "appearance": "dark",
       "style": {
         "border": "#333333ff",
