@@ -1426,6 +1426,9 @@ mod tests {
             // memory tools manage internal .void files and don't need regex permissions
             "save_memory",
             "recall_memory",
+            // update_title updates UI-visible session metadata but
+            // does not use tool permission rules.
+            "update_title",
         ];
 
         let tool_info_ids: Vec<&str> = TOOLS.iter().map(|t| t.id).collect();

@@ -52,6 +52,10 @@ pub fn edit_prediction_docs(cx: &App) -> String {
     )
 }
 
+pub fn skills_docs(cx: &App) -> String {
+    format!("{server_url}/docs/ai/skills", server_url = server_url(cx))
+}
+
 /// Returns the URL to /nir's ACP registry blog post.
 pub fn acp_registry_blog(cx: &App) -> String {
     format!(
@@ -60,10 +64,6 @@ pub fn acp_registry_blog(cx: &App) -> String {
     )
 }
 
-/// Returns the URL to /void's Parallel Agents blog post.
-pub fn parallel_agents_blog(cx: &App) -> String {
-    format!("{server_url}/blog", server_url = server_url(cx))
-}
 
 pub fn shared_agent_thread_url(session_id: &str) -> String {
     format!("zed://agent/shared/{}", session_id)
