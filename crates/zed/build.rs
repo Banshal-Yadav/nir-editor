@@ -207,6 +207,10 @@ fn main() {
 
         #[cfg(windows)]
         {
+            println!("cargo:rerun-if-changed=resources/windows/app-icon.ico");
+            println!("cargo:rerun-if-changed=resources/windows/app-icon-dev.ico");
+            println!("cargo:rerun-if-changed=resources/windows/app-icon-preview.ico");
+            println!("cargo:rerun-if-changed=resources/windows/app-icon-nightly.ico");
             windows_resources::compile(false).expect("failed to compile Windows resources");
         }
     }

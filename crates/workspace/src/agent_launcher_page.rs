@@ -2,10 +2,7 @@ use gpui::{
     App, AsyncApp, Context, Entity, EventEmitter, FocusHandle, Focusable,
     Render, Subscription, WeakEntity, Window, SharedString, StatefulInteractiveElement, InteractiveElement,
 };
-use terminal::{
-    Terminal,
-    alacritty_terminal::term::cell::Flags,
-};
+use terminal::Terminal;
 use ui::prelude::*;
 use ui::Tooltip;
 use crate::{
@@ -74,6 +71,7 @@ pub struct AgentLauncherPage {
     _workspace_observe: Option<Subscription>,
     last_agent_scan: Instant,
     agent_scan_initialized: bool,
+    initial_scan_scheduled: bool,
     preview_expanded: bool,
 }
 
@@ -103,6 +101,7 @@ impl AgentLauncherPage {
             _workspace_observe: None,
             last_agent_scan: Instant::now(),
             agent_scan_initialized: false,
+            initial_scan_scheduled: true,
             preview_expanded: false,
         };
 
@@ -139,14 +138,31 @@ impl AgentLauncherPage {
         })
         .detach();
 
-        // Fast live streaming poller: poll running agents output every 300ms for real-time mini preview updates
+        // Fast live streaming poller: poll running agents output every 300ms for real-time mini preview updates.
+        // Also handles the initial terminal scan (deferred to avoid read-during-update panics).
         cx.spawn(|this: WeakEntity<Self>, cx: &mut AsyncApp| {
             let mut cx = cx.clone();
             async move {
+                // Initial scan after 500ms delay — avoids lease conflicts during construction
+                cx.background_executor().timer(Duration::from_millis(500)).await;
+                this.update(&mut cx, |this, cx| {
+                    if this.initial_scan_scheduled {
+                        this.initial_scan_scheduled = false;
+                        this.update_running_agents(cx);
+                    }
+                })
+                .ok();
+
+                // Polling loop
                 loop {
                     cx.background_executor().timer(Duration::from_millis(300)).await;
                     let ok = this
                         .update(&mut cx, |this, cx| {
+                            // Re-scan when workspace observer signals a change
+                            if this.agent_scan_initialized {
+                                this.agent_scan_initialized = false;
+                                this.update_running_agents(cx);
+                            }
                             this.poll_running_agents(cx);
                         })
                         .is_ok();
@@ -656,27 +672,6 @@ impl AgentLauncherPage {
                                     ),
                             ),
                     )
-                    .child(
-                        // Navigation button wrapping ArrowUpRight icon
-                        div()
-                            .id(format!("agent-goto-btn-{}", agent.name))
-                            .cursor_pointer()
-                            .p_1()
-                            .rounded_md()
-                            .hover(|s| s.bg(cx.theme().colors().element_background))
-                            .on_click(cx.listener({
-                                let name = name.clone();
-                                move |this, _, window, cx| {
-                                    this.jump_to_agent_terminal(&name, window, cx);
-                                }
-                            }))
-                            .tooltip(Tooltip::text("Go to agent terminal"))
-                            .child(
-                                Icon::new(IconName::ArrowUpRight)
-                                    .size(IconSize::XSmall)
-                                    .color(Color::Muted),
-                            ),
-                    ),
             )
             // ── Output lines box inside when further expanded ──
             .when(is_expanded, |this| {
@@ -724,56 +719,6 @@ impl AgentLauncherPage {
                         ),
                 )
             })
-    }
-
-    /// Jump to the terminal tab for a given agent name.
-    fn jump_to_agent_terminal(
-        &mut self,
-        agent_name: &str,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        let self_id = cx.entity().entity_id();
-
-        if let Some(workspace) = self.workspace.upgrade() {
-            // Collect panes upfront to release the cx borrow before update.
-            let panes: Vec<Entity<Pane>> = workspace.read(cx).panes().to_vec();
-
-            for pane in &panes {
-                let pane_items: Vec<_> = pane.read(cx).items().cloned().collect();
-                for (idx, item) in pane_items.iter().enumerate() {
-                    if item.item_id() == self_id {
-                        continue;
-                    }
-                    let Some(terminal) = item.act_as_terminal(cx) else {
-                        continue;
-                    };
-                    let is_match = terminal.read_with(cx, |t, _| {
-                        t.task().is_some_and(|task| {
-                            let name = if !task.spawned_task.full_label.is_empty() {
-                                task.spawned_task
-                                    .full_label
-                                    .trim_start_matches("Launch ")
-                                    .to_string()
-                            } else {
-                                task.spawned_task
-                                    .id
-                                    .0
-                                    .trim_start_matches("agent-")
-                                    .to_string()
-                            };
-                            name == agent_name
-                        })
-                    });
-                    if is_match {
-                        pane.update(cx, |pane, cx| {
-                            pane.activate_item(idx, true, true, window, cx);
-                        });
-                        return;
-                    }
-                }
-            }
-        }
     }
 
     fn open_config_file(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -841,9 +786,8 @@ impl Focusable for AgentLauncherPage {
 
 impl Render for AgentLauncherPage {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        // Lazily scan for agent terminals on first render (avoids lease conflicts
-        // during construction, since render runs after all updates complete).
-        self.update_running_agents(cx);
+        // Scan is done by the 300ms polling loop to avoid read-during-update panics.
+        // render() must NOT read workspace/pane entities — they may be leased by another update.
 
         let border_color = cx.theme().colors().border;
         let accent = cx.theme().colors().text_accent;
