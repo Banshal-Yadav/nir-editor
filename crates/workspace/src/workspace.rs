@@ -680,7 +680,7 @@ fn prompt_and_open_paths(
     // active window if none qualifies — this handles zero-worktree
     // (empty-state) windows whose workspace_location() returns
     // DetachFromSession instead of Location(Local).
-    let workspace_window = local_workspace_windows(cx)
+    let workspace_window = workspace_windows_for_location(&SerializedWorkspaceLocation::Local, cx)
         .into_iter()
         .next()
         .or_else(|| {
