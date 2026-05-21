@@ -9,7 +9,6 @@ use crate::{
     OpenOptions, Workspace,
     agent_config::{AgentConfig, config_path, load_config},
     item::{Item, ItemEvent},
-    pane::Pane,
 };
 use task::{
     HideStrategy, RevealStrategy, RevealTarget, SaveStrategy, Shell, SpawnInTerminal, TaskId,
