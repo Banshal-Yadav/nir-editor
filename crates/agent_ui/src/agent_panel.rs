@@ -1773,8 +1773,11 @@ impl AgentPanel {
         cx: &mut Context<Self>,
     ) {
         log::info!("[agent-launcher] new_terminal_with_task: entered");
-        if !self.supports_terminal(cx) {
-            log::warn!("[agent-launcher] new_terminal_with_task: supports_terminal() = false — aborting");
+        // Only require the project to support terminals (local or remote-server).
+        // Do NOT gate on has_open_project() — agent CLI tools don't need a worktree;
+        // they use the cwd from SpawnInTerminal (or HOME as fallback).
+        if !self.project.read(cx).supports_terminal(cx) {
+            log::warn!("[agent-launcher] new_terminal_with_task: project.supports_terminal() = false (remote collab?) — aborting");
             return;
         }
         self.set_last_created_entry_kind_from_user_action(AgentPanelEntryKind::Terminal, cx);
