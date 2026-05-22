@@ -29,18 +29,6 @@ struct AgentEntry {
     status: AgentStatus,
 }
 
-// ─── Running agent terminal state ────────────────────────────────────────────
-
-/// A record of an agent CLI launched via the Agent Launcher.
-/// Used to show the "Running Agents" mini-preview without needing to scan panes.
-/// The terminal itself is tracked by AgentPanel and appears in the sidebar.
-struct LaunchedAgent {
-    /// Display name (e.g. "Claude Code").
-    name: SharedString,
-    /// When the launch was initiated.
-    launched_at: Instant,
-}
-
 // ─── Page state ──────────────────────────────────────────────────────────────
 
 pub struct AgentLauncherPage {
@@ -53,10 +41,6 @@ pub struct AgentLauncherPage {
     pending_probes: usize,
     config_error: Option<String>,
     config_last_modified: Option<SystemTime>,
-    // ── Running agent preview ──────────────────────────────────────────
-    /// Agents launched in this session. Source of truth for the mini-preview.
-    launched_agents: Vec<LaunchedAgent>,
-    preview_expanded: bool,
 }
 
 impl AgentLauncherPage {
@@ -80,16 +64,11 @@ impl AgentLauncherPage {
             pending_probes: 0,
             config_error: loaded.error,
             config_last_modified: loaded.modified,
-            launched_agents: Vec::new(),
-            preview_expanded: false,
         };
 
         this.check_all_binaries(cx);
 
-        // Background: probe every 15s, reload config, and expire stale launched_agents
-        // entries. Entries older than 10 minutes are removed so the mini-preview badge
-        // doesn't linger after the terminal is closed. The sidebar (driven by AgentPanel)
-        // is the authoritative running-agents view.
+        // Background: probe every 15s, reload config.
         cx.spawn(|this: WeakEntity<Self>, cx: &mut AsyncApp| {
             let mut cx = cx.clone();
             async move {
@@ -99,14 +78,6 @@ impl AgentLauncherPage {
                         .update(&mut cx, |this, cx| {
                             this.check_config_reload(cx);
                             this.check_all_binaries(cx);
-                            // Expire launched_agents entries older than 10 minutes.
-                            let before = this.launched_agents.len();
-                            this.launched_agents.retain(|a| {
-                                a.launched_at.elapsed() < Duration::from_secs(10 * 60)
-                            });
-                            if this.launched_agents.len() != before {
-                                cx.notify();
-                            }
                         })
                         .is_ok();
                     if !ok {
@@ -250,210 +221,8 @@ impl AgentLauncherPage {
                 );
             });
         }
-
-        // Track the launch locally so the mini-preview can show a "running" badge.
-        // The terminal itself is tracked by AgentPanel and shown in the sidebar.
-        let name_shared: SharedString = name.into();
-        if !self.launched_agents.iter().any(|a| a.name == name_shared) {
-            self.launched_agents.push(LaunchedAgent {
-                name: name_shared,
-                launched_at: Instant::now(),
-            });
-            cx.notify();
-        }
     }
 
-    // ── Running agents preview ────────────────────────────────────────────────
-
-    /// Render the running agents preview card at the top of the launcher.
-    fn render_running_agents(&self, cx: &Context<Self>) -> Option<impl IntoElement> {
-        let border_color = cx.theme().colors().border;
-        let is_empty = self.launched_agents.is_empty();
-        let active_count = self.launched_agents.len();
-
-        Some(
-            h_flex()
-                .w_full()
-                .justify_center()
-                .child(
-                    v_flex()
-                        .w_full()
-                        .max_w(rems(48.))
-                        .p_5()
-                        .child(
-                            v_flex()
-                                .w_full()
-                                .rounded_lg()
-                                .bg(cx.theme().colors().surface_background)
-                                .border_1()
-                                .border_color(border_color.opacity(0.5))
-                                .child(
-                                    h_flex()
-                                        .id("running-agents-header-row")
-                                        .w_full()
-                                        .justify_between()
-                                        .items_center()
-                                        .px_3()
-                                        .py_2p5()
-                                        .when(is_empty, |this| {
-                                            this.child(
-                                                h_flex()
-                                                    .gap_2()
-                                                    .items_center()
-                                                    .child(
-                                                        div()
-                                                            .w(px(8.))
-                                                            .h(px(8.))
-                                                            .rounded_full()
-                                                            .bg(cx.theme().colors().icon_muted.opacity(0.4)),
-                                                    )
-                                                    .child(
-                                                        div()
-                                                            .text_size(px(11.))
-                                                            .font_weight(gpui::FontWeight::BOLD)
-                                                            .text_color(cx.theme().colors().text_muted)
-                                                            .child("RUNNING AGENTS • 0 active"),
-                                                    ),
-                                            )
-                                            .child(
-                                                div()
-                                                    .text_size(px(11.))
-                                                    .text_color(cx.theme().colors().text_muted.opacity(0.6))
-                                                    .child("launch one below to start"),
-                                            )
-                                        })
-                                        .when(!is_empty, |this| {
-                                            this.cursor_pointer()
-                                                .on_click(cx.listener(|this, _, _, cx| {
-                                                    this.preview_expanded = !this.preview_expanded;
-                                                    cx.notify();
-                                                }))
-                                                .child(
-                                                    h_flex()
-                                                        .gap_2()
-                                                        .items_center()
-                                                        .child(
-                                                            div()
-                                                                .w(px(8.))
-                                                                .h(px(8.))
-                                                                .rounded_full()
-                                                                .bg(cx.theme().colors().icon_accent.opacity(0.8)),
-                                                        )
-                                                        .child(
-                                                            div()
-                                                                .text_size(px(11.))
-                                                                .font_weight(gpui::FontWeight::BOLD)
-                                                                .text_color(cx.theme().colors().text)
-                                                                .child("RUNNING AGENTS"),
-                                                        )
-                                                        .child(
-                                                            div()
-                                                                .px_2()
-                                                                .py(px(1.))
-                                                                .rounded_full()
-                                                                .bg(cx.theme().colors().editor_background.opacity(0.5))
-                                                                .border_1()
-                                                                .border_color(border_color.opacity(0.3))
-                                                                .child(
-                                                                    div()
-                                                                        .text_size(px(10.))
-                                                                        .text_color(cx.theme().colors().text_muted)
-                                                                        .child(format!("{} active", active_count)),
-                                                                ),
-                                                        ),
-                                                )
-                                                .child(
-                                                    div()
-                                                        .text_size(px(11.))
-                                                        .text_color(cx.theme().colors().text_muted)
-                                                        .hover(|s| s.text_color(cx.theme().colors().text))
-                                                        .child(if self.preview_expanded { "collapse" } else { "expand" }),
-                                                )
-                                        }),
-                                )
-                                .when(!is_empty && self.preview_expanded, |this| {
-                                    this.children(self.launched_agents.iter().map(|agent| {
-                                        Self::render_agent_row(agent, cx)
-                                    }))
-                                }),
-                        ),
-                ),
-        )
-    }
-
-    /// Render a single launched agent row showing its name and sidebar status.
-    fn render_agent_row(agent: &LaunchedAgent, cx: &Context<Self>) -> impl IntoElement {
-        let border_color = cx.theme().colors().border;
-        let accent = cx.theme().colors().text_accent;
-
-        let first_char = agent
-            .name
-            .chars()
-            .next()
-            .map(|c| c.to_uppercase().to_string())
-            .unwrap_or_else(|| "A".to_string());
-
-        let status_line: SharedString = if agent.launched_at.elapsed().as_secs() < 5 {
-            "Starting…".into()
-        } else {
-            "Running — visible in sidebar".into()
-        };
-
-        v_flex()
-            .w_full()
-            .border_t_1()
-            .border_color(border_color.opacity(0.2))
-            .child(
-                h_flex()
-                    .id(format!("agent-row-compact-{}", agent.name))
-                    .w_full()
-                    .justify_between()
-                    .items_center()
-                    .px_3()
-                    .py_2p5()
-                    .child(
-                        h_flex()
-                            .gap_3()
-                            .items_center()
-                            .child(
-                                div()
-                                    .w(px(28.))
-                                    .h(px(28.))
-                                    .rounded_md()
-                                    .bg(cx.theme().colors().editor_background)
-                                    .border_1()
-                                    .border_color(accent.opacity(0.15))
-                                    .flex()
-                                    .items_center()
-                                    .justify_center()
-                                    .child(
-                                        div()
-                                            .text_size(px(13.))
-                                            .font_weight(gpui::FontWeight::BOLD)
-                                            .text_color(cx.theme().status().success)
-                                            .child(first_char),
-                                    ),
-                            )
-                            .child(
-                                v_flex()
-                                    .gap(px(1.))
-                                    .child(
-                                        div()
-                                            .text_size(px(13.))
-                                            .font_weight(gpui::FontWeight::SEMIBOLD)
-                                            .text_color(cx.theme().colors().text)
-                                            .child(agent.name.clone()),
-                                    )
-                                    .child(
-                                        div()
-                                            .text_size(px(11.))
-                                            .text_color(cx.theme().status().success)
-                                            .child(status_line),
-                                    ),
-                            ),
-                    )
-            )
-    }
 
     fn open_config_file(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let path = config_path();
@@ -653,17 +422,6 @@ impl Render for AgentLauncherPage {
                     .child(
                         v_flex()
                             .w_full()
-                            // ── Running agents preview ─────────────────────────────────
-                            .children(self.render_running_agents(cx))
-                            // ── Divider between preview and agent list ──────────────────
-                            .when(self.render_running_agents(cx).is_some(), |this| {
-                                this.child(
-                                    div()
-                                        .w_full()
-                                        .h_px()
-                                        .bg(border_color.opacity(0.3)),
-                                )
-                            })
                             // ── Agent list ─────────────────────────────────
                             .child(
                                 h_flex().justify_center().child(
