@@ -197,6 +197,24 @@ pub trait TerminalProvider {
     ) -> Task<Option<Result<ExitStatus>>>;
 }
 
+/// Extension point that lets `agent_ui::AgentPanel` intercept terminal spawns from the
+/// Agent Launcher without creating a circular crate dependency.
+///
+/// `AgentPanel` registers itself via [`Workspace::set_agent_terminal_spawner`] during
+/// `load()`. When `agent_launcher_page.rs` calls [`Workspace::spawn_agent_terminal`],
+/// the call is forwarded here; if no spawner is registered, it falls back to
+/// [`Workspace::spawn_in_terminal`].
+pub trait AgentTerminalSpawner: 'static {
+    fn spawn_agent_terminal(
+        &mut self,
+        spawn_task: SpawnInTerminal,
+        launch_cmd: Option<String>,
+        agent_icon: Option<SharedString>,
+        window: &mut Window,
+        cx: &mut App,
+    );
+}
+
 pub trait DebuggerProvider {
     // `active_buffer` is used to resolve build task's name against language-specific tasks.
     fn start_session(
@@ -1408,6 +1426,7 @@ pub struct Workspace {
     on_prompt_for_new_path: Option<PromptForNewPath>,
     on_prompt_for_open_path: Option<PromptForOpenPath>,
     terminal_provider: Option<Box<dyn TerminalProvider>>,
+    agent_terminal_spawner: Option<Box<dyn AgentTerminalSpawner>>,
     debugger_provider: Option<Arc<dyn DebuggerProvider>>,
     serializable_items_tx: UnboundedSender<Box<dyn SerializableItemHandle>>,
     _items_serializer: Task<Result<()>>,
@@ -1866,6 +1885,7 @@ impl Workspace {
             on_prompt_for_new_path: None,
             on_prompt_for_open_path: None,
             terminal_provider: None,
+            agent_terminal_spawner: None,
             debugger_provider: None,
             serializable_items_tx,
             _items_serializer,
@@ -2973,6 +2993,37 @@ impl Workspace {
 
     pub fn set_terminal_provider(&mut self, provider: impl TerminalProvider + 'static) {
         self.terminal_provider = Some(Box::new(provider));
+    }
+
+    /// Registers an [`AgentTerminalSpawner`] that [`spawn_agent_terminal`] will delegate to.
+    ///
+    /// Called by `agent_ui::AgentPanel` during `load()` so that the Agent Launcher can route
+    /// agent CLI spawns through the panel without a circular crate dependency.
+    pub fn set_agent_terminal_spawner(&mut self, spawner: impl AgentTerminalSpawner) {
+        self.agent_terminal_spawner = Some(Box::new(spawner));
+    }
+
+    /// Spawns an agent CLI terminal.
+    ///
+    /// If an [`AgentTerminalSpawner`] is registered (i.e. `AgentPanel` is active), the spawn is
+    /// routed through it so the terminal gets a `TerminalId`, appears in the sidebar, and
+    /// persists across sessions.  When no spawner is registered, falls back to the plain
+    /// [`spawn_in_terminal`] path.
+    pub fn spawn_agent_terminal(
+        &mut self,
+        spawn_task: SpawnInTerminal,
+        launch_cmd: Option<String>,
+        agent_icon: Option<SharedString>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        log::info!("[agent-launcher] spawn_agent_terminal: called, spawner_registered={}", self.agent_terminal_spawner.is_some());
+        if let Some(spawner) = self.agent_terminal_spawner.as_mut() {
+            spawner.spawn_agent_terminal(spawn_task, launch_cmd, agent_icon, window, cx);
+        } else {
+            log::warn!("[agent-launcher] spawn_agent_terminal: no AgentTerminalSpawner registered, falling back to spawn_in_terminal");
+            self.spawn_in_terminal(spawn_task, window, cx).detach();
+        }
     }
 
     pub fn set_debugger_provider(&mut self, provider: impl DebuggerProvider + 'static) {

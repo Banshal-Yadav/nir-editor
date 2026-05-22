@@ -1,8 +1,7 @@
 use gpui::{
     App, AsyncApp, Context, Entity, EventEmitter, FocusHandle, Focusable,
-    Render, Subscription, WeakEntity, Window, SharedString, StatefulInteractiveElement, InteractiveElement,
+    Render, WeakEntity, Window, SharedString, StatefulInteractiveElement, InteractiveElement,
 };
-use terminal::Terminal;
 use ui::prelude::*;
 use ui::Tooltip;
 use crate::{
@@ -32,24 +31,14 @@ struct AgentEntry {
 
 // ─── Running agent terminal state ────────────────────────────────────────────
 
-/// A terminal agent launched via the Agent Launcher, tracked for the mini preview.
-struct RunningAgent {
+/// A record of an agent CLI launched via the Agent Launcher.
+/// Used to show the "Running Agents" mini-preview without needing to scan panes.
+/// The terminal itself is tracked by AgentPanel and appears in the sidebar.
+struct LaunchedAgent {
     /// Display name (e.g. "Claude Code").
     name: SharedString,
-    /// Weak handle to the Terminal entity.
-    terminal: WeakEntity<Terminal>,
-    /// Up to 8 lines of recent output (unfiltered, shows TUI + response).
-    output_lines: Vec<SharedString>,
-    /// The single filtered meaningful line for collapsed view.
-    filtered_line: Option<SharedString>,
-    /// Whether the task is still running.
-    is_active: bool,
-    /// Whether this agent's output is currently expanded in the mini preview.
-    is_expanded: bool,
-    /// When this entry was last updated.
-    last_update: Instant,
-    /// When the output buffer last changed. Used to distinguish an actively streaming/responding agent from an idle/waiting session.
-    last_output_change: Instant,
+    /// When the launch was initiated.
+    launched_at: Instant,
 }
 
 // ─── Page state ──────────────────────────────────────────────────────────────
@@ -65,12 +54,8 @@ pub struct AgentLauncherPage {
     config_error: Option<String>,
     config_last_modified: Option<SystemTime>,
     // ── Running agent preview ──────────────────────────────────────────
-    running_agents: Vec<RunningAgent>,
-    _terminal_subscriptions: Vec<Subscription>,
-    _workspace_observe: Option<Subscription>,
-    last_agent_scan: Instant,
-    agent_scan_initialized: bool,
-    initial_scan_scheduled: bool,
+    /// Agents launched in this session. Source of truth for the mini-preview.
+    launched_agents: Vec<LaunchedAgent>,
     preview_expanded: bool,
 }
 
@@ -86,7 +71,7 @@ impl AgentLauncherPage {
             .collect();
 
         let mut this = Self {
-            workspace,
+            workspace: workspace.clone(),
             focus_handle,
             agents,
             expanded_indices: HashSet::new(),
@@ -95,29 +80,16 @@ impl AgentLauncherPage {
             pending_probes: 0,
             config_error: loaded.error,
             config_last_modified: loaded.modified,
-            running_agents: Vec::new(),
-            _terminal_subscriptions: Vec::new(),
-            _workspace_observe: None,
-            last_agent_scan: Instant::now(),
-            agent_scan_initialized: false,
-            initial_scan_scheduled: true,
+            launched_agents: Vec::new(),
             preview_expanded: false,
         };
 
-        // Set up workspace observation for terminal agent detection.
-        // Must be done during construction — the workspace isn't under a lease here.
-        if let Some(strong) = this.workspace.upgrade() {
-            let _weak = this.workspace.clone();
-            this._workspace_observe = Some(cx.observe(&strong, move |this, _, _cx| {
-                this.agent_scan_initialized = true;
-                // The actual scan happens lazily in render() to avoid
-                // read-during-update panics.
-            }));
-        }
-
         this.check_all_binaries(cx);
 
-        // Background: probe every 15s and watch for config changes
+        // Background: probe every 15s, reload config, and expire stale launched_agents
+        // entries. Entries older than 10 minutes are removed so the mini-preview badge
+        // doesn't linger after the terminal is closed. The sidebar (driven by AgentPanel)
+        // is the authoritative running-agents view.
         cx.spawn(|this: WeakEntity<Self>, cx: &mut AsyncApp| {
             let mut cx = cx.clone();
             async move {
@@ -127,42 +99,14 @@ impl AgentLauncherPage {
                         .update(&mut cx, |this, cx| {
                             this.check_config_reload(cx);
                             this.check_all_binaries(cx);
-                        })
-                        .is_ok();
-                    if !ok {
-                        break;
-                    }
-                }
-            }
-        })
-        .detach();
-
-        // Fast live streaming poller: poll running agents output every 300ms for real-time mini preview updates.
-        // Also handles the initial terminal scan (deferred to avoid read-during-update panics).
-        cx.spawn(|this: WeakEntity<Self>, cx: &mut AsyncApp| {
-            let mut cx = cx.clone();
-            async move {
-                // Initial scan after 500ms delay — avoids lease conflicts during construction
-                cx.background_executor().timer(Duration::from_millis(500)).await;
-                this.update(&mut cx, |this, cx| {
-                    if this.initial_scan_scheduled {
-                        this.initial_scan_scheduled = false;
-                        this.update_running_agents(cx);
-                    }
-                })
-                .ok();
-
-                // Polling loop
-                loop {
-                    cx.background_executor().timer(Duration::from_millis(300)).await;
-                    let ok = this
-                        .update(&mut cx, |this, cx| {
-                            // Re-scan when workspace observer signals a change
-                            if this.agent_scan_initialized {
-                                this.agent_scan_initialized = false;
-                                this.update_running_agents(cx);
+                            // Expire launched_agents entries older than 10 minutes.
+                            let before = this.launched_agents.len();
+                            this.launched_agents.retain(|a| {
+                                a.launched_at.elapsed() < Duration::from_secs(10 * 60)
+                            });
+                            if this.launched_agents.len() != before {
+                                cx.notify();
                             }
-                            this.poll_running_agents(cx);
                         })
                         .is_ok();
                     if !ok {
@@ -239,17 +183,49 @@ impl AgentLauncherPage {
         let Some(entry) = self.agents.get(index) else { return };
         let command = entry.config.launch_cmd.clone();
         let name = entry.config.name.clone();
+        let agent_id = entry.config.id.clone();
 
         if let Some(workspace) = self.workspace.upgrade() {
             workspace.update(cx, |workspace, cx| {
-                let action = SpawnInTerminal {
+                // Compute the working directory here while we have &mut Workspace directly
+                // (without needing to read-lease the entity). This prevents the double-lease
+                // panic that occurs when AgentPanel::new_terminal_with_task() later tries to
+                // call default_terminal_working_directory() → workspace.read(cx) while
+                // workspace is still mutably leased in this update closure.
+                let cwd: Option<std::path::PathBuf> = workspace
+                    .worktrees(cx)
+                    .next()
+                    .map(|wt| wt.read(cx).abs_path().to_path_buf())
+                    .or_else(|| {
+                        std::env::var("HOME")
+                            .or_else(|_| std::env::var("USERPROFILE"))
+                            .ok()
+                            .map(std::path::PathBuf::from)
+                    });
+                // On Windows, agent CLI tools (claude, opencode, aider, etc.) are installed as
+                // .cmd batch scripts by npm/npx and cannot be spawned directly as a process —
+                // they must be run via `cmd.exe /c <command>`. On other platforms the binary
+                // can be invoked directly.
+                #[cfg(target_os = "windows")]
+                let (final_command, final_args) = (
+                    "cmd.exe".to_string(),
+                    vec![
+                        "/c".to_string(),
+                        format!("set PATH=%APPDATA%\\npm;%ProgramFiles%\\nodejs;%PATH% && {}", command),
+                    ],
+                );
+                #[cfg(not(target_os = "windows"))]
+                let (final_command, final_args) = (command.clone(), vec![]);
+                let spawn_task = SpawnInTerminal {
                     id: TaskId(format!("agent-{}", name.to_lowercase().replace(' ', "-"))),
                     full_label: format!("Launch {name}"),
                     label: name.clone(),
-                    command: Some(command.clone()),
-                    args: vec![],
-                    command_label: command,
-                    cwd: None,
+                    command: Some(final_command),
+                    args: final_args,
+                    command_label: command.clone(),
+                    cwd,
+                    // SpawnInTerminal.env is merged (extend) onto the resolved system
+                    // environment in terminals.rs — empty means "inherit everything".
                     env: Default::default(),
                     use_new_terminal: false,
                     allow_concurrent_runs: true,
@@ -262,198 +238,40 @@ impl AgentLauncherPage {
                     show_rerun: false,
                     save: SaveStrategy::default(),
                 };
-                workspace.spawn_in_terminal(action, window, cx).detach();
+                // Route through AgentPanel (via the registered AgentTerminalSpawner) so the
+                // terminal gets a TerminalId, appears in the sidebar, and persists across
+                // sessions. Falls back to spawn_in_terminal if AgentPanel is not active.
+                workspace.spawn_agent_terminal(
+                    spawn_task,
+                    Some(command),         // launch_cmd - full command string for restore
+                    Some(agent_id.into()), // agent_icon - id slug (e.g. "claude-code")
+                    window,
+                    cx,
+                );
             });
+        }
+
+        // Track the launch locally so the mini-preview can show a "running" badge.
+        // The terminal itself is tracked by AgentPanel and shown in the sidebar.
+        let name_shared: SharedString = name.into();
+        if !self.launched_agents.iter().any(|a| a.name == name_shared) {
+            self.launched_agents.push(LaunchedAgent {
+                name: name_shared,
+                launched_at: Instant::now(),
+            });
+            cx.notify();
         }
     }
 
     // ── Running agents preview ────────────────────────────────────────────────
 
-    /// Scan workspace panes for agent terminals, subscribe to new ones, and
-    /// update running_agents state. Called from render() to avoid lease conflicts.
-    fn update_running_agents(&mut self, cx: &mut Context<Self>) {
-        let now = Instant::now();
-        // Debounce: don't scan more than once per 500ms
-        if now.duration_since(self.last_agent_scan) < Duration::from_millis(500) {
-            return;
-        }
-        self.last_agent_scan = now;
-
-        let Some(workspace) = self.workspace.upgrade() else { return };
-        let panes = workspace.read(cx).panes().to_vec();
-
-        // Collect all active agent names and their latest terminal entities from all panes.
-        let self_id = cx.entity().entity_id();
-        let mut active_scanned: Vec<(SharedString, Entity<Terminal>)> = Vec::new();
-
-        for pane in &panes {
-            let items: Vec<_> = pane.read(cx).items().cloned().collect();
-            for item in items {
-                if item.item_id() == self_id {
-                    continue;
-                }
-                let Some(terminal) = item.act_as_terminal(cx) else { continue };
-                let task_info = terminal.read_with(cx, |t, _| {
-                    t.task().map(|task| {
-                        let is_agent = task.spawned_task.id.0.starts_with("agent-");
-                        let name: SharedString = if !task.spawned_task.full_label.is_empty() {
-                            task.spawned_task.full_label.trim_start_matches("Launch ").to_string().into()
-                        } else {
-                            task.spawned_task.id.0.trim_start_matches("agent-").to_string().into()
-                        };
-                        (is_agent, name)
-                    })
-                });
-                if let Some((true, name)) = task_info {
-                    // Only keep the first one found if duplicate views exist for the same agent task
-                    if !active_scanned.iter().any(|(n, _)| n == &name) {
-                        active_scanned.push((name, terminal));
-                    }
-                }
-            }
-        }
-
-        // Now update self.running_agents to match active_scanned while strictly preserving insertion order and expansion states!
-        // First, retain only those running_agents whose names are present in active_scanned.
-        self.running_agents.retain(|agent| active_scanned.iter().any(|(n, _)| n == &agent.name));
-
-        // For each scanned active agent, either update its dead terminal handle in-place or append a fresh entry.
-        for (name, terminal) in active_scanned {
-            if let Some(existing) = self.running_agents.iter_mut().find(|a| a.name == name) {
-                // If the terminal view entity changed (e.g. moved to side tab), update handle and resubscribe!
-                if existing.terminal.upgrade().map_or(true, |t| t != terminal) {
-                    existing.terminal = terminal.downgrade();
-                    let weak_term = terminal.downgrade();
-                    let sub = cx.subscribe(
-                        &terminal,
-                        move |this, _term, event, cx| {
-                            if let terminal::Event::Wakeup = event {
-                                if let Some(terminal) = weak_term.upgrade() {
-                                    this.on_agent_output(&terminal, cx);
-                                }
-                            }
-                        },
-                    );
-                    self._terminal_subscriptions.push(sub);
-                }
-            } else {
-                // Brand new agent opened! Append to the end to strictly preserve chronological insertion order.
-                let weak_term = terminal.downgrade();
-                let sub = cx.subscribe(
-                    &terminal,
-                    move |this, _term, event, cx| {
-                        if let terminal::Event::Wakeup = event {
-                            if let Some(terminal) = weak_term.upgrade() {
-                                this.on_agent_output(&terminal, cx);
-                            }
-                        }
-                    },
-                );
-                self._terminal_subscriptions.push(sub);
-
-                self.running_agents.push(RunningAgent {
-                    name,
-                    terminal: terminal.downgrade(),
-                    output_lines: Vec::new(),
-                    filtered_line: None,
-                    is_active: true,
-                    is_expanded: false,
-                    last_update: Instant::now(),
-                    last_output_change: Instant::now(),
-                });
-                cx.notify();
-            }
-        }
-    }
-
-    /// Called when a tracked agent terminal emits Wakeup — reads the terminal
-    /// output and updates both filtered (collapsed) and raw (expanded) lines.
-    fn on_agent_output(
-        &mut self,
-        terminal: &Entity<Terminal>,
-        cx: &mut Context<Self>,
-    ) {
-        let (name, filtered, raw_lines, task_running) = terminal.read_with(cx, |t, _| {
-            let name = t
-                .task()
-                .map(|task| {
-                    if !task.spawned_task.full_label.is_empty() {
-                        task.spawned_task
-                            .full_label
-                            .trim_start_matches("Launch ")
-                            .to_string()
-                    } else {
-                        task.spawned_task
-                            .id
-                            .0
-                            .trim_start_matches("agent-")
-                            .to_string()
-                    }
-                })
-                .unwrap_or_default();
-            let filtered = extract_meaningful_output(t);
-            let raw_lines = extract_raw_output(t, 8);
-            let task_running =
-                t.task().is_some_and(|task| task.status == terminal::TaskStatus::Running);
-            (name, filtered, raw_lines, task_running)
-        });
-
-        if let Some(agent) = self
-            .running_agents
-            .iter_mut()
-            .find(|a| a.name == name)
-        {
-            if agent.output_lines != raw_lines {
-                agent.last_output_change = Instant::now();
-            }
-            agent.output_lines = raw_lines;
-            agent.filtered_line = filtered;
-            agent.is_active = task_running && agent.last_output_change.elapsed() < Duration::from_secs(2);
-            agent.last_update = Instant::now();
-        }
-        cx.notify();
-    }
-
-    /// Poll all tracked running agents to stream live terminal responses.
-    fn poll_running_agents(&mut self, cx: &mut Context<Self>) {
-        let mut changed = false;
-        for agent in &mut self.running_agents {
-            if let Some(term) = agent.terminal.upgrade() {
-                let (filtered, raw_lines, task_running) = term.read_with(cx, |t, _| {
-                    let filtered = extract_meaningful_output(t);
-                    let raw_lines = extract_raw_output(t, 8);
-                    let task_running = t.task().is_some_and(|task| task.status == terminal::TaskStatus::Running);
-                    (filtered, raw_lines, task_running)
-                });
-                if agent.output_lines != raw_lines {
-                    agent.last_output_change = Instant::now();
-                    agent.output_lines = raw_lines;
-                    agent.filtered_line = filtered;
-                    changed = true;
-                }
-                let is_active = task_running && agent.last_output_change.elapsed() < Duration::from_secs(2);
-                if agent.is_active != is_active {
-                    agent.is_active = is_active;
-                    changed = true;
-                }
-                agent.last_update = Instant::now();
-            }
-        }
-        if changed {
-            cx.notify();
-        }
-    }
-
     /// Render the running agents preview card at the top of the launcher.
     fn render_running_agents(&self, cx: &Context<Self>) -> Option<impl IntoElement> {
         let border_color = cx.theme().colors().border;
-        let active_count = self.running_agents.iter().filter(|a| a.is_active).count();
-        let is_empty = self.running_agents.is_empty();
-
-        let sorted: Vec<&RunningAgent> = self.running_agents.iter().collect();
+        let is_empty = self.launched_agents.is_empty();
+        let active_count = self.launched_agents.len();
 
         Some(
-            // ── Centered wrapper with max width matching below list EXACTLY ──
             h_flex()
                 .w_full()
                 .justify_center()
@@ -461,9 +279,8 @@ impl AgentLauncherPage {
                     v_flex()
                         .w_full()
                         .max_w(rems(48.))
-                        .p_5() // Matches below list boundary box exactly!
+                        .p_5()
                         .child(
-                            // Outer Card Container matching below agent list exactly!
                             v_flex()
                                 .w_full()
                                 .rounded_lg()
@@ -471,7 +288,6 @@ impl AgentLauncherPage {
                                 .border_1()
                                 .border_color(border_color.opacity(0.5))
                                 .child(
-                                    // Top header row: idle vs active views matching screenshot
                                     h_flex()
                                         .id("running-agents-header-row")
                                         .w_full()
@@ -521,11 +337,7 @@ impl AgentLauncherPage {
                                                                 .w(px(8.))
                                                                 .h(px(8.))
                                                                 .rounded_full()
-                                                                .bg(if active_count > 0 {
-                                                                    cx.theme().colors().icon_accent.opacity(0.8)
-                                                                } else {
-                                                                    cx.theme().colors().icon_muted.opacity(0.4)
-                                                                }),
+                                                                .bg(cx.theme().colors().icon_accent.opacity(0.8)),
                                                         )
                                                         .child(
                                                             div()
@@ -555,17 +367,12 @@ impl AgentLauncherPage {
                                                         .text_size(px(11.))
                                                         .text_color(cx.theme().colors().text_muted)
                                                         .hover(|s| s.text_color(cx.theme().colors().text))
-                                                        .child(if self.preview_expanded {
-                                                            "collapse"
-                                                        } else {
-                                                            "expand"
-                                                        }),
+                                                        .child(if self.preview_expanded { "collapse" } else { "expand" }),
                                                 )
                                         }),
                                 )
-                                // ── Expandable agent items below header line ──────────────────────────
                                 .when(!is_empty && self.preview_expanded, |this| {
-                                    this.children(sorted.into_iter().map(|agent| {
+                                    this.children(self.launched_agents.iter().map(|agent| {
                                         Self::render_agent_row(agent, cx)
                                     }))
                                 }),
@@ -574,25 +381,10 @@ impl AgentLauncherPage {
         )
     }
 
-    /// Render a single running agent compact block that expands to reveal streaming console output.
-    fn render_agent_row(agent: &RunningAgent, cx: &Context<Self>) -> impl IntoElement {
+    /// Render a single launched agent row showing its name and sidebar status.
+    fn render_agent_row(agent: &LaunchedAgent, cx: &Context<Self>) -> impl IntoElement {
         let border_color = cx.theme().colors().border;
         let accent = cx.theme().colors().text_accent;
-
-        let output_lines = if agent.output_lines.is_empty() {
-            if let Some(ref filtered) = agent.filtered_line {
-                vec![filtered.clone()]
-            } else {
-                vec![SharedString::from("waiting for output...")]
-            }
-        } else {
-            agent.output_lines.clone()
-        };
-
-        let latest_line = agent
-            .filtered_line
-            .clone()
-            .unwrap_or_else(|| SharedString::from("waiting for output..."));
 
         let first_char = agent
             .name
@@ -601,15 +393,17 @@ impl AgentLauncherPage {
             .map(|c| c.to_uppercase().to_string())
             .unwrap_or_else(|| "A".to_string());
 
-        let name = agent.name.clone();
-        let is_expanded = agent.is_expanded;
+        let status_line: SharedString = if agent.launched_at.elapsed().as_secs() < 5 {
+            "Starting…".into()
+        } else {
+            "Running — visible in sidebar".into()
+        };
 
         v_flex()
             .w_full()
             .border_t_1()
             .border_color(border_color.opacity(0.2))
             .child(
-                // Compact row: Avatar + stacked Name & Response + right Arrow icon
                 h_flex()
                     .id(format!("agent-row-compact-{}", agent.name))
                     .w_full()
@@ -617,23 +411,11 @@ impl AgentLauncherPage {
                     .items_center()
                     .px_3()
                     .py_2p5()
-                    .cursor_pointer()
-                    .hover(|s| s.bg(cx.theme().colors().element_hover))
-                    .on_click(cx.listener({
-                        let name = name.clone();
-                        move |this, _, _, cx| {
-                            if let Some(a) = this.running_agents.iter_mut().find(|a| a.name == name) {
-                                a.is_expanded = !a.is_expanded;
-                                cx.notify();
-                            }
-                        }
-                    }))
                     .child(
                         h_flex()
                             .gap_3()
                             .items_center()
                             .child(
-                                // Sleek dark square avatar badge
                                 div()
                                     .w(px(28.))
                                     .h(px(28.))
@@ -653,7 +435,6 @@ impl AgentLauncherPage {
                                     ),
                             )
                             .child(
-                                // Stacked text block
                                 v_flex()
                                     .gap(px(1.))
                                     .child(
@@ -666,58 +447,12 @@ impl AgentLauncherPage {
                                     .child(
                                         div()
                                             .text_size(px(11.))
-                                            .text_color(cx.theme().status().success) // Bright green response line
-                                            .child(latest_line),
+                                            .text_color(cx.theme().status().success)
+                                            .child(status_line),
                                     ),
                             ),
                     )
             )
-            // ── Output lines box inside when further expanded ──
-            .when(is_expanded, |this| {
-                this.child(
-                    v_flex()
-                        .w_full()
-                        .px_3()
-                        .pb_3()
-                        .child(
-                            h_flex()
-                                .w_full()
-                                .rounded_md()
-                                .overflow_hidden()
-                                .border_1()
-                                .border_color(border_color.opacity(0.3))
-                                .items_stretch()
-                                .child(
-                                    // Left accent bar reflecting active status
-                                    div()
-                                        .w(px(2.))
-                                        .bg(if agent.is_active {
-                                            cx.theme().status().success
-                                        } else {
-                                            border_color.opacity(0.5)
-                                        }),
-                                )
-                                .child(
-                                    // Console output area
-                                    v_flex()
-                                        .flex_1()
-                                        .bg(cx.theme().colors().editor_background)
-                                        .py_2()
-                                        .px_3()
-                                        .children(output_lines.iter().map(|line| {
-                                            div()
-                                                .text_size(px(11.))
-                                                .text_color(if agent.is_active {
-                                                    cx.theme().colors().text
-                                                } else {
-                                                    cx.theme().colors().text_muted
-                                                })
-                                                .child(line.clone())
-                                        })),
-                                ),
-                        ),
-                )
-            })
     }
 
     fn open_config_file(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -1307,127 +1042,3 @@ impl Item for AgentLauncherPage {
     }
 }
 
-// ─── Helpers: extract output lines from terminal content ─────────────────────
-
-/// Noise-line patterns to skip — TUI chrome, shell prompts, progress bars, etc.
-
-
-/// Heuristically evaluates whether a terminal output line contains genuine agent response text
-/// by stripping pure borders, status indicators, short stubs, and enforcing a >50% alphanumeric rule.
-fn is_meaningful_line(line: &str) -> bool {
-    let s = line.trim();
-    // 6. Lines that are just whitespace or empty
-    // 5. Lines shorter than 4 characters
-    if s.len() < 4 {
-        return false;
-    }
-
-    // 1. Lines that are purely box-drawing/border characters
-    if s.chars().all(|c| matches!(c, '│' | '─' | '┼' | '+' | '|' | '=' | '-' | '_' | '━' | '═' | ' ' | '\t')) {
-        return false;
-    }
-
-    // Also strip lines containing continuous separator sequences or block fills
-    if s.contains("──") || s.contains("━━") || s.contains("══") || s.contains("___") || s.contains('█') {
-        return false;
-    }
-
-    // 2. Lines matching status bar patterns like "model:", "directory:", "workspace:", "sandbox:", "quota:"
-    let lower = s.to_lowercase();
-    if lower.contains("model:")
-        || lower.contains("directory:")
-        || lower.contains("workspace:")
-        || lower.contains("sandbox")
-        || lower.contains("quota:")
-        || lower.contains("/model to change")
-        || lower.contains("shift+tab")
-        || (lower.contains("gemini") && lower.contains("file"))
-        || lower.contains("type your message")
-        || lower.contains("improve documentation")
-        || lower.starts_with("tip:")
-        || lower.starts_with("~/")
-        || lower.starts_with(".\\")
-        || lower.starts_with("./")
-        || lower.starts_with("workspace ")
-        || lower.contains("flash-preview")
-        || lower.starts_with("gpt-")
-        || lower.starts_with("claude-")
-        || lower.starts_with("gemini-")
-    {
-        return false;
-    }
-
-    // 3. Lines with mostly punctuation/symbols and little actual text
-    // Simple heuristic: if a line has more than 50% alphanumeric characters → show it. Otherwise skip.
-    // Strip leading conversational non-alphanumeric noise (like bullet points or query prompts) before calculating ratio.
-    let cleaned = s.trim_start_matches(|c: char| !c.is_alphanumeric());
-    let total_chars = cleaned.chars().count();
-    if total_chars == 0 {
-        return false;
-    }
-    let alnum_chars = cleaned.chars().filter(|c| c.is_alphanumeric()).count();
-    if (alnum_chars as f64) / (total_chars as f64) <= 0.5 {
-        return false;
-    }
-
-    true
-}
-
-/// Extract the last meaningful line of output from a terminal, filtering out
-/// TUI noise, shell prompts, and progress indicators — preferring code/text.
-fn extract_meaningful_output(terminal: &Terminal) -> Option<SharedString> {
-    let raw_lines = terminal.last_n_non_empty_lines(20);
-    let last_non_empty = raw_lines.last().cloned();
-
-    // Filter: scan from bottom, return first line that passes is_meaningful_line.
-    for line in raw_lines.into_iter().rev() {
-        if is_meaningful_line(&line) {
-            let line = line.trim().to_string();
-            let truncated = if line.chars().count() > 80 {
-                format!("{}…", line.chars().take(80).collect::<String>())
-            } else {
-                line
-            };
-            return Some(truncated.into());
-        }
-    }
-
-    // Fallback: return the last non-empty line.
-    last_non_empty.map(|l| {
-        let l = l.trim().to_string();
-        if l.chars().count() > 80 {
-            format!("{}…", l.chars().take(80).collect::<String>()).into()
-        } else {
-            SharedString::from(l)
-        }
-    })
-}
-
-/// Extract up to `max_lines` raw lines from the terminal (unfiltered),
-/// taking the most recent lines from the visible content.
-fn extract_raw_output(terminal: &Terminal, max_lines: usize) -> Vec<SharedString> {
-    let raw_lines = terminal.last_n_non_empty_lines(50);
-
-    // Filter out common bottom TUI chrome/status bar lines to capture the actual agent response.
-    let filtered_lines: Vec<String> = raw_lines
-        .into_iter()
-        .filter(|l| is_meaningful_line(l))
-        .collect();
-
-    // Take the last `max_lines` of the response content, ordered chronologically.
-    let mut result: Vec<SharedString> = filtered_lines
-        .into_iter()
-        .rev()
-        .take(max_lines)
-        .map(|l| {
-            let l = l.trim().to_string();
-            if l.chars().count() > 80 {
-                format!("{}…", l.chars().take(80).collect::<String>()).into()
-            } else {
-                SharedString::from(l)
-            }
-        })
-        .collect();
-    result.reverse();
-    result
-}

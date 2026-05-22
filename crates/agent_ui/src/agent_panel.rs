@@ -75,6 +75,9 @@ use prompt_store::PromptStore;
 use settings::TerminalDockPosition;
 use settings::{NotifyWhenAgentWaiting, Settings, update_settings_file};
 use skill_creator::open_skill_creator;
+use task::{
+    HideStrategy, RevealStrategy, SaveStrategy, Shell, SpawnInTerminal, TaskId,
+};
 use terminal::{Event as TerminalEvent, terminal_settings::TerminalSettings};
 use terminal_view::{TerminalView, terminal_panel::TerminalPanel};
 use theme_settings::ThemeSettings;
@@ -84,8 +87,8 @@ use ui::{
 };
 use util::ResultExt as _;
 use workspace::{
-    CollaboratorId, DraggedSelection, DraggedTab, MultiWorkspace, PathList, SerializedPathList,
-    ToggleWorkspaceSidebar, ToggleZoom, Workspace, WorkspaceId,
+    AgentTerminalSpawner, CollaboratorId, DraggedSelection, DraggedTab, MultiWorkspace, PathList,
+    SerializedPathList, ToggleWorkspaceSidebar, ToggleZoom, Workspace, WorkspaceId,
     dock::{DockPosition, Panel, PanelEvent},
     item::ItemEvent,
 };
@@ -762,6 +765,13 @@ struct AgentTerminal {
     notification_windows: Vec<WindowHandle<AgentNotification>>,
     notification_subscriptions: Vec<Subscription>,
     _subscriptions: Vec<Subscription>,
+    /// The CLI command that launched this terminal (e.g. `"claude"`, `"npx @google/gemini-cli"`).
+    /// `None` for plain shell terminals. Stored so session-restore can re-run the agent.
+    launch_cmd: Option<String>,
+    /// Optional icon identifier for the agent that owns this terminal (e.g. "claude").
+    /// Read by the sidebar in Step 4 to render an agent-specific icon chip.
+    #[allow(dead_code)]
+    agent_icon: Option<SharedString>,
 }
 
 impl AgentTerminal {
@@ -907,6 +917,39 @@ pub struct AgentPanel {
     last_context_source: Option<AgentContextSource>,
 
     is_active: bool,
+}
+
+/// Bridge type registered with [`Workspace`] via [`AgentTerminalSpawner`].
+///
+/// Workspace holds a `Box<dyn AgentTerminalSpawner>` (type-erased), so `agent_launcher_page.rs`
+/// can call `workspace.spawn_agent_terminal()` without importing `agent_ui`.
+/// The actual work is forwarded to the live [`AgentPanel`] entity.
+struct AgentPanelTerminalSpawner {
+    panel: WeakEntity<AgentPanel>,
+}
+
+impl AgentTerminalSpawner for AgentPanelTerminalSpawner {
+    fn spawn_agent_terminal(
+        &mut self,
+        spawn_task: SpawnInTerminal,
+        launch_cmd: Option<String>,
+        agent_icon: Option<SharedString>,
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        self.panel
+            .update(cx, |panel, cx| {
+                panel.new_terminal_with_task(
+                    spawn_task,
+                    launch_cmd,
+                    agent_icon,
+                    AgentThreadSource::AgentPanel,
+                    window,
+                    cx,
+                );
+            })
+            .log_err();
+    }
 }
 
 impl AgentPanel {
@@ -1204,8 +1247,34 @@ impl AgentPanel {
                 panel
             })?;
 
+            // Wire this panel as the workspace's agent terminal spawner so the
+            // Agent Launcher routes CLI spawns through AgentPanel instead of
+            // creating bare terminal panes.
+            cx.update(|_window, cx| {
+                Self::register_as_agent_terminal_spawner(&panel, &workspace, cx);
+            })
+            .log_err();
+
             Ok(panel)
         })
+    }
+
+    /// Called from `load()` to wire `AgentPanel` into the workspace as the
+    /// [`AgentTerminalSpawner`] — enabling [`Workspace::spawn_agent_terminal`] to route
+    /// Agent Launcher spawns through the panel instead of creating bare terminal panes.
+    fn register_as_agent_terminal_spawner(
+        panel: &Entity<Self>,
+        workspace: &WeakEntity<Workspace>,
+        cx: &mut App,
+    ) {
+        let weak_panel = panel.downgrade();
+        workspace
+            .update(cx, |workspace, _cx| {
+                workspace.set_agent_terminal_spawner(AgentPanelTerminalSpawner {
+                    panel: weak_panel,
+                });
+            })
+            .log_err();
     }
 
     pub(crate) fn new(
@@ -1686,6 +1755,78 @@ impl AgentPanel {
         );
     }
 
+    /// Spawns an agent CLI terminal from a [`SpawnInTerminal`] task and registers it
+    /// with the AgentPanel so it gets a [`TerminalId`], appears in the sidebar, and persists
+    /// across sessions.
+    ///
+    /// This is the preferred entry point for the Agent Launcher (Step 4). Callers should
+    /// build a `SpawnInTerminal` describing the agent command and pass it here instead of
+    /// calling `workspace.spawn_in_terminal()`.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_terminal_with_task(
+        &mut self,
+        spawn_task: SpawnInTerminal,
+        launch_cmd: Option<String>,
+        agent_icon: Option<SharedString>,
+        source: AgentThreadSource,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        log::info!("[agent-launcher] new_terminal_with_task: entered");
+        if !self.supports_terminal(cx) {
+            log::warn!("[agent-launcher] new_terminal_with_task: supports_terminal() = false — aborting");
+            return;
+        }
+        self.set_last_created_entry_kind_from_user_action(AgentPanelEntryKind::Terminal, cx);
+
+        // Working directory: use spawn_task.cwd if provided, else fall back to project default.
+        let working_directory = spawn_task
+            .cwd
+            .clone()
+            .or_else(|| self.default_terminal_working_directory(cx));
+        let terminal_working_directory = working_directory.clone();
+
+        let terminal_task = self.project.update(cx, |project, cx| {
+            project.create_terminal_task(spawn_task, cx)
+        });
+        let workspace = self.workspace.clone();
+        let workspace_id = self.workspace_id;
+        let project = self.project.downgrade();
+
+        cx.spawn_in(window, async move |this, cx| {
+            let terminal = match terminal_task.await {
+                Ok(terminal) => terminal,
+                Err(error) => {
+                    log::error!("failed to spawn agent panel task terminal: {error:#}");
+                    workspace
+                        .update(cx, |workspace, cx| workspace.show_error(&error, cx))
+                        .log_err();
+                    return anyhow::Ok(());
+                }
+            };
+            this.update_in(cx, |this, window, cx| {
+                let terminal_view = cx.new(|cx| {
+                    TerminalView::new(terminal, workspace, workspace_id, project, window, cx)
+                });
+                this.register_terminal_view(
+                    terminal_view,
+                    terminal_working_directory,
+                    None,  // custom_title — none for launcher-spawned terminals
+                    None,  // initial_title — title comes from terminal process
+                    launch_cmd,
+                    agent_icon,
+                    true,  // focus
+                    source,
+                    window,
+                    cx,
+                );
+                this.focus_handle(cx).focus(window, cx);
+            })?;
+            anyhow::Ok(())
+        })
+        .detach_and_log_err(cx);
+    }
+
     fn terminal_working_directory(
         &self,
         workspace: Option<&Workspace>,
@@ -1786,6 +1927,73 @@ impl AgentPanel {
         .detach_and_log_err(cx);
     }
 
+
+    /// Like [`spawn_terminal`], but uses `project.create_terminal_task` with a full
+    /// [`SpawnInTerminal`] instead of `create_terminal_shell`. Used by [`restore_terminal`]
+    /// when the terminal was originally an agent CLI (has `launch_cmd`) so the command
+    /// re-runs on session restore rather than opening a plain shell.
+    #[allow(clippy::too_many_arguments)]
+    fn spawn_terminal_task(
+        &mut self,
+        terminal_id: TerminalId,
+        spawn_task: SpawnInTerminal,
+        terminal_working_directory: Option<PathBuf>,
+        custom_title: Option<SharedString>,
+        initial_title: Option<SharedString>,
+        created_at: Option<DateTime<Utc>>,
+        select: bool,
+        focus: bool,
+        source: AgentThreadSource,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let terminal_task = self.project.update(cx, |project, cx| {
+            project.create_terminal_task(spawn_task, cx)
+        });
+        let workspace = self.workspace.clone();
+        let workspace_id = self.workspace_id;
+        let project = self.project.downgrade();
+
+        cx.spawn_in(window, async move |this, cx| {
+            let terminal = match terminal_task.await {
+                Ok(terminal) => terminal,
+                Err(error) => {
+                    log::error!("failed to restore agent terminal task: {error:#}");
+                    workspace
+                        .update(cx, |workspace, cx| workspace.show_error(&error, cx))
+                        .log_err();
+                    this.update(cx, |this, cx| {
+                        if this.pending_terminal_spawn == Some(terminal_id) {
+                            this.pending_terminal_spawn = None;
+                            cx.notify();
+                        }
+                    })
+                    .log_err();
+                    return anyhow::Ok(());
+                }
+            };
+            this.update_in(cx, |this, window, cx| {
+                let terminal_view = cx.new(|cx| {
+                    TerminalView::new(terminal, workspace, workspace_id, project, window, cx)
+                });
+                this.insert_terminal(
+                    terminal_id,
+                    terminal_view,
+                    terminal_working_directory,
+                    custom_title,
+                    initial_title,
+                    created_at,
+                    select,
+                    focus,
+                    source,
+                    window,
+                    cx,
+                );
+            })?;
+            anyhow::Ok(())
+        })
+        .detach_and_log_err(cx);
+    }
     fn insert_terminal(
         &mut self,
         terminal_id: TerminalId,
@@ -1794,6 +2002,42 @@ impl AgentPanel {
         custom_title: Option<SharedString>,
         initial_title: Option<SharedString>,
         created_at: Option<DateTime<Utc>>,
+        select: bool,
+        focus: bool,
+        source: AgentThreadSource,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.register_terminal_inner(
+            terminal_id,
+            terminal_view,
+            working_directory,
+            custom_title,
+            initial_title,
+            created_at,
+            None, // launch_cmd — plain shell has none
+            None, // agent_icon — plain shell has none
+            select,
+            focus,
+            source,
+            window,
+            cx,
+        );
+    }
+
+    /// Shared registration logic used by both `insert_terminal` (internal spawn path)
+    /// and `register_terminal_view` (external spawn path, e.g. Agent Launcher).
+    #[allow(clippy::too_many_arguments)]
+    fn register_terminal_inner(
+        &mut self,
+        terminal_id: TerminalId,
+        terminal_view: Entity<TerminalView>,
+        working_directory: Option<PathBuf>,
+        custom_title: Option<SharedString>,
+        initial_title: Option<SharedString>,
+        created_at: Option<DateTime<Utc>>,
+        launch_cmd: Option<String>,
+        agent_icon: Option<SharedString>,
         select: bool,
         focus: bool,
         source: AgentThreadSource,
@@ -1851,12 +2095,15 @@ impl AgentPanel {
             notification_windows: Vec::new(),
             notification_subscriptions: Vec::new(),
             _subscriptions: vec![view_subscription, terminal_subscription],
+            launch_cmd,
+            agent_icon,
         };
         if self.pending_terminal_spawn == Some(terminal_id) {
             self.pending_terminal_spawn = None;
         }
         terminal.refresh_metadata(cx);
         self.terminals.insert(terminal_id, terminal);
+        log::info!("[agent-launcher] register_terminal_inner: inserted terminal {:?} into self.terminals (count={})", terminal_id, self.terminals.len());
         self.persist_terminal_metadata(terminal_id, cx);
         self.emit_terminal_thread_started(source, cx);
         if select {
@@ -1864,6 +2111,46 @@ impl AgentPanel {
         }
         cx.emit(AgentPanelEvent::EntryChanged);
         cx.notify();
+        log::info!("[agent-launcher] register_terminal_inner: completed for terminal {:?}", terminal_id);
+    }
+
+    /// Registers an externally-created [`TerminalView`] into the AgentPanel's terminal
+    /// tracking system, giving it a [`TerminalId`], sidebar visibility, and DB persistence.
+    ///
+    /// This is the entry point for the Agent Launcher: instead of calling
+    /// `workspace.spawn_in_terminal()`, callers create the terminal themselves and hand it
+    /// to this method so it participates in the normal sidebar/persistence flow.
+    #[allow(clippy::too_many_arguments)]
+    pub fn register_terminal_view(
+        &mut self,
+        terminal_view: Entity<TerminalView>,
+        working_directory: Option<PathBuf>,
+        custom_title: Option<SharedString>,
+        initial_title: Option<SharedString>,
+        launch_cmd: Option<String>,
+        agent_icon: Option<SharedString>,
+        focus: bool,
+        source: AgentThreadSource,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> TerminalId {
+        let terminal_id = TerminalId::new();
+        self.register_terminal_inner(
+            terminal_id,
+            terminal_view,
+            working_directory,
+            custom_title,
+            initial_title,
+            None,         // created_at — use Utc::now() inside inner
+            launch_cmd,
+            agent_icon,
+            true,         // select — always make it the active view
+            focus,
+            source,
+            window,
+            cx,
+        );
+        terminal_id
     }
 
     pub fn activate_terminal(
@@ -1982,11 +2269,19 @@ impl AgentPanel {
 
     fn persist_terminal_metadata(&self, terminal_id: TerminalId, cx: &mut Context<Self>) {
         let Some(store) = TerminalThreadMetadataStore::try_global(cx) else {
+            log::warn!("[agent-launcher] persist_terminal_metadata: TerminalThreadMetadataStore not global — entry will NOT appear in sidebar");
             return;
         };
         let Some(metadata) = self.terminal_metadata(terminal_id, cx) else {
+            log::warn!("[agent-launcher] persist_terminal_metadata: terminal_metadata() returned None for {:?}", terminal_id);
             return;
         };
+        log::info!(
+            "[agent-launcher] persist_terminal_metadata: saving terminal {:?} folder_paths={:?} main_paths={:?}",
+            terminal_id,
+            metadata.folder_paths(),
+            metadata.main_worktree_paths()
+        );
         store.update(cx, |store, cx| {
             store.save(metadata, cx);
         });
@@ -2007,6 +2302,7 @@ impl AgentPanel {
             worktree_paths: project.worktree_paths(cx),
             remote_connection: project.remote_connection_options(cx),
             working_directory: terminal.working_directory.clone(),
+            launch_cmd: terminal.launch_cmd.clone(),
         })
     }
 
@@ -2031,18 +2327,70 @@ impl AgentPanel {
         self.pending_terminal_spawn = Some(metadata.terminal_id);
         let working_directory = self.terminal_restore_working_directory(&metadata, workspace, cx);
         let initial_title = Self::terminal_restore_initial_title(&metadata);
-        self.spawn_terminal(
-            metadata.terminal_id,
-            working_directory,
-            metadata.custom_title.clone(),
-            initial_title,
-            Some(metadata.created_at),
-            true,
-            focus,
-            source,
-            window,
-            cx,
-        );
+
+        if let Some(cmd) = metadata.launch_cmd.clone() {
+            // Agent CLI terminal: re-run the stored command so the agent relaunches
+            // on session restore instead of opening a plain shell.
+            // On Windows, agent CLI tools are .cmd batch scripts (installed by npm) and must
+            // be invoked via `cmd.exe /c <cmd>` — they cannot be exec'd directly.
+            #[cfg(target_os = "windows")]
+            let (restore_command, restore_args) = (
+                "cmd.exe".to_string(),
+                vec![
+                    "/c".to_string(),
+                    format!("set PATH=%APPDATA%\\npm;%ProgramFiles%\\nodejs;%PATH% && {}", cmd),
+                ],
+            );
+            #[cfg(not(target_os = "windows"))]
+            let (restore_command, restore_args) = (cmd.clone(), vec![]);
+            let spawn_task = SpawnInTerminal {
+                id: TaskId(format!("agent-restore-{}", metadata.terminal_id.to_key_string())),
+                full_label: format!("Restore {}", metadata.title),
+                label: metadata.title.to_string(),
+                command: Some(restore_command),
+                command_label: cmd,
+                args: restore_args,
+                cwd: working_directory.clone(),
+                env: Default::default(),
+                use_new_terminal: true,
+                allow_concurrent_runs: true,
+                reveal: RevealStrategy::Never,
+                reveal_target: Default::default(),
+                hide: HideStrategy::Never,
+                shell: Shell::System,
+                show_summary: false,
+                show_command: false,
+                show_rerun: false,
+                save: SaveStrategy::default(),
+            };
+            self.spawn_terminal_task(
+                metadata.terminal_id,
+                spawn_task,
+                working_directory,
+                metadata.custom_title.clone(),
+                initial_title,
+                Some(metadata.created_at),
+                true,
+                focus,
+                source,
+                window,
+                cx,
+            );
+        } else {
+            // Plain shell terminal: existing behavior.
+            self.spawn_terminal(
+                metadata.terminal_id,
+                working_directory,
+                metadata.custom_title.clone(),
+                initial_title,
+                Some(metadata.created_at),
+                true,
+                focus,
+                source,
+                window,
+                cx,
+            );
+        }
     }
 
     fn restore_terminal_for_panel_load(
@@ -6422,6 +6770,7 @@ mod tests {
             )])),
             remote_connection: None,
             working_directory: None,
+            launch_cmd: None,
         };
         panel
             .update_in(&mut cx, |panel, window, cx| {
@@ -8341,6 +8690,7 @@ mod tests {
             )])),
             remote_connection: None,
             working_directory: None,
+            launch_cmd: None,
         };
 
         panel.update_in(&mut cx, |panel, window, cx| {
@@ -8392,6 +8742,7 @@ mod tests {
             )])),
             remote_connection: None,
             working_directory: None,
+            launch_cmd: None,
         };
 
         panel.update_in(&mut cx, |panel, window, cx| {
