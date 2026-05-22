@@ -1915,6 +1915,7 @@ impl AgentPanel {
                     custom_title,
                     initial_title,
                     created_at,
+                    None, // plain shell — no launch_cmd
                     select,
                     focus,
                     source,
@@ -1941,6 +1942,7 @@ impl AgentPanel {
         custom_title: Option<SharedString>,
         initial_title: Option<SharedString>,
         created_at: Option<DateTime<Utc>>,
+        launch_cmd: Option<String>,
         select: bool,
         focus: bool,
         source: AgentThreadSource,
@@ -1983,6 +1985,7 @@ impl AgentPanel {
                     custom_title,
                     initial_title,
                     created_at,
+                    launch_cmd,
                     select,
                     focus,
                     source,
@@ -2002,6 +2005,7 @@ impl AgentPanel {
         custom_title: Option<SharedString>,
         initial_title: Option<SharedString>,
         created_at: Option<DateTime<Utc>>,
+        launch_cmd: Option<String>,
         select: bool,
         focus: bool,
         source: AgentThreadSource,
@@ -2015,8 +2019,8 @@ impl AgentPanel {
             custom_title,
             initial_title,
             created_at,
-            None, // launch_cmd — plain shell has none
-            None, // agent_icon — plain shell has none
+            launch_cmd,            // preserved from DB metadata on restore
+            None,                  // agent_icon — not tracked at this layer
             select,
             focus,
             source,
@@ -2370,6 +2374,7 @@ impl AgentPanel {
                 metadata.custom_title.clone(),
                 initial_title,
                 Some(metadata.created_at),
+                metadata.launch_cmd.clone(), // preserve so DB retains it after restore
                 true,
                 focus,
                 source,
@@ -6253,6 +6258,7 @@ impl AgentPanel {
             custom_title,
             initial_title,
             created_at,
+            None, // plain shell — no launch_cmd
             select,
             focus,
             source,
