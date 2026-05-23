@@ -17,7 +17,7 @@ impl PlanDefinitions {
     pub fn sign_in_upsell(&self) -> impl IntoElement {
         List::new()
             .child(ListBulletItem::new("Unlimited edit predictions"))
-            .child(ListBulletItem::new("$20 of tokens in Zed agent"))
+            .child(ListBulletItem::new("$20 of tokens in /nir agent"))
             .child(ListBulletItem::new("No credit card required"))
     }
 
