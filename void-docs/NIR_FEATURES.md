@@ -55,6 +55,7 @@
   - Polls running agent terminals every 300ms and shows live streaming output in a collapsible "RUNNING AGENTS" panel at the top of the launcher page.
   - Config is a JSON file the user can edit; changes are hot-reloaded every 15s.
   - **Key integration:** Subscribes to `terminal::Event::Wakeup` to track output from agent terminals. Terminal → Thread linkage is partially present here (uses `task.spawned_task.id` prefixed with `"agent-"` to identify agent sessions). This is the foundation for TUI agent history saving to threads.
+  - **Spawner & Workspace Resilience (2026-05-24)**: Improved robustness by decoupling spawner registration from panel load to resolve race conditions, resolved borrow-checker double-lease panics on launch, and implemented home/user profile directory fallbacks for launching agents inside folderless (empty) workspaces.
 - **Status:** KEEP
 
 ---
