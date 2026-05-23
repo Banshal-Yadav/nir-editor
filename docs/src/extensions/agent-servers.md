@@ -1,13 +1,13 @@
 ---
 title: Agent Server Extensions
-description: "Agent Server Extensions for Zed extensions."
+description: "Agent Server Extensions for /nir extensions."
 ---
 
 # Agent Server Extensions
 
 <div class="warning">
 
-Note that starting from `v0.221`.x, [the ACP Registry](https://agentclientprotocol.com/registry) is the preferred way to install external agents in Zed.
+Note that starting from `v0.221`.x, [the ACP Registry](https://agentclientprotocol.com/registry) is the preferred way to install external agents in /nir.
 You can learn more about it in [the release blog post](https://zed.dev/blog/acp-registry)
 
 At some point in the near future, Agent Server extensions will be deprecated.
@@ -15,9 +15,9 @@ At some point in the near future, Agent Server extensions will be deprecated.
 </div>
 
 Agent Servers are programs that provide AI agent implementations through the [Agent Client Protocol (ACP)](https://agentclientprotocol.com).
-Agent Server Extensions let you package an Agent Server so users can install the extension and use your agent in Zed.
+Agent Server Extensions let you package an Agent Server so users can install the extension and use your agent in /nir.
 
-You can see the current Agent Server extensions either by opening the Extensions tab in Zed (execute the {#action zed::Extensions} command) and changing the filter from `All` to `Agent Servers`, or by visiting [the Zed website](https://zed.dev/extensions?filter=agent-servers).
+You can see the current Agent Server extensions either by opening the Extensions tab in /nir (execute the {#action zed::Extensions} command) and changing the filter from `All` to `Agent Servers`, or by visiting [the Zed website](https://zed.dev/extensions?filter=agent-servers).
 
 ## Defining Agent Server Extensions
 

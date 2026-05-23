@@ -1,11 +1,11 @@
 ---
-title: "Zed Development: Glossary"
-description: "Guide to zed development: glossary for Zed development."
+title: "/nir Development: Glossary"
+description: "Guide to /nir development: glossary for /nir development."
 ---
 
-# Zed Development: Glossary
+# /nir Development: Glossary
 
-This page defines terms and structures used throughout the Zed codebase.
+This page defines terms and structures used throughout the /nir codebase.
 
 It is a best-effort list and a work in progress.
 
@@ -73,9 +73,9 @@ h_flex()
 - `Focus`: The place where keystrokes are handled first
 - `Focus tree`: Path from the place that has the current focus to the UI Root. Example <img> TODO
 
-## Zed UI
+## /nir UI
 
-- `Window`: A struct representing a Zed window in your desktop environment (see image below). You can have multiple windows open. This is mostly passed around for rendering.
+- `Window`: A struct representing a /nir window in your desktop environment (see image below). You can have multiple windows open. This is mostly passed around for rendering.
 - `Modal`: A UI element that floats on top of the rest of the UI
 - `Picker`: A struct representing a list of items floating on top of the UI (Modal). You can select an item and confirm. What happens on select or confirm is determined by the picker's delegate. (The 'Modal' in the image below is a picker.)
 - `PickerDelegate`: A trait used to specialize behavior for a `Picker`. The `Picker` stores the `PickerDelegate` in the field delegate.

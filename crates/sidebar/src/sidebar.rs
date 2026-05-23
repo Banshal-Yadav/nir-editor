@@ -16,9 +16,9 @@ use agent_ui::threads_archive_view::{
     fuzzy_match_positions,
 };
 use agent_ui::{
-    AcpThreadImportOnboarding, Agent, AgentPanel, AgentPanelEvent, AgentThreadSource,
-    ArchiveSelectedThread, CrossChannelImportOnboarding, DEFAULT_THREAD_TITLE, NewTerminalThread,
-    NewThread, TerminalId, ThreadId, ThreadImportModal, channels_with_threads,
+    AcpThreadImportOnboarding, Agent, AgentPanel, AgentPanelEvent, AgentPanelTerminalSpawner,
+    AgentThreadSource, ArchiveSelectedThread, CrossChannelImportOnboarding, DEFAULT_THREAD_TITLE,
+    NewTerminalThread, NewThread, TerminalId, ThreadId, ThreadImportModal, channels_with_threads,
     import_threads_from_other_channels,
 };
 use chrono::{DateTime, Utc};
@@ -2890,6 +2890,9 @@ impl Sidebar {
                     workspace.add_panel(panel.clone(), window, cx);
                     panel.clone()
                 });
+                workspace.set_agent_terminal_spawner(AgentPanelTerminalSpawner {
+                    panel: panel.downgrade(),
+                });
                 load_thread(panel, &metadata, focus, window, cx);
                 if focus {
                     workspace.focus_panel::<AgentPanel>(window, cx);
@@ -3578,6 +3581,9 @@ impl Sidebar {
                 let panel = workspace.panel::<AgentPanel>(cx).unwrap_or_else(|| {
                     workspace.add_panel(panel.clone(), window, cx);
                     panel.clone()
+                });
+                workspace.set_agent_terminal_spawner(AgentPanelTerminalSpawner {
+                    panel: panel.downgrade(),
                 });
                 restore_terminal(panel, &metadata, focus, Some(workspace), window, cx);
                 if focus {

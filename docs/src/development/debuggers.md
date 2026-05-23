@@ -1,16 +1,16 @@
 ---
 title: Using a debugger
-description: "Guide to using a debugger for Zed development."
+description: "Guide to using a debugger for /nir development."
 ---
 
 # Using a debugger
 
 > This page is not about [configuring Zed's debugger](../debugger.md).
-> It covers how to use a debugger while developing Zed itself.
+> It covers how to use a debugger while developing /nir itself.
 
-## Using Zed's built-in debugger
+## Using /nir's built-in debugger
 
-While the Zed project is open you can open the `New Process Modal` and select the `Debug` tab. There you can see two debug configurations to debug Zed with, one for GDB and one for LLDB. Select the configuration you want and Zed will build and launch the binary.
+While the /nir project is open you can open the `New Process Modal` and select the `Debug` tab. There you can see two debug configurations to debug /nir with, one for GDB and one for LLDB. Select the configuration you want and /nir will build and launch the binary.
 
 GDB is not supported on Apple Silicon Macs.
 
@@ -27,7 +27,7 @@ In release builds, this reduces binary size. Type-level and variable-level debug
 
 However, this data matters when you are actively debugging. Without it, debuggers cannot resolve local variables, inspect values, or format output with pretty-printers.
 
-To get the full debugger experience on a release build, compile a Zed binary with full debug info.
+To get the full debugger experience on a release build, compile a /nir binary with full debug info.
 
 The simplest way is to use `--config` to override the `debug` field in the root `Cargo.toml` when running `cargo run` or `cargo build`:
 
@@ -56,11 +56,11 @@ cargo build --config 'profile.release.debug="full"'
 >
 > **Warning:** Do not commit these changes.
 
-## Running Zed with a shell debugger GDB/LLDB
+## Running /nir with a shell debugger GDB/LLDB
 
 ### Background
 
-When you install Rust through rustup (the recommended setup for Zed development; see your platform guide [here](../development.md)), rustup also installs helper scripts for debugging Rust binaries.
+When you install Rust through rustup (the recommended setup for /nir development; see your platform guide [here](../development.md)), rustup also installs helper scripts for debugging Rust binaries.
 
 These scripts are `rust-gdb` and `rust-lldb`.
 
@@ -78,21 +78,21 @@ If you are new to these tools, see the `gdb` docs [here](https://www.gnu.org/sof
 
 ### Usage with Zed
 
-After enabling full debug info and building with `cargo build`, run `rust-gdb` or `rust-lldb` against the compiled Zed binary:
+After enabling full debug info and building with `cargo build`, run `rust-gdb` or `rust-lldb` against the compiled /nir binary:
 
 ```
 rust-gdb target/debug/zed
 rust-lldb target/debug/zed
 ```
 
-You can also attach to a running Zed process (for example, one started with `cargo run`):
+You can also attach to a running /nir process (for example, one started with `cargo run`):
 
 ```
 rust-gdb -p <pid>
 rust-lldb -p <pid>
 ```
 
-`<pid>` is the process ID of the Zed instance you want to attach to.
+`<pid>` is the process ID of the /nir instance you want to attach to.
 
 To find the PID, use your system's process tools, such as Task Manager on Windows or Activity Monitor on macOS.
 
@@ -110,4 +110,4 @@ In `lldb`, use `backtrace` with `frame select`. `gdb` provides equivalent comman
 
 After the program stops on the exception, you usually cannot continue normal execution. You can still move between stack frames and inspect variables and expressions, which is often enough to identify the crash cause.
 
-You can find additional information on debugging Zed crashes [here](./debugging-crashes.md).
+You can find additional information on debugging /nir crashes [here](./debugging-crashes.md).

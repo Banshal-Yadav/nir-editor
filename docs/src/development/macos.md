@@ -1,13 +1,13 @@
 ---
-title: Building Zed for macOS
-description: "Guide to building zed for macos for Zed development."
+title: Building /nir for macOS
+description: "Guide to building /nir for macOS for /nir development."
 ---
 
-# Building Zed for macOS
+# Building /nir for macOS
 
 ## Repository
 
-Clone the [Zed repository](https://github.com/zed-industries/zed).
+Clone the [/nir repository](https://github.com/zed-industries/zed).
 
 ## Dependencies
 
@@ -36,9 +36,9 @@ Clone the [Zed repository](https://github.com/zed-industries/zed).
   brew install cmake
   ```
 
-## Building Zed from Source
+## Building /nir from Source
 
-Once you have the dependencies installed, you can build Zed using [Cargo](https://doc.rust-lang.org/cargo/).
+Once you have the dependencies installed, you can build /nir using [Cargo](https://doc.rust-lang.org/cargo/).
 
 For a debug build:
 
@@ -60,7 +60,7 @@ cargo test --workspace
 
 ## Visual Regression Tests
 
-Zed includes visual regression tests that capture screenshots of real Zed windows and compare them against baseline images. These tests require macOS with Screen Recording permission.
+/nir includes visual regression tests that capture screenshots of real /nir windows and compare them against baseline images. These tests require macOS with Screen Recording permission.
 
 ### Prerequisites
 

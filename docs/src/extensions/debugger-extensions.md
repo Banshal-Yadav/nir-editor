@@ -1,6 +1,6 @@
 ---
 title: Debugger Extensions
-description: "Debugger Extensions for Zed extensions."
+description: "Debugger Extensions for /nir extensions."
 ---
 
 # Debugger Extensions

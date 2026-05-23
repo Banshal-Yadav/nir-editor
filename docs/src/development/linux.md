@@ -1,13 +1,13 @@
 ---
-title: Building Zed for Linux
-description: "Guide to building zed for linux for Zed development."
+title: Building /nir for Linux
+description: "Guide to building /nir for Linux for /nir development."
 ---
 
-# Building Zed for Linux
+# Building /nir for Linux
 
 ## Repository
 
-Clone the [Zed repository](https://github.com/zed-industries/zed).
+Clone the [/nir repository](https://github.com/zed-industries/zed).
 
 ## Dependencies
 
@@ -23,7 +23,7 @@ Clone the [Zed repository](https://github.com/zed-industries/zed).
 
 ## Building from source
 
-Once the dependencies are installed, you can build Zed using [Cargo](https://doc.rust-lang.org/cargo/).
+Once the dependencies are installed, you can build /nir using [Cargo](https://doc.rust-lang.org/cargo/).
 
 For a debug build of the editor:
 

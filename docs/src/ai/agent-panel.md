@@ -175,7 +175,7 @@ For more, see the [Claude Code documentation](https://code.claude.com/docs/en/te
 
 ### Amp Notifications {#amp-notifications}
 
-Amp updates terminal titles automatically and can also notify you when it needs your attention. To enable notifications in Zed terminal threads, add `AMP_FORCE_BEL=1` to your terminal environment settings:
+Amp updates terminal titles automatically and can also notify you when it needs your attention. To enable notifications in /nir terminal threads, add `AMP_FORCE_BEL=1` to your terminal environment settings:
 
 ```json [settings]
 {
@@ -191,7 +191,7 @@ Restart Amp after adding the environment variable.
 
 ### OpenCode Notifications {#opencode-notifications}
 
-OpenCode can update terminal titles automatically. For Zed notifications, add an OpenCode plugin that emits a terminal bell when OpenCode needs your attention.
+OpenCode can update terminal titles automatically. For /nir notifications, add an OpenCode plugin that emits a terminal bell when OpenCode needs your attention.
 
 Create `.opencode/plugins/zed-bell.js` in your project, or `~/.config/opencode/plugins/zed-bell.js` to use it globally:
 
@@ -227,7 +227,7 @@ Restart Pi after adding the extension, or run `/reload` if the extension is in o
 
 ### Codex Terminal Titles {#codex-terminal-titles}
 
-Codex can update the terminal title as it works, which Zed uses to show useful context for Codex terminal threads in the sidebar — such as the project, current status, branch, model, or task progress.
+Codex can update the terminal title as it works, which /nir uses to show useful context for Codex terminal threads in the sidebar — such as the project, current status, branch, model, or task progress.
 
 To configure this from within Codex, run `/title` and use the picker to choose which fields appear and in what order. Codex saves the selection to `tui.terminal_title` in `~/.codex/config.toml`. You can also edit it directly:
 

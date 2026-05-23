@@ -67,7 +67,7 @@ use workspace::Workspace;
 use crate::agent_configuration::{ConfigureContextServerModal, ManageProfilesModal};
 pub use crate::agent_connection_store::{ActiveAcpConnection, AgentConnectionStore};
 pub use crate::agent_panel::{
-    AgentPanel, AgentPanelEvent, AgentPanelTerminalInfo, MaxIdleRetainedThreads, TerminalId,
+    AgentPanel, AgentPanelEvent, AgentPanelTerminalInfo, AgentPanelTerminalSpawner, MaxIdleRetainedThreads, TerminalId,
 };
 use crate::agent_registry_ui::AgentRegistryPage;
 pub use crate::inline_assistant::InlineAssistant;

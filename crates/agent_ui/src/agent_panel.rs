@@ -924,8 +924,8 @@ pub struct AgentPanel {
 /// Workspace holds a `Box<dyn AgentTerminalSpawner>` (type-erased), so `agent_launcher_page.rs`
 /// can call `workspace.spawn_agent_terminal()` without importing `agent_ui`.
 /// The actual work is forwarded to the live [`AgentPanel`] entity.
-struct AgentPanelTerminalSpawner {
-    panel: WeakEntity<AgentPanel>,
+pub struct AgentPanelTerminalSpawner {
+    pub panel: WeakEntity<AgentPanel>,
 }
 
 impl AgentTerminalSpawner for AgentPanelTerminalSpawner {
@@ -937,7 +937,8 @@ impl AgentTerminalSpawner for AgentPanelTerminalSpawner {
         window: &mut Window,
         cx: &mut App,
     ) {
-        self.panel
+        if self
+            .panel
             .update(cx, |panel, cx| {
                 panel.new_terminal_with_task(
                     spawn_task,
@@ -948,7 +949,10 @@ impl AgentTerminalSpawner for AgentPanelTerminalSpawner {
                     cx,
                 );
             })
-            .log_err();
+            .is_err()
+        {
+            log::error!("[agent-launcher] AgentPanel entity was released — panel not available");
+        }
     }
 }
 
@@ -1244,37 +1248,15 @@ impl AgentPanel {
                     cx.notify();
                 });
 
+                workspace.set_agent_terminal_spawner(AgentPanelTerminalSpawner {
+                    panel: panel.downgrade(),
+                });
+
                 panel
             })?;
 
-            // Wire this panel as the workspace's agent terminal spawner so the
-            // Agent Launcher routes CLI spawns through AgentPanel instead of
-            // creating bare terminal panes.
-            cx.update(|_window, cx| {
-                Self::register_as_agent_terminal_spawner(&panel, &workspace, cx);
-            })
-            .log_err();
-
             Ok(panel)
         })
-    }
-
-    /// Called from `load()` to wire `AgentPanel` into the workspace as the
-    /// [`AgentTerminalSpawner`] — enabling [`Workspace::spawn_agent_terminal`] to route
-    /// Agent Launcher spawns through the panel instead of creating bare terminal panes.
-    fn register_as_agent_terminal_spawner(
-        panel: &Entity<Self>,
-        workspace: &WeakEntity<Workspace>,
-        cx: &mut App,
-    ) {
-        let weak_panel = panel.downgrade();
-        workspace
-            .update(cx, |workspace, _cx| {
-                workspace.set_agent_terminal_spawner(AgentPanelTerminalSpawner {
-                    panel: weak_panel,
-                });
-            })
-            .log_err();
     }
 
     pub(crate) fn new(
@@ -1772,6 +1754,7 @@ impl AgentPanel {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        log::info!("[agent-launcher] new_terminal_with_task called, supports_terminal={}", self.supports_terminal(cx));
         log::info!("[agent-launcher] new_terminal_with_task: entered");
         // Only require the project to support terminals (local or remote-server).
         // Do NOT gate on has_open_project() — agent CLI tools don't need a worktree;
@@ -1841,7 +1824,9 @@ impl AgentPanel {
     }
 
     pub fn supports_terminal(&self, cx: &App) -> bool {
-        self.has_open_project(cx) && self.project.read(cx).supports_terminal(cx)
+        let result = self.has_open_project(cx) && self.project.read(cx).supports_terminal(cx);
+        log::info!("[agent-launcher] supports_terminal: {}", result);
+        result
     }
 
     pub fn should_create_terminal_for_new_entry(&self, cx: &App) -> bool {

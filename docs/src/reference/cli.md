@@ -1,19 +1,19 @@
 ---
 title: CLI Reference
-description: "Reference for Zed's command-line interface (CLI), including opening files and directories, integrating with tools, and controlling Zed from scripts."
+description: "Reference for /nir's command-line interface (CLI), including opening files and directories, integrating with tools, and controlling /nir from scripts."
 ---
 
 # CLI Reference
 
-Use Zed's command-line interface (CLI) to open files and directories, integrate with other tools, and control Zed from scripts.
+Use /nir's command-line interface (CLI) to open files and directories, integrate with other tools, and control /nir from scripts.
 
 ## Installation
 
 **macOS:** Run the {#action cli::InstallCliBinary} command from the command palette ({#kb command_palette::Toggle}) to install the `zed` CLI to `/usr/local/bin/zed`.
 
-**Linux:** The CLI is included with Zed packages. The binary name may vary by distribution (commonly `zed` or `zeditor`).
+**Linux:** The CLI is included with /nir packages. The binary name may vary by distribution (commonly `zed` or `zeditor`).
 
-**Windows:** The CLI is included with Zed. Add Zed's installation directory to your PATH, or use the full path to `zed.exe`.
+**Windows:** The CLI is included with /nir. Add /nir's installation directory to your PATH, or use the full path to `zed.exe`.
 
 ## Usage
 

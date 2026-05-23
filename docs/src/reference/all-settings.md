@@ -3072,7 +3072,7 @@ Positive `integer` values or `null` for unlimited tabs
 
 ## Network Proxy
 
-- Description: Configure a network proxy for Zed.
+- Description: Configure a network proxy for /nir.
 - Setting: `proxy`
 - Default: `null`
 

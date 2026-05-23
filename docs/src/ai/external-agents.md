@@ -1,22 +1,22 @@
 ---
-title: Use Claude Agent, Gemini CLI, and Codex in Zed
-description: Run Claude Agent, Gemini CLI, Codex, and other AI coding agents directly in Zed via the Agent Client Protocol (ACP).
+title: Use Claude Agent, Gemini CLI, and Codex in /nir
+description: Run Claude Agent, Gemini CLI, Codex, and other AI coding agents directly in /nir via the Agent Client Protocol (ACP).
 ---
 
 # External Agents
 
-Zed supports many external agents, including CLI-based ones, through the [Agent Client Protocol (ACP)](https://agentclientprotocol.com).
+/nir supports many external agents, including CLI-based ones, through the [Agent Client Protocol (ACP)](https://agentclientprotocol.com).
 
-Zed supports [Gemini CLI](https://github.com/google-gemini/gemini-cli) (the reference ACP implementation), [Claude Agent](https://platform.claude.com/docs/en/agent-sdk/overview), [Codex](https://developers.openai.com/codex), [GitHub Copilot](https://github.com/github/copilot-language-server-release), and [additional agents](#add-more-agents) you can configure.
+/nir supports [Gemini CLI](https://github.com/google-gemini/gemini-cli) (the reference ACP implementation), [Claude Agent](https://platform.claude.com/docs/en/agent-sdk/overview), [Codex](https://developers.openai.com/codex), [GitHub Copilot](https://github.com/github/copilot-language-server-release), and [additional agents](#add-more-agents) you can configure.
 
-For Zed's built-in agent and the full list of tools it can use natively, see [Agent Tools](./tools.md).
+For /nir's built-in agent and the full list of tools it can use natively, see [Agent Tools](./tools.md).
 
-> Note that Zed's interaction with external agents is strictly UI-based; the billing, legal, and terms arrangement is directly between you and the agent provider.
-> Zed does not charge for use of external agents, and our [zero-data retention agreements/privacy guarantees](./ai-improvement.md) are **_only_** applicable for Zed's hosted models.
+> Note that /nir's interaction with external agents is strictly UI-based; the billing, legal, and terms arrangement is directly between you and the agent provider.
+> /nir does not charge for use of external agents, and our [zero-data retention agreements/privacy guarantees](./ai-improvement.md) are **_only_** applicable for /nir's hosted models.
 
 ## Gemini CLI {#gemini-cli}
 
-Zed provides the ability to run [Gemini CLI](https://github.com/google-gemini/gemini-cli) directly in the [agent panel](./agent-panel.md).
+/nir provides the ability to run [Gemini CLI](https://github.com/google-gemini/gemini-cli) directly in the [agent panel](./agent-panel.md).
 Under the hood we run Gemini CLI in the background, and talk to it over ACP.
 
 ### Getting Started
@@ -37,30 +37,30 @@ If you'd like to bind this to a keyboard shortcut, you can do so by editing your
 
 #### Installation
 
-The first time you create a Gemini CLI thread, Zed will install [@google/gemini-cli](https://github.com/google-gemini/gemini-cli).
-This installation is only available to Zed and is kept up to date as you use the agent.
+The first time you create a Gemini CLI thread, /nir will install [@google/gemini-cli](https://github.com/google-gemini/gemini-cli).
+This installation is only available to /nir and is kept up to date as you use the agent.
 
 #### Authentication
 
 After you have Gemini CLI running, you'll be prompted to authenticate.
 
 Click the "Login" button to open the Gemini CLI interactively, where you can log in with your Google account or [Vertex AI](https://cloud.google.com/vertex-ai) credentials.
-Zed does not see your OAuth or access tokens in this case.
+/nir does not see your OAuth or access tokens in this case.
 
-If the `GEMINI_API_KEY` environment variable (or `GOOGLE_AI_API_KEY`) is already set, or you have configured a Google AI API key in Zed's [language model provider settings](./llm-providers.md#google-ai), it will be passed to Gemini CLI automatically.
+If the `GEMINI_API_KEY` environment variable (or `GOOGLE_AI_API_KEY`) is already set, or you have configured a Google AI API key in /nir's [language model provider settings](./llm-providers.md#google-ai), it will be passed to Gemini CLI automatically.
 
 For more information, see the [Gemini CLI docs](https://github.com/google-gemini/gemini-cli/blob/main/docs/index.md).
 
 ### Usage
 
-Gemini CLI supports the same workflows as Zed's first-party agent: code generation, refactoring, debugging, and Q&A. Add context by @-mentioning files, recent threads, or symbols.
+Gemini CLI supports the same workflows as /nir's first-party agent: code generation, refactoring, debugging, and Q&A. Add context by @-mentioning files, recent threads, or symbols.
 
 > Some agent panel features are not yet available with Gemini CLI: editing past messages, resuming threads from history, and checkpointing.
 
 ## Claude Agent
 
-Similar to Gemini CLI, you can also run [Claude Agent](https://platform.claude.com/docs/en/agent-sdk/overview) directly via Zed's [agent panel](./agent-panel.md).
-Under the hood, Zed runs the Claude Agent SDK, which runs Claude Code under the hood, and communicates to it over ACP, through [a dedicated adapter](https://github.com/zed-industries/claude-agent-acp).
+Similar to Gemini CLI, you can also run [Claude Agent](https://platform.claude.com/docs/en/agent-sdk/overview) directly via /nir's [agent panel](./agent-panel.md).
+Under the hood, /nir runs the Claude Agent SDK, which runs Claude Code under the hood, and communicates to it over ACP, through [a dedicated adapter](https://github.com/zed-industries/claude-agent-acp).
 
 ### Getting Started
 
@@ -80,18 +80,18 @@ If you'd like to bind this to a keyboard shortcut, you can do so by editing your
 
 ### Authentication
 
-As of version `0.202.7`, authentication to Zed's Claude Agent installation is decoupled entirely from Zed's agent.
-That is to say, an Anthropic API key added via the [Zed Agent's settings](./llm-providers.md#anthropic) will _not_ be utilized by Claude Agent for authentication and billing.
+As of version `0.202.7`, authentication to /nir's Claude Agent installation is decoupled entirely from /nir's agent.
+That is to say, an Anthropic API key added via the [/nir Agent's settings](./llm-providers.md#anthropic) will _not_ be utilized by Claude Agent for authentication and billing.
 
 To ensure you're using your billing method of choice, [open a new Claude Agent thread](./agent-panel.md#new-thread).
 Then, run `/login`, and authenticate either via API key, or via `Log in with Claude Code` to use a Claude Pro/Max subscription.
 
 #### Installation
 
-The first time you create a Claude Agent thread, Zed will install [@zed-industries/claude-agent-acp](https://github.com/zed-industries/claude-agent-acp).
-This installation is only available to Zed and is kept up to date as you use the agent.
+The first time you create a Claude Agent thread, /nir will install [@zed-industries/claude-agent-acp](https://github.com/zed-industries/claude-agent-acp).
+This installation is only available to /nir and is kept up to date as you use the agent.
 
-Zed will always use this managed version of the Claude Agent adapter, which includes a vendored version of the Claude Code CLI, even if you have it installed globally.
+/nir will always use this managed version of the Claude Agent adapter, which includes a vendored version of the Claude Code CLI, even if you have it installed globally.
 
 If you want to override the executable used by the adapter, you can set the `CLAUDE_CODE_EXECUTABLE` environment variable in your settings to the path of your preferred executable.
 
@@ -110,9 +110,9 @@ If you want to override the executable used by the adapter, you can set the `CLA
 
 ### Usage
 
-Claude Agent supports the same workflows as Zed's first-party agent. Add context by @-mentioning files, recent threads, diagnostics, or symbols.
+Claude Agent supports the same workflows as /nir's first-party agent. Add context by @-mentioning files, recent threads, diagnostics, or symbols.
 
-In complement to talking to it [over ACP](https://agentclientprotocol.com), Zed relies on the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview) to support some of its specific features.
+In complement to talking to it [over ACP](https://agentclientprotocol.com), /nir relies on the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview) to support some of its specific features.
 However, the SDK doesn't yet expose everything needed to fully support all of them:
 
 - Slash Commands: [Custom slash commands](https://code.claude.com/docs/en/slash-commands#custom-slash-commands) are fully supported, and have been merged into skills. A subset of [built-in commands](https://code.claude.com/docs/en/slash-commands#built-in-slash-commands) are supported.

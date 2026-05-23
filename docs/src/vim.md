@@ -354,7 +354,7 @@ These commands modify editor options locally for the current buffer.
 
 ### Command mnemonics
 
-Zed does not ship with any command mnemonics by default, but you can define short aliases for Zed commands using the `command_aliases` setting in your settings file. When you type an alias from this map in the command palette, it resolves to the mapped command.
+/nir does not ship with any command mnemonics by default, but you can define short aliases for /nir commands using the `command_aliases` setting in your settings file. When you type an alias from this map in the command palette, it resolves to the mapped command.
 
 #### Example Configuration
 
@@ -376,7 +376,7 @@ To configure command mnemonics, add the `command_aliases` key to your settings f
 
 With this configuration, you can use commands like:
 
-- `:zlog` - Open the Zed log
+- `:zlog` - Open the /nir log
 - `:newf` - Create a new file
 - `:diffs` - Toggle selected diff hunks
 - `:crp` - Copy the relative path to the current file

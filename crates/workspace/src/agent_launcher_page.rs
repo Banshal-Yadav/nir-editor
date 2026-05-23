@@ -13,7 +13,7 @@ use task::{
     HideStrategy, RevealStrategy, RevealTarget, SaveStrategy, Shell, SpawnInTerminal, TaskId,
 };
 use std::collections::HashSet;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, SystemTime};
 
 // ─── Runtime state per agent ─────────────────────────────────────────────────
 
@@ -156,38 +156,20 @@ impl AgentLauncherPage {
         let name = entry.config.name.clone();
         let agent_id = entry.config.id.clone();
 
-        if let Some(workspace) = self.workspace.upgrade() {
-            workspace.update(cx, |workspace, cx| {
-                // Compute the working directory here while we have &mut Workspace directly
-                // (without needing to read-lease the entity). This prevents the double-lease
-                // panic that occurs when AgentPanel::new_terminal_with_task() later tries to
-                // call default_terminal_working_directory() → workspace.read(cx) while
-                // workspace is still mutably leased in this update closure.
-                // Working directory priority:
-                //   1. Active editor file's parent directory
-                //   2. First visible worktree root
-                //   3. HOME / USERPROFILE (always available)
-                let cwd: Option<std::path::PathBuf> = workspace
-                    .active_item(cx)
-                    .and_then(|item| item.project_path(cx))
-                    .and_then(|pp| {
-                        workspace
-                            .worktrees(cx)
-                            .find(|wt| wt.read(cx).id() == pp.worktree_id)
-                            .map(|wt| wt.read(cx).abs_path().join(pp.path.parent().unwrap_or(&pp.path)).to_path_buf())
-                    })
-                    .or_else(|| {
-                        workspace
-                            .visible_worktrees(cx)
-                            .next()
-                            .map(|wt| wt.read(cx).abs_path().to_path_buf())
-                    })
-                    .or_else(|| {
-                        std::env::var("USERPROFILE")
-                            .or_else(|_| std::env::var("HOME"))
-                            .ok()
-                            .map(std::path::PathBuf::from)
-                    });
+        if let Some(workspace_handle) = self.workspace.upgrade() {
+            let cwd: Option<std::path::PathBuf> = workspace_handle
+                .read(cx)
+                .worktrees(cx)
+                .next()
+                .map(|wt| wt.read(cx).abs_path().to_path_buf())
+                .or_else(|| {
+                    std::env::var("USERPROFILE")
+                        .or_else(|_| std::env::var("HOME"))
+                        .ok()
+                        .map(std::path::PathBuf::from)
+                });
+
+            workspace_handle.update(cx, |workspace, cx| {
                 // On Windows, agent CLI tools (claude, opencode, aider, etc.) are installed as
                 // .cmd batch scripts by npm/npx and cannot be spawned directly as a process —
                 // they must be run via `cmd.exe /c <command>`. On other platforms the binary

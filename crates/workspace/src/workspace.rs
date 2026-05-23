@@ -2605,6 +2605,9 @@ impl Workspace {
         for dock in [&self.left_dock, &self.bottom_dock, &self.right_dock] {
             dock.update(cx, |dock, cx| dock.remove_panel(panel, window, cx));
         }
+        if panel.read(cx).is_agent_panel() {
+            self.agent_terminal_spawner = None;
+        }
     }
 
     pub fn status_bar(&self) -> &Entity<StatusBar> {

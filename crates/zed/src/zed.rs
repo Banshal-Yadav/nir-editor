@@ -807,6 +807,11 @@ fn ensure_agent_panel_for_workspace(
     cx.spawn_in(window, async move |workspace, cx| {
         task.await?;
         workspace.update_in(cx, |workspace, window, cx| {
+            if let Some(panel) = workspace.panel::<agent_ui::AgentPanel>(cx) {
+                workspace.set_agent_terminal_spawner(agent_ui::AgentPanelTerminalSpawner {
+                    panel: panel.downgrade(),
+                });
+            }
             if let Some(source_workspace) = source_workspace.clone()
                 && let Some(panel) = workspace.panel::<agent_ui::AgentPanel>(cx)
             {
