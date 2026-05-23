@@ -258,7 +258,7 @@ When you start an external agent thread, Zed sends:
 | Mode selection        | `agent_servers.<agent>.default_mode` in settings                      |
 | Environment variables | `agent_servers.<agent>.env` in settings                               |
 | MCP servers           | `context_servers` in settings (see [limitations](#mcp-server-access)) |
-| Working directory     | Automatically set to project root                                     |
+| Working directory     | Automatically set to project root (or user home directory if no folder is open)     |
 
 **Not forwarded:**
 

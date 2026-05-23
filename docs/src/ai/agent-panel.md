@@ -141,6 +141,8 @@ External agents like Claude Agent and Codex can also run as terminal threads. So
 
 Open the menu using the agent selector button on the left (in the empty state) or the `+` icon in the top-right of the panel toolbar, and choose **Terminal**. The terminal thread opens in the panel body, just like switching to a thread. You can open as many as you like — each gets its own sidebar entry.
 
+> **Note:** Starting from version v0.225.0, you can launch terminal threads and external agents even in a new/empty project with no open worktree. If no folder is open in the workspace, /nir will use your home directory (or user profile directory on Windows) as the fallback working directory.
+
 ### Terminal Thread Titles {#terminal-thread-titles}
 
 The terminal title in the toolbar updates automatically to reflect the running shell or process. You can also set a custom name by clicking the title or the pencil icon that appears on hover.
