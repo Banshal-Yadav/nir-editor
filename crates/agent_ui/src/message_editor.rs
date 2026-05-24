@@ -190,6 +190,7 @@ pub struct MessageEditor {
     agent_id: AgentId,
     thread_store: Option<Entity<ThreadStore>>,
     stt_button: Entity<crate::stt_button::SttButton>,
+    show_stt: bool,
     _subscriptions: Vec<Subscription>,
     _parse_slash_command_task: Task<()>,
 }
@@ -635,9 +636,15 @@ impl MessageEditor {
             agent_id,
             thread_store,
             stt_button,
+            show_stt: false,
             _subscriptions: subscriptions,
             _parse_slash_command_task: Task::ready(()),
         }
+    }
+
+    pub fn show_stt(mut self, show_stt: bool) -> Self {
+        self.show_stt = show_stt;
+        self
     }
 
     pub fn set_session_capabilities(
@@ -2077,7 +2084,7 @@ impl Render for MessageEditor {
                             },
                         )
                     }))
-                    .child(self.stt_button.clone()),
+                    .when(self.show_stt && !self.editor.read(cx).read_only(cx), |this| this.child(self.stt_button.clone())),
             )
     }
 }

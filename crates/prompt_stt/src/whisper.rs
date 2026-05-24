@@ -164,7 +164,9 @@ impl WhisperModel {
         let eot_token = token_id(tokenizer, m::EOT_TOKEN)?;
         
         let mut token_ids = Vec::new();
-        for step in 0..100 {
+        let audio_duration_secs = processed_audio.len() as f32 / 16000.0;
+        let max_steps = ((audio_duration_secs * 8.0) as usize).clamp(5, 100);
+        for step in 0..max_steps {
             let token_tensor = Tensor::new(tokens.as_slice(), &self.device)?.unsqueeze(0)?;
             let decoder_output = model.decoder.forward(&token_tensor, &audio_features, true)?;
             let logits = model.decoder.final_linear(&decoder_output)?;

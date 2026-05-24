@@ -19,14 +19,9 @@ pub struct SttButton {
 
 impl SttButton {
     pub fn new(_cx: &mut Context<Self>) -> Self {
-        let service = SttService::new().unwrap_or_else(|e| {
-            log::error!("Failed to initialize STT service: {}", e);
-            None.unwrap() // Stub handling
-        });
-
         Self {
             is_listening: false,
-            stt_service: Some(Arc::new(Mutex::new(service))),
+            stt_service: None,
             _task: None,
         }
     }
@@ -40,6 +35,19 @@ impl SttButton {
     }
 
     fn start_listening(&mut self, cx: &mut Context<Self>) {
+        if self.stt_service.is_none() {
+            match SttService::new() {
+                Ok(service) => {
+                    self.stt_service = Some(Arc::new(Mutex::new(service)));
+                }
+                Err(e) => {
+                    log::error!("Failed to initialize STT service: {}", e);
+                    cx.emit(SttEvent::Error(format!("Failed to init STT: {}", e)));
+                    return;
+                }
+            }
+        }
+
         if let Some(service_arc) = self.stt_service.clone() {
             self.is_listening = true;
             cx.notify();
@@ -51,17 +59,14 @@ impl SttButton {
                 };
 
                 if needs_download {
-                    let _ = gpui::AsyncApp::update(cx, |cx| {
-                        this.update(cx, |_: &mut SttButton, cx| {
-                            cx.emit(SttEvent::Transcription("\n[System: First run - Downloading STT models (39MB)... Please wait.]\n".to_string()))
-                        }).ok()
-                    });
+                    log::info!("First run - Downloading STT models (39MB)... Please wait.");
                 }
 
                 let mut service = service_arc.lock().await;
                 
                 // Trigger download if needed
                 if let Err(e) = service.download_models_if_needed().await {
+                    log::error!("STT download failed: {}", e);
                     let _ = gpui::AsyncApp::update(cx, |cx| {
                         this.update(cx, |_: &mut SttButton, cx| {
                             cx.emit(SttEvent::Error(format!("Download failed: {}", e)))
@@ -71,14 +76,11 @@ impl SttButton {
                 }
 
                 if needs_download {
-                    let _ = gpui::AsyncApp::update(cx, |cx| {
-                        this.update(cx, |_: &mut SttButton, cx| {
-                            cx.emit(SttEvent::Transcription("[System: Download complete! Listening...]\n".to_string()))
-                        }).ok()
-                    });
+                    log::info!("STT Download complete! Listening...");
                 }
 
                 if let Err(e) = service.start_listening() {
+                    log::error!("STT start listening failed: {}", e);
                     let _ = gpui::AsyncApp::update(cx, |cx| {
                         this.update(cx, |_: &mut SttButton, cx| {
                             cx.emit(SttEvent::Error(e.to_string()))
@@ -90,6 +92,8 @@ impl SttButton {
     }
 
     fn stop_listening(&mut self, cx: &mut Context<Self>) {
+        self.is_listening = false;
+        cx.notify();
         if let Some(service_arc) = self.stt_service.clone() {
             self._task = Some(cx.spawn(async move |this, cx| {
                     let service_arc_clone = service_arc.clone();

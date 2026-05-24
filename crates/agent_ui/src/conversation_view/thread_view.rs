@@ -417,7 +417,7 @@ impl ThreadView {
                 },
                 window,
                 cx,
-            );
+            ).show_stt(true);
             if let Some(content) = initial_content {
                 match content {
                     AgentInitialContent::ThreadSummary { session_id, title } => {
