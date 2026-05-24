@@ -11,8 +11,15 @@ pub enum SttEvent {
     Error(String),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum SttState {
+    Idle,
+    Listening,
+    Processing,
+}
+
 pub struct SttButton {
-    is_listening: bool,
+    pub state: SttState,
     stt_service: Option<Arc<Mutex<SttService>>>,
     _task: Option<Task<()>>,
 }
@@ -20,16 +27,16 @@ pub struct SttButton {
 impl SttButton {
     pub fn new(_cx: &mut Context<Self>) -> Self {
         Self {
-            is_listening: false,
+            state: SttState::Idle,
             stt_service: None,
             _task: None,
         }
     }
 
     pub fn toggle_listening(&mut self, cx: &mut Context<Self>) {
-        if self.is_listening {
+        if self.state == SttState::Listening {
             self.stop_listening(cx);
-        } else {
+        } else if self.state == SttState::Idle {
             self.start_listening(cx);
         }
     }
@@ -49,7 +56,7 @@ impl SttButton {
         }
 
         if let Some(service_arc) = self.stt_service.clone() {
-            self.is_listening = true;
+            self.state = SttState::Listening;
             cx.notify();
 
             self._task = Some(cx.spawn(async move |this, cx| {
@@ -68,8 +75,10 @@ impl SttButton {
                 if let Err(e) = service.download_models_if_needed().await {
                     log::error!("STT download failed: {}", e);
                     let _ = gpui::AsyncApp::update(cx, |cx| {
-                        this.update(cx, |_: &mut SttButton, cx| {
-                            cx.emit(SttEvent::Error(format!("Download failed: {}", e)))
+                        this.update(cx, |this: &mut SttButton, cx| {
+                            cx.emit(SttEvent::Error(format!("Download failed: {}", e)));
+                            this.state = SttState::Idle;
+                            cx.notify();
                         }).ok()
                     });
                     return;
@@ -82,8 +91,10 @@ impl SttButton {
                 if let Err(e) = service.start_listening() {
                     log::error!("STT start listening failed: {}", e);
                     let _ = gpui::AsyncApp::update(cx, |cx| {
-                        this.update(cx, |_: &mut SttButton, cx| {
-                            cx.emit(SttEvent::Error(e.to_string()))
+                        this.update(cx, |this: &mut SttButton, cx| {
+                            cx.emit(SttEvent::Error(e.to_string()));
+                            this.state = SttState::Idle;
+                            cx.notify();
                         }).ok()
                     });
                 }
@@ -92,7 +103,7 @@ impl SttButton {
     }
 
     fn stop_listening(&mut self, cx: &mut Context<Self>) {
-        self.is_listening = false;
+        self.state = SttState::Processing;
         cx.notify();
         if let Some(service_arc) = self.stt_service.clone() {
             self._task = Some(cx.spawn(async move |this, cx| {
@@ -108,7 +119,7 @@ impl SttButton {
                                 Ok(text) => cx.emit(SttEvent::Transcription(text)),
                                 Err(e) => cx.emit(SttEvent::Error(e.to_string())),
                             }
-                            this.is_listening = false;
+                            this.state = SttState::Idle;
                             cx.notify();
                         })
                         .ok()
@@ -122,22 +133,34 @@ impl EventEmitter<SttEvent> for SttButton {}
 
 impl Render for SttButton {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let icon = if self.is_listening {
-            IconName::Mic // Assuming a Mic icon exists
-        } else {
-            IconName::MicMute
+        let (icon, status_text) = match self.state {
+            SttState::Idle => (IconName::MicMute, None),
+            SttState::Listening => (IconName::Mic, Some("Listening...")),
+            SttState::Processing => (IconName::Mic, Some("Processing...")),
         };
 
-        let tooltip = if self.is_listening {
-            "Stop Listening"
-        } else {
-            "Start Listening (STT)"
+        let tooltip = match self.state {
+            SttState::Idle => "Start Listening (STT)",
+            SttState::Listening => "Stop Listening",
+            SttState::Processing => "Transcribing...",
         };
 
-        div().child(
-            IconButton::new("stt-button", icon)
-                .on_click(cx.listener(|this, _, _window, cx| this.toggle_listening(cx)))
-                .tooltip(Tooltip::text(tooltip)),
-        )
+        div()
+            .flex()
+            .flex_col()
+            .items_center()
+            .child(
+                IconButton::new("stt-button", icon)
+                    .on_click(cx.listener(|this, _, _window, cx| this.toggle_listening(cx)))
+                    .tooltip(Tooltip::text(tooltip)),
+            )
+            .when_some(status_text, |el, text| {
+                el.child(
+                    div()
+                        .text_xs()
+                        .text_color(gpui::rgba(0xffa500ff)) // amber color matching /nir theme
+                        .child(text)
+                )
+            })
     }
 }
