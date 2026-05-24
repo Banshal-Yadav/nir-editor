@@ -4,6 +4,7 @@ use gpui::{
 };
 use prompt_stt::SttService;
 use std::sync::Arc;
+use theme::ActiveTheme;
 use ui::{ButtonCommon, Clickable, IconButton, IconName, Tooltip};
 
 pub enum SttEvent {
@@ -158,7 +159,7 @@ impl Render for SttButton {
                 el.child(
                     div()
                         .text_xs()
-                        .text_color(gpui::rgba(0xffa500ff)) // amber color matching /nir theme
+                        .text_color(cx.theme().colors().text_muted)
                         .child(text)
                 )
             })
