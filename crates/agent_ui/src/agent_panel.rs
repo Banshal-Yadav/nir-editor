@@ -75,9 +75,7 @@ use prompt_store::PromptStore;
 use settings::TerminalDockPosition;
 use settings::{NotifyWhenAgentWaiting, Settings, update_settings_file};
 use skill_creator::open_skill_creator;
-use task::{
-    HideStrategy, RevealStrategy, SaveStrategy, Shell, SpawnInTerminal, TaskId,
-};
+use task::{HideStrategy, RevealStrategy, SaveStrategy, Shell, SpawnInTerminal, TaskId};
 use terminal::{Event as TerminalEvent, terminal_settings::TerminalSettings};
 use terminal_view::{TerminalView, terminal_panel::TerminalPanel};
 use theme_settings::ThemeSettings;
@@ -1754,13 +1752,18 @@ impl AgentPanel {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        log::info!("[agent-launcher] new_terminal_with_task called, supports_terminal={}", self.supports_terminal(cx));
+        log::info!(
+            "[agent-launcher] new_terminal_with_task called, supports_terminal={}",
+            self.supports_terminal(cx)
+        );
         log::info!("[agent-launcher] new_terminal_with_task: entered");
         // Only require the project to support terminals (local or remote-server).
         // Do NOT gate on has_open_project() — agent CLI tools don't need a worktree;
         // they use the cwd from SpawnInTerminal (or HOME as fallback).
         if !self.project.read(cx).supports_terminal(cx) {
-            log::warn!("[agent-launcher] new_terminal_with_task: project.supports_terminal() = false (remote collab?) — aborting");
+            log::warn!(
+                "[agent-launcher] new_terminal_with_task: project.supports_terminal() = false (remote collab?) — aborting"
+            );
             return;
         }
         self.set_last_created_entry_kind_from_user_action(AgentPanelEntryKind::Terminal, cx);
@@ -1797,11 +1800,11 @@ impl AgentPanel {
                 this.register_terminal_view(
                     terminal_view,
                     terminal_working_directory,
-                    None,  // custom_title — none for launcher-spawned terminals
-                    None,  // initial_title — title comes from terminal process
+                    None, // custom_title — none for launcher-spawned terminals
+                    None, // initial_title — title comes from terminal process
                     launch_cmd,
                     agent_icon,
-                    true,  // focus
+                    true, // focus
                     source,
                     window,
                     cx,
@@ -1916,7 +1919,6 @@ impl AgentPanel {
         .detach_and_log_err(cx);
     }
 
-
     /// Like [`spawn_terminal`], but uses `project.create_terminal_task` with a full
     /// [`SpawnInTerminal`] instead of `create_terminal_shell`. Used by [`restore_terminal`]
     /// when the terminal was originally an agent CLI (has `launch_cmd`) so the command
@@ -2007,8 +2009,8 @@ impl AgentPanel {
             custom_title,
             initial_title,
             created_at,
-            launch_cmd,            // preserved from DB metadata on restore
-            None,                  // agent_icon — not tracked at this layer
+            launch_cmd, // preserved from DB metadata on restore
+            None,       // agent_icon — not tracked at this layer
             select,
             focus,
             source,
@@ -2095,7 +2097,11 @@ impl AgentPanel {
         }
         terminal.refresh_metadata(cx);
         self.terminals.insert(terminal_id, terminal);
-        log::info!("[agent-launcher] register_terminal_inner: inserted terminal {:?} into self.terminals (count={})", terminal_id, self.terminals.len());
+        log::info!(
+            "[agent-launcher] register_terminal_inner: inserted terminal {:?} into self.terminals (count={})",
+            terminal_id,
+            self.terminals.len()
+        );
         self.persist_terminal_metadata(terminal_id, cx);
         self.emit_terminal_thread_started(source, cx);
         if select {
@@ -2103,7 +2109,10 @@ impl AgentPanel {
         }
         cx.emit(AgentPanelEvent::EntryChanged);
         cx.notify();
-        log::info!("[agent-launcher] register_terminal_inner: completed for terminal {:?}", terminal_id);
+        log::info!(
+            "[agent-launcher] register_terminal_inner: completed for terminal {:?}",
+            terminal_id
+        );
     }
 
     /// Registers an externally-created [`TerminalView`] into the AgentPanel's terminal
@@ -2133,10 +2142,10 @@ impl AgentPanel {
             working_directory,
             custom_title,
             initial_title,
-            None,         // created_at — use Utc::now() inside inner
+            None, // created_at — use Utc::now() inside inner
             launch_cmd,
             agent_icon,
-            true,         // select — always make it the active view
+            true, // select — always make it the active view
             focus,
             source,
             window,
@@ -2261,11 +2270,16 @@ impl AgentPanel {
 
     fn persist_terminal_metadata(&self, terminal_id: TerminalId, cx: &mut Context<Self>) {
         let Some(store) = TerminalThreadMetadataStore::try_global(cx) else {
-            log::warn!("[agent-launcher] persist_terminal_metadata: TerminalThreadMetadataStore not global — entry will NOT appear in sidebar");
+            log::warn!(
+                "[agent-launcher] persist_terminal_metadata: TerminalThreadMetadataStore not global — entry will NOT appear in sidebar"
+            );
             return;
         };
         let Some(metadata) = self.terminal_metadata(terminal_id, cx) else {
-            log::warn!("[agent-launcher] persist_terminal_metadata: terminal_metadata() returned None for {:?}", terminal_id);
+            log::warn!(
+                "[agent-launcher] persist_terminal_metadata: terminal_metadata() returned None for {:?}",
+                terminal_id
+            );
             return;
         };
         log::info!(
@@ -2330,13 +2344,19 @@ impl AgentPanel {
                 "cmd.exe".to_string(),
                 vec![
                     "/c".to_string(),
-                    format!("set PATH=%APPDATA%\\npm;%ProgramFiles%\\nodejs;%PATH% && {}", cmd),
+                    format!(
+                        "set PATH=%APPDATA%\\npm;%ProgramFiles%\\nodejs;%PATH% && {}",
+                        cmd
+                    ),
                 ],
             );
             #[cfg(not(target_os = "windows"))]
             let (restore_command, restore_args) = (cmd.clone(), vec![]);
             let spawn_task = SpawnInTerminal {
-                id: TaskId(format!("agent-restore-{}", metadata.terminal_id.to_key_string())),
+                id: TaskId(format!(
+                    "agent-restore-{}",
+                    metadata.terminal_id.to_key_string()
+                )),
                 full_label: format!("Restore {}", metadata.title),
                 label: metadata.title.to_string(),
                 command: Some(restore_command),
@@ -4626,8 +4646,7 @@ impl Panel for AgentPanel {
     }
 
     fn icon(&self, _window: &Window, cx: &App) -> Option<IconName> {
-        (self.enabled(cx) && AgentSettings::get_global(cx).button)
-            .then_some(IconName::Sparkle)
+        (self.enabled(cx) && AgentSettings::get_global(cx).button).then_some(IconName::Sparkle)
     }
 
     fn icon_tooltip(&self, _window: &Window, _cx: &App) -> Option<&'static str> {
@@ -5714,7 +5733,6 @@ impl AgentPanel {
             .child(toolbar_content)
     }
 
-
     fn dismiss_ai_onboarding(&mut self, cx: &mut Context<Self>) {
         self.new_user_onboarding_upsell_dismissed
             .store(true, Ordering::Release);
@@ -6002,7 +6020,7 @@ impl Render for AgentPanel {
                     .child(self.render_drag_target(cx)),
                 VisibleSurface::Configuration(configuration) => {
                     parent.children(configuration.cloned())
-                },
+                }
             });
 
         match self.visible_font_size() {

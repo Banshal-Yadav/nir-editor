@@ -189,6 +189,7 @@ pub struct MessageEditor {
     session_capabilities: SharedSessionCapabilities,
     agent_id: AgentId,
     thread_store: Option<Entity<ThreadStore>>,
+    stt_button: Entity<crate::stt_button::SttButton>,
     _subscriptions: Vec<Subscription>,
     _parse_slash_command_task: Task<()>,
 }
@@ -601,6 +602,31 @@ impl MessageEditor {
             .detach_and_log_err(cx);
         }
 
+        let stt_button = cx.new(|cx| crate::stt_button::SttButton::new(cx));
+
+        cx.subscribe(
+            &stt_button,
+            |this: &mut Self, _, event: &crate::stt_button::SttEvent, cx| {
+                if let crate::stt_button::SttEvent::Transcription(text) = event {
+                    this.editor.update(cx, |editor, cx| {
+                        log::info!("STT Transcription received: {}", text);
+                        if let Some(buffer) = editor.buffer().read(cx).as_singleton() {
+                            buffer.update(cx, |buffer, cx| {
+                                let len = buffer.len();
+                                let text_to_insert = if len > 0 {
+                                    format!(" {}", text)
+                                } else {
+                                    text.clone()
+                                };
+                                buffer.edit([(len..len, text_to_insert.as_str())], None, cx);
+                            });
+                        }
+                    });
+                }
+            },
+        )
+        .detach();
+
         Self {
             editor,
             mention_set,
@@ -608,6 +634,7 @@ impl MessageEditor {
             session_capabilities,
             agent_id,
             thread_store,
+            stt_button,
             _subscriptions: subscriptions,
             _parse_slash_command_task: Task::ready(()),
         }
@@ -1900,7 +1927,10 @@ impl MessageEditor {
 
         if !suffix.is_empty() {
             self.editor.update(cx, |editor, cx| {
-                editor.edit([(multi_buffer::Anchor::Max..multi_buffer::Anchor::Max, suffix)], cx);
+                editor.edit(
+                    [(multi_buffer::Anchor::Max..multi_buffer::Anchor::Max, suffix)],
+                    cx,
+                );
             });
         }
     }
@@ -2016,32 +2046,39 @@ impl Render for MessageEditor {
             .on_action(cx.listener(Self::paste_raw))
             .capture_action(cx.listener(Self::paste))
             .flex_1()
-            .child({
-                let settings = ThemeSettings::get_global(cx);
+            .child(
+                h_flex()
+                    .w_full()
+                    .h_full()
+                    .gap_2()
+                    .child(div().flex_1().h_full().child({
+                        let settings = ThemeSettings::get_global(cx);
 
-                let text_style = TextStyle {
-                    color: cx.theme().colors().text,
-                    font_family: settings.buffer_font.family.clone(),
-                    font_fallbacks: settings.buffer_font.fallbacks.clone(),
-                    font_features: settings.buffer_font.features.clone(),
-                    font_size: settings.agent_buffer_font_size(cx).into(),
-                    font_weight: settings.buffer_font.weight,
-                    line_height: relative(settings.buffer_line_height.value()),
-                    ..Default::default()
-                };
+                        let text_style = TextStyle {
+                            color: cx.theme().colors().text,
+                            font_family: settings.buffer_font.family.clone(),
+                            font_fallbacks: settings.buffer_font.fallbacks.clone(),
+                            font_features: settings.buffer_font.features.clone(),
+                            font_size: settings.agent_buffer_font_size(cx).into(),
+                            font_weight: settings.buffer_font.weight,
+                            line_height: relative(settings.buffer_line_height.value()),
+                            ..Default::default()
+                        };
 
-                EditorElement::new(
-                    &self.editor,
-                    EditorStyle {
-                        background: cx.theme().colors().editor_background,
-                        local_player: cx.theme().players().local(),
-                        text: text_style,
-                        syntax: cx.theme().syntax().clone(),
-                        inlay_hints_style: editor::make_inlay_hints_style(cx),
-                        ..Default::default()
-                    },
-                )
-            })
+                        EditorElement::new(
+                            &self.editor,
+                            EditorStyle {
+                                background: cx.theme().colors().editor_background,
+                                local_player: cx.theme().players().local(),
+                                text: text_style,
+                                syntax: cx.theme().syntax().clone(),
+                                inlay_hints_style: editor::make_inlay_hints_style(cx),
+                                ..Default::default()
+                            },
+                        )
+                    }))
+                    .child(self.stt_button.clone()),
+            )
     }
 }
 

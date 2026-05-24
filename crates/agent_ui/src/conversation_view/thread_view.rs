@@ -3315,12 +3315,11 @@ impl ThreadView {
                             .repeat()
                             .with_easing(pulsating_between(0.6, 1.0));
 
-                        let sparkle_div = div()
-                            .child(
-                                Icon::new(IconName::Sparkle)
-                                    .size(IconSize::Custom(rems_from_px(24.)))
-                                    .color(Color::Accent)
-                            );
+                        let sparkle_div = div().child(
+                            Icon::new(IconName::Sparkle)
+                                .size(IconSize::Custom(rems_from_px(24.)))
+                                .color(Color::Accent),
+                        );
 
                         this.child(
                             div()
@@ -3328,9 +3327,11 @@ impl ThreadView {
                                 .items_center()
                                 .gap_2()
                                 .mb_3()
-                                .child(sparkle_div.with_animation("sparkle-pulse", sparkle_animation, |el, delta| {
-                                    el.opacity(delta)
-                                }))
+                                .child(sparkle_div.with_animation(
+                                    "sparkle-pulse",
+                                    sparkle_animation,
+                                    |el, delta| el.opacity(delta),
+                                ))
                                 .child(
                                     h_flex()
                                         .items_center()
@@ -3396,13 +3397,15 @@ impl ThreadView {
                                                                 )
                                                             }
                                                         })
-                                                        .on_click(cx.listener(|this, _, window, cx| {
-                                                            this.expand_message_editor(
-                                                                &ExpandMessageEditor,
-                                                                window,
-                                                                cx,
-                                                            );
-                                                        })),
+                                                        .on_click(cx.listener(
+                                                            |this, _, window, cx| {
+                                                                this.expand_message_editor(
+                                                                    &ExpandMessageEditor,
+                                                                    window,
+                                                                    cx,
+                                                                );
+                                                            },
+                                                        )),
                                                 ),
                                         )
                                     }),
@@ -3439,7 +3442,7 @@ impl ThreadView {
                                     ),
                             ),
                     )
-                    .children(self.render_suggestion_chips(window, cx))
+                    .children(self.render_suggestion_chips(window, cx)),
             )
             .into_any_element()
     }
@@ -9301,11 +9304,7 @@ impl ThreadView {
             .rounded_md()
             .cursor_pointer()
             .hover(|s| s.bg(cx.theme().colors().ghost_element_hover))
-            .child(
-                Icon::new(icon)
-                    .size(IconSize::Small)
-                    .color(Color::Muted),
-            )
+            .child(Icon::new(icon).size(IconSize::Small).color(Color::Muted))
             .child(div().text_size(px(13.)).child(label))
             .on_click(cx.listener(move |this, _, window, cx| {
                 this.message_editor.update(cx, |editor, cx| {
@@ -9315,10 +9314,7 @@ impl ThreadView {
             }))
     }
 
-    fn render_selection_chip(
-        &mut self,
-        cx: &mut Context<Self>,
-    ) -> Option<impl IntoElement> {
+    fn render_selection_chip(&mut self, cx: &mut Context<Self>) -> Option<impl IntoElement> {
         if self.is_subagent() {
             return None;
         }
@@ -9338,8 +9334,7 @@ impl ThreadView {
 
             // Skip whitespace-only selections
             let buffer_snap = editor.buffer().read(cx).snapshot(cx);
-            let selected_text: String =
-                buffer_snap.text_for_range(sel.start..sel.end).collect();
+            let selected_text: String = buffer_snap.text_for_range(sel.start..sel.end).collect();
             if selected_text.trim().is_empty() {
                 return None;
             }

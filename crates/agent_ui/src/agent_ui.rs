@@ -24,6 +24,7 @@ mod mode_selector;
 mod model_selector;
 mod model_selector_popover;
 mod profile_selector;
+pub mod stt_button;
 mod terminal_codegen;
 mod terminal_inline_assistant;
 pub mod terminal_thread_metadata_store;
@@ -67,7 +68,8 @@ use workspace::Workspace;
 use crate::agent_configuration::{ConfigureContextServerModal, ManageProfilesModal};
 pub use crate::agent_connection_store::{ActiveAcpConnection, AgentConnectionStore};
 pub use crate::agent_panel::{
-    AgentPanel, AgentPanelEvent, AgentPanelTerminalInfo, AgentPanelTerminalSpawner, MaxIdleRetainedThreads, TerminalId,
+    AgentPanel, AgentPanelEvent, AgentPanelTerminalInfo, AgentPanelTerminalSpawner,
+    MaxIdleRetainedThreads, TerminalId,
 };
 use crate::agent_registry_ui::AgentRegistryPage;
 pub use crate::inline_assistant::InlineAssistant;
