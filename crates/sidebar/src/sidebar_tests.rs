@@ -184,6 +184,7 @@ fn assert_remote_project_integration_sidebar_state(
                     terminal.metadata.title
                 );
             }
+            ListEntry::SectionHeader { .. } => {}
         }
     }
 
@@ -402,7 +403,7 @@ fn save_thread_metadata(
         let metadata = ThreadMetadata {
             thread_id,
             session_id: Some(session_id),
-            agent_id: agent::ZED_AGENT_ID.clone(),
+            agent_id: agent::VOID_AGENT_ID.clone(),
             title,
             title_override: None,
             updated_at,
@@ -411,6 +412,7 @@ fn save_thread_metadata(
             worktree_paths,
             archived: false,
             remote_connection,
+            pinned: false,
         };
         ThreadMetadataStore::global(cx).update(cx, |store, cx| store.save(metadata, cx));
     });
@@ -438,7 +440,7 @@ fn save_thread_metadata_with_main_paths(
     let metadata = ThreadMetadata {
         thread_id,
         session_id: Some(session_id),
-        agent_id: agent::ZED_AGENT_ID.clone(),
+        agent_id: agent::VOID_AGENT_ID.clone(),
         title: Some(title),
         title_override: None,
         updated_at,
@@ -447,6 +449,7 @@ fn save_thread_metadata_with_main_paths(
         worktree_paths: WorktreePaths::from_path_lists(main_worktree_paths, folder_paths).unwrap(),
         archived: false,
         remote_connection: None,
+        pinned: false,
     };
     cx.update(|cx| {
         ThreadMetadataStore::global(cx).update(cx, |store, cx| store.save(metadata, cx));
@@ -465,7 +468,7 @@ fn save_draft_metadata_with_main_paths(
     let metadata = ThreadMetadata {
         thread_id,
         session_id: None,
-        agent_id: agent::ZED_AGENT_ID.clone(),
+        agent_id: agent::VOID_AGENT_ID.clone(),
         title,
         title_override: None,
         updated_at,
@@ -474,6 +477,7 @@ fn save_draft_metadata_with_main_paths(
         worktree_paths: WorktreePaths::from_path_lists(main_worktree_paths, folder_paths).unwrap(),
         archived: false,
         remote_connection: None,
+        pinned: false,
     };
     cx.update(|cx| {
         ThreadMetadataStore::global(cx).update(cx, |store, cx| store.save(metadata, cx));
@@ -598,6 +602,9 @@ fn visible_entries_as_strings(
                         let title = &terminal.metadata.title;
                         let worktree = format_linked_worktree_chips(&terminal.worktrees);
                         format!("  {title}{worktree}{selected}")
+                    }
+                    ListEntry::SectionHeader { label, .. } => {
+                        format!("=== {} ===", label)
                     }
                 }
             })
@@ -954,6 +961,7 @@ async fn test_visible_entries_as_strings(cx: &mut TestAppContext) {
                     interacted_at: None,
                     archived: false,
                     remote_connection: None,
+                    pinned: false,
                 },
                 icon: IconName::VoidAgent,
                 icon_from_external_svg: None,
@@ -981,6 +989,7 @@ async fn test_visible_entries_as_strings(cx: &mut TestAppContext) {
                     interacted_at: None,
                     archived: false,
                     remote_connection: None,
+                    pinned: false,
                 },
                 icon: IconName::VoidAgent,
                 icon_from_external_svg: None,
@@ -1008,6 +1017,7 @@ async fn test_visible_entries_as_strings(cx: &mut TestAppContext) {
                     interacted_at: None,
                     archived: false,
                     remote_connection: None,
+                    pinned: false,
                 },
                 icon: IconName::VoidAgent,
                 icon_from_external_svg: None,
@@ -1036,6 +1046,7 @@ async fn test_visible_entries_as_strings(cx: &mut TestAppContext) {
                     interacted_at: None,
                     archived: false,
                     remote_connection: None,
+                    pinned: false,
                 },
                 icon: IconName::VoidAgent,
                 icon_from_external_svg: None,
@@ -1064,6 +1075,7 @@ async fn test_visible_entries_as_strings(cx: &mut TestAppContext) {
                     interacted_at: None,
                     archived: false,
                     remote_connection: None,
+                    pinned: false,
                 },
                 icon: IconName::VoidAgent,
                 icon_from_external_svg: None,
@@ -6648,6 +6660,7 @@ async fn test_clicking_worktree_thread_does_not_briefly_render_as_separate_proje
                         terminal.metadata.title
                     );
                 }
+                ListEntry::SectionHeader { .. } => {}
             }
         }
 
@@ -6925,7 +6938,7 @@ async fn test_sidebar_keeps_multi_root_thread_with_stale_main_paths(cx: &mut Tes
                 ThreadMetadata {
                     thread_id,
                     session_id: Some(session_id.clone()),
-                    agent_id: agent::ZED_AGENT_ID.clone(),
+                    agent_id: agent::VOID_AGENT_ID.clone(),
                     title: Some("Stale Multi-Root Thread".into()),
                     title_override: None,
                     updated_at: Utc::now(),
@@ -6934,6 +6947,7 @@ async fn test_sidebar_keeps_multi_root_thread_with_stale_main_paths(cx: &mut Tes
                     worktree_paths: WorktreePaths::from_folder_paths(&folder_paths),
                     archived: false,
                     remote_connection: None,
+                    pinned: false,
                 },
                 cx,
             )
@@ -7006,7 +7020,7 @@ async fn test_activate_archived_thread_with_saved_paths_activates_matching_works
             ThreadMetadata {
                 thread_id: ThreadId::new(),
                 session_id: Some(session_id.clone()),
-                agent_id: agent::ZED_AGENT_ID.clone(),
+                agent_id: agent::VOID_AGENT_ID.clone(),
                 title: Some("Archived Thread".into()),
                 title_override: None,
                 updated_at: Utc::now(),
@@ -7017,6 +7031,7 @@ async fn test_activate_archived_thread_with_saved_paths_activates_matching_works
                 )])),
                 archived: false,
                 remote_connection: None,
+                pinned: false,
             },
             window,
             cx,
@@ -7076,7 +7091,7 @@ async fn test_activate_archived_thread_cwd_fallback_with_matching_workspace(
             ThreadMetadata {
                 thread_id: ThreadId::new(),
                 session_id: Some(acp::SessionId::new(Arc::from("unknown-session"))),
-                agent_id: agent::ZED_AGENT_ID.clone(),
+                agent_id: agent::VOID_AGENT_ID.clone(),
                 title: Some("CWD Thread".into()),
                 title_override: None,
                 updated_at: Utc::now(),
@@ -7087,6 +7102,7 @@ async fn test_activate_archived_thread_cwd_fallback_with_matching_workspace(
                 ])),
                 archived: false,
                 remote_connection: None,
+                pinned: false,
             },
             window,
             cx,
@@ -7144,7 +7160,7 @@ async fn test_activate_archived_thread_no_paths_no_cwd_uses_active_workspace(
             ThreadMetadata {
                 thread_id: ThreadId::new(),
                 session_id: Some(acp::SessionId::new(Arc::from("no-context-session"))),
-                agent_id: agent::ZED_AGENT_ID.clone(),
+                agent_id: agent::VOID_AGENT_ID.clone(),
                 title: Some("Contextless Thread".into()),
                 title_override: None,
                 updated_at: Utc::now(),
@@ -7153,6 +7169,7 @@ async fn test_activate_archived_thread_no_paths_no_cwd_uses_active_workspace(
                 worktree_paths: WorktreePaths::default(),
                 archived: false,
                 remote_connection: None,
+                pinned: false,
             },
             window,
             cx,
@@ -7202,7 +7219,7 @@ async fn test_activate_archived_thread_saved_paths_opens_new_workspace(cx: &mut 
             ThreadMetadata {
                 thread_id: ThreadId::new(),
                 session_id: Some(session_id.clone()),
-                agent_id: agent::ZED_AGENT_ID.clone(),
+                agent_id: agent::VOID_AGENT_ID.clone(),
                 title: Some("New WS Thread".into()),
                 title_override: None,
                 updated_at: Utc::now(),
@@ -7211,6 +7228,7 @@ async fn test_activate_archived_thread_saved_paths_opens_new_workspace(cx: &mut 
                 worktree_paths: WorktreePaths::from_folder_paths(&path_list_b),
                 archived: false,
                 remote_connection: None,
+                pinned: false,
             },
             window,
             cx,
@@ -7259,7 +7277,7 @@ async fn test_activate_archived_thread_reuses_workspace_in_another_window(cx: &m
             ThreadMetadata {
                 thread_id: ThreadId::new(),
                 session_id: Some(session_id.clone()),
-                agent_id: agent::ZED_AGENT_ID.clone(),
+                agent_id: agent::VOID_AGENT_ID.clone(),
                 title: Some("Cross Window Thread".into()),
                 title_override: None,
                 updated_at: Utc::now(),
@@ -7270,6 +7288,7 @@ async fn test_activate_archived_thread_reuses_workspace_in_another_window(cx: &m
                 )])),
                 archived: false,
                 remote_connection: None,
+                pinned: false,
             },
             window,
             cx,
@@ -7338,7 +7357,7 @@ async fn test_activate_archived_thread_reuses_workspace_in_another_window_with_t
     let metadata = ThreadMetadata {
         thread_id: ThreadId::new(),
         session_id: Some(session_id.clone()),
-        agent_id: agent::ZED_AGENT_ID.clone(),
+        agent_id: agent::VOID_AGENT_ID.clone(),
         title: Some("Cross Window Thread".into()),
         title_override: None,
         updated_at: Utc::now(),
@@ -7349,6 +7368,7 @@ async fn test_activate_archived_thread_reuses_workspace_in_another_window_with_t
         )])),
         archived: false,
         remote_connection: None,
+        pinned: false,
     };
     seed_thread_metadata(metadata.clone(), cx_a);
 
@@ -7421,7 +7441,7 @@ async fn test_activate_archived_thread_prefers_current_window_for_matching_paths
     let metadata = ThreadMetadata {
         thread_id: ThreadId::new(),
         session_id: Some(session_id.clone()),
-        agent_id: agent::ZED_AGENT_ID.clone(),
+        agent_id: agent::VOID_AGENT_ID.clone(),
         title: Some("Current Window Thread".into()),
         title_override: None,
         updated_at: Utc::now(),
@@ -7432,6 +7452,7 @@ async fn test_activate_archived_thread_prefers_current_window_for_matching_paths
         )])),
         archived: false,
         remote_connection: None,
+        pinned: false,
     };
     seed_thread_metadata(metadata.clone(), cx_a);
 
@@ -8359,7 +8380,7 @@ async fn test_archive_last_worktree_thread_not_blocked_by_remote_thread_at_same_
         let metadata = ThreadMetadata {
             thread_id: ThreadId::new(),
             session_id: Some(acp::SessionId::new(Arc::from("remote-wt-thread"))),
-            agent_id: agent::ZED_AGENT_ID.clone(),
+            agent_id: agent::VOID_AGENT_ID.clone(),
             title: Some("Remote Worktree Thread".into()),
             title_override: None,
             updated_at: chrono::TimeZone::with_ymd_and_hms(&Utc, 2024, 1, 1, 0, 0, 0).unwrap(),
@@ -8370,6 +8391,7 @@ async fn test_archive_last_worktree_thread_not_blocked_by_remote_thread_at_same_
             )])),
             archived: false,
             remote_connection: Some(remote_host),
+            pinned: false,
         };
         ThreadMetadataStore::global(cx).update(cx, |store, cx| {
             store.save(metadata, cx);
@@ -9174,7 +9196,7 @@ async fn test_unarchive_first_thread_in_group_does_not_create_spurious_draft(
                 ThreadMetadata {
                     thread_id,
                     session_id: Some(session_id.clone()),
-                    agent_id: agent::ZED_AGENT_ID.clone(),
+                    agent_id: agent::VOID_AGENT_ID.clone(),
                     title: Some("Unarchived Thread".into()),
                     title_override: None,
                     updated_at: Utc::now(),
@@ -9183,6 +9205,7 @@ async fn test_unarchive_first_thread_in_group_does_not_create_spurious_draft(
                     worktree_paths: WorktreePaths::from_folder_paths(&path_list_b),
                     archived: true,
                     remote_connection: None,
+                    pinned: false,
                 },
                 cx,
             )
@@ -9268,7 +9291,7 @@ async fn test_unarchive_into_new_workspace_does_not_create_duplicate_real_thread
                 ThreadMetadata {
                     thread_id: original_thread_id,
                     session_id: Some(session_id.clone()),
-                    agent_id: agent::ZED_AGENT_ID.clone(),
+                    agent_id: agent::VOID_AGENT_ID.clone(),
                     title: Some("Unarchived Thread".into()),
                     title_override: None,
                     updated_at: Utc::now(),
@@ -9277,6 +9300,7 @@ async fn test_unarchive_into_new_workspace_does_not_create_duplicate_real_thread
                     worktree_paths: WorktreePaths::from_folder_paths(&path_list_b),
                     archived: true,
                     remote_connection: None,
+                    pinned: false,
                 },
                 cx,
             )
@@ -9495,7 +9519,7 @@ async fn test_unarchive_into_inactive_existing_workspace_does_not_leave_active_d
                 ThreadMetadata {
                     thread_id,
                     session_id: Some(session_id.clone()),
-                    agent_id: agent::ZED_AGENT_ID.clone(),
+                    agent_id: agent::VOID_AGENT_ID.clone(),
                     title: Some("Restored In Inactive Workspace".into()),
                     title_override: None,
                     updated_at: Utc::now(),
@@ -9506,6 +9530,7 @@ async fn test_unarchive_into_inactive_existing_workspace_does_not_leave_active_d
                     ])),
                     archived: true,
                     remote_connection: None,
+                    pinned: false,
                 },
                 cx,
             )
@@ -10346,7 +10371,7 @@ async fn test_unarchive_linked_worktree_thread_into_project_group_shows_only_res
                 ThreadMetadata {
                     thread_id: original_thread_id,
                     session_id: Some(session_id.clone()),
-                    agent_id: agent::ZED_AGENT_ID.clone(),
+                    agent_id: agent::VOID_AGENT_ID.clone(),
                     title: Some("Unarchived Linked Thread".into()),
                     title_override: None,
                     updated_at: Utc::now(),
@@ -10359,6 +10384,7 @@ async fn test_unarchive_linked_worktree_thread_into_project_group_shows_only_res
                     .expect("main and folder paths should be well-formed"),
                     archived: true,
                     remote_connection: None,
+                    pinned: false,
                 },
                 cx,
             )
@@ -10897,7 +10923,7 @@ async fn test_legacy_thread_with_canonical_path_opens_main_repo_workspace(cx: &m
         let metadata = ThreadMetadata {
             thread_id: ThreadId::new(),
             session_id: Some(legacy_session.clone()),
-            agent_id: agent::ZED_AGENT_ID.clone(),
+            agent_id: agent::VOID_AGENT_ID.clone(),
             title: Some("Legacy Main Thread".into()),
             title_override: None,
             updated_at: chrono::TimeZone::with_ymd_and_hms(&Utc, 2024, 1, 1, 0, 0, 0).unwrap(),
@@ -10908,6 +10934,7 @@ async fn test_legacy_thread_with_canonical_path_opens_main_repo_workspace(cx: &m
             )])),
             archived: false,
             remote_connection: None,
+            pinned: false,
         };
         ThreadMetadataStore::global(cx).update(cx, |store, cx| store.save(metadata, cx));
     });
@@ -11887,7 +11914,7 @@ mod property_test {
         let metadata = ThreadMetadata {
             thread_id: ThreadId::new(),
             session_id: Some(session_id),
-            agent_id: agent::ZED_AGENT_ID.clone(),
+            agent_id: agent::VOID_AGENT_ID.clone(),
             title: Some(title),
             title_override: None,
             updated_at,
@@ -11896,6 +11923,7 @@ mod property_test {
             worktree_paths: WorktreePaths::from_path_lists(main_worktree_paths, path_list).unwrap(),
             archived: false,
             remote_connection: None,
+            pinned: false,
         };
         cx.update(|_, cx| {
             ThreadMetadataStore::global(cx).update(cx, |store, cx| store.save(metadata, cx))
@@ -11968,6 +11996,7 @@ mod property_test {
                         worktree_paths: project.read(cx).worktree_paths(cx),
                         archived: false,
                         remote_connection: project.read(cx).remote_connection_options(cx),
+                        pinned: false,
                     });
                     cx.update(|_, cx| {
                         ThreadMetadataStore::global(cx)
@@ -12823,7 +12852,7 @@ async fn test_remote_project_integration_does_not_briefly_render_as_separate_pro
         let metadata = ThreadMetadata {
             thread_id: ThreadId::new(),
             session_id: Some(remote_thread_id.clone()),
-            agent_id: agent::ZED_AGENT_ID.clone(),
+            agent_id: agent::VOID_AGENT_ID.clone(),
             title: Some("Worktree Thread".into()),
             title_override: None,
             updated_at: chrono::TimeZone::with_ymd_and_hms(&Utc, 2024, 1, 1, 0, 0, 1).unwrap(),
@@ -12836,6 +12865,7 @@ async fn test_remote_project_integration_does_not_briefly_render_as_separate_pro
             .unwrap(),
             archived: false,
             remote_connection,
+            pinned: false,
         };
         ThreadMetadataStore::global(cx).update(cx, |store, cx| store.save(metadata, cx));
     });
@@ -13754,7 +13784,7 @@ async fn test_remote_archive_thread_with_active_connection(
         let metadata = ThreadMetadata {
             thread_id: ThreadId::new(),
             session_id: Some(wt_thread_id.clone()),
-            agent_id: agent::ZED_AGENT_ID.clone(),
+            agent_id: agent::VOID_AGENT_ID.clone(),
             title: Some("Worktree Thread".into()),
             title_override: None,
             updated_at: chrono::TimeZone::with_ymd_and_hms(&chrono::Utc, 2024, 1, 1, 0, 0, 0)
@@ -13768,6 +13798,7 @@ async fn test_remote_archive_thread_with_active_connection(
             .unwrap(),
             archived: false,
             remote_connection,
+            pinned: false,
         };
         ThreadMetadataStore::global(cx).update(cx, |store, cx| store.save(metadata, cx));
     });
@@ -13896,7 +13927,7 @@ async fn test_remote_linked_worktree_workspace_to_remove_uses_remote_connection(
         let metadata = ThreadMetadata {
             thread_id: worktree_thread_id,
             session_id: Some(worktree_session_id.clone()),
-            agent_id: agent::ZED_AGENT_ID.clone(),
+            agent_id: agent::VOID_AGENT_ID.clone(),
             title: Some("Remote Worktree Thread".into()),
             title_override: None,
             updated_at: chrono::TimeZone::with_ymd_and_hms(&Utc, 2024, 1, 1, 0, 0, 0).unwrap(),
@@ -13909,6 +13940,7 @@ async fn test_remote_linked_worktree_workspace_to_remove_uses_remote_connection(
             .unwrap(),
             archived: false,
             remote_connection: Some(remote_connection.clone()),
+            pinned: false,
         };
         ThreadMetadataStore::global(cx).update(cx, |store, cx| store.save(metadata, cx));
     });
@@ -14275,5 +14307,136 @@ async fn test_cmd_click_project_header_returns_to_last_active_linked_worktree_wo
         active_after_cmd_click, main_workspace_a,
         "cmd-click must not fall back to the main-paths workspace when a \
          linked-worktree workspace was the last-active one for the group"
+    );
+}
+
+#[gpui::test]
+async fn test_pinned_threads(cx: &mut TestAppContext) {
+    init_test(cx);
+
+    let project = init_test_project("/my-project", cx).await;
+    let (multi_workspace, cx) =
+        cx.add_window_view(|window, cx| MultiWorkspace::test_new(project.clone(), window, cx));
+    let sidebar = setup_sidebar(&multi_workspace, cx);
+
+    let session_a = acp::SessionId::new(Arc::from("a"));
+    let session_b = acp::SessionId::new(Arc::from("b"));
+    let session_c = acp::SessionId::new(Arc::from("c"));
+
+    save_thread_metadata(
+        session_a.clone(),
+        Some("Thread A".into()),
+        chrono::TimeZone::with_ymd_and_hms(&Utc, 2024, 1, 1, 0, 0, 1).unwrap(),
+        None,
+        None,
+        &project,
+        cx,
+    );
+    save_thread_metadata(
+        session_b.clone(),
+        Some("Thread B".into()),
+        chrono::TimeZone::with_ymd_and_hms(&Utc, 2024, 1, 1, 0, 0, 2).unwrap(),
+        None,
+        None,
+        &project,
+        cx,
+    );
+    save_thread_metadata(
+        session_c.clone(),
+        Some("Thread C".into()),
+        chrono::TimeZone::with_ymd_and_hms(&Utc, 2024, 1, 1, 0, 0, 3).unwrap(),
+        None,
+        None,
+        &project,
+        cx,
+    );
+
+    let (thread_b_id, thread_c_id) = cx.read(|cx| {
+        let store = ThreadMetadataStore::global(cx).read(cx);
+        let b = store
+            .entries()
+            .find(|e| e.session_id.as_ref() == Some(&session_b))
+            .unwrap()
+            .thread_id;
+        let c = store
+            .entries()
+            .find(|e| e.session_id.as_ref() == Some(&session_c))
+            .unwrap()
+            .thread_id;
+        (b, c)
+    });
+
+    // Verify initial layout: sorted by updated_at descending. No headers.
+    assert_eq!(
+        visible_entries_as_strings(&sidebar, cx),
+        vec![
+            "v [my-project]",
+            "  Thread C",
+            "  Thread B",
+            "  Thread A",
+        ]
+    );
+
+    // Pin Thread B
+    cx.update(|_, cx| {
+        ThreadMetadataStore::global(cx).update(cx, |store, cx| {
+            store.pin_thread(thread_b_id, cx);
+        });
+    });
+    cx.run_until_parked();
+
+    // Verify layout with Pinned and Recent section headers
+    assert_eq!(
+        visible_entries_as_strings(&sidebar, cx),
+        vec![
+            "v [my-project]",
+            "=== Pinned ===",
+            "  Thread B",
+            "=== Recent ===",
+            "  Thread C",
+            "  Thread A",
+        ]
+    );
+
+    // Pin Thread C
+    cx.update(|_, cx| {
+        ThreadMetadataStore::global(cx).update(cx, |store, cx| {
+            store.pin_thread(thread_c_id, cx);
+        });
+    });
+    cx.run_until_parked();
+
+    // Verify layout: Pinned section shows C and B sorted by time, followed by Recent section with A
+    assert_eq!(
+        visible_entries_as_strings(&sidebar, cx),
+        vec![
+            "v [my-project]",
+            "=== Pinned ===",
+            "  Thread C",
+            "  Thread B",
+            "=== Recent ===",
+            "  Thread A",
+        ]
+    );
+
+    // Unpin Thread B
+    cx.update(|_, cx| {
+        ThreadMetadataStore::global(cx).update(cx, |store, cx| {
+            store.unpin_thread(thread_b_id, cx);
+        });
+    });
+    cx.run_until_parked();
+
+    // Verify layout
+    assert_eq!(
+        visible_entries_as_strings(&sidebar, cx),
+        vec![
+            "v [my-project]",
+            "=== Pinned ===",
+            "  Thread C",
+            "=== Recent ===",
+            "  Thread B",
+            "  Thread A",
+        ]
     );
 }

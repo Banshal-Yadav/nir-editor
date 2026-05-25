@@ -142,6 +142,7 @@ fn migrate_thread_metadata(cx: &mut App) -> Task<anyhow::Result<()>> {
                         worktree_paths: WorktreePaths::from_folder_paths(&entry.folder_paths),
                         remote_connection: None,
                         archived: true,
+                        pinned: false,
                     })
                 })
                 .collect::<Vec<_>>()
@@ -323,6 +324,7 @@ pub struct ThreadMetadata {
     pub worktree_paths: WorktreePaths,
     pub remote_connection: Option<RemoteConnectionOptions>,
     pub archived: bool,
+    pub pinned: bool,
 }
 
 impl ThreadMetadata {
@@ -705,6 +707,30 @@ impl ThreadMetadataStore {
     pub fn save(&mut self, metadata: ThreadMetadata, cx: &mut Context<Self>) {
         self.save_internal(metadata);
         cx.notify();
+    }
+
+    pub fn pin_thread(&mut self, thread_id: ThreadId, cx: &mut Context<Self>) {
+        if let Some(thread) = self.threads.get(&thread_id) {
+            self.save_internal(ThreadMetadata {
+                pinned: true,
+                ..thread.clone()
+            });
+            cx.notify();
+        }
+    }
+
+    pub fn unpin_thread(&mut self, thread_id: ThreadId, cx: &mut Context<Self>) {
+        if let Some(thread) = self.threads.get(&thread_id) {
+            self.save_internal(ThreadMetadata {
+                pinned: false,
+                ..thread.clone()
+            });
+            cx.notify();
+        }
+    }
+
+    pub fn is_pinned(&self, thread_id: ThreadId) -> bool {
+        self.threads.get(&thread_id).map_or(false, |t| t.pinned)
     }
 
     /// Set or clear the user-supplied title for a thread.
@@ -1326,6 +1352,7 @@ impl ThreadMetadataStore {
             // agent's thread database.
             crate::draft_prompt_store::delete(thread_id, cx).detach_and_log_err(cx);
         }
+        let pinned = existing_thread.map_or(false, |t| t.pinned);
 
         let metadata = ThreadMetadata {
             thread_id,
@@ -1339,6 +1366,7 @@ impl ThreadMetadataStore {
             worktree_paths,
             remote_connection,
             archived,
+            pinned,
         };
 
         self.save(metadata, cx);
@@ -1451,11 +1479,14 @@ impl Domain for ThreadMetadataDb {
         sql!(
             ALTER TABLE sidebar_threads ADD COLUMN title_override TEXT;
         ),
+        sql!(
+            ALTER TABLE sidebar_threads ADD COLUMN pinned INTEGER DEFAULT 0;
+        ),
     ];
 }
-
+ 
 db::static_connection!(ThreadMetadataDb, []);
-
+ 
 impl ThreadMetadataDb {
     #[allow(dead_code)]
     pub fn list_ids(&self) -> anyhow::Result<Vec<ThreadId>> {
@@ -1464,20 +1495,20 @@ impl ThreadMetadataDb {
              ORDER BY updated_at DESC",
         )?()
     }
-
+ 
     const LIST_QUERY: &str = "SELECT thread_id, session_id, agent_id, title, updated_at, \
         created_at, interacted_at, folder_paths, folder_paths_order, archived, main_worktree_paths, \
-        main_worktree_paths_order, remote_connection, title_override \
+        main_worktree_paths_order, remote_connection, title_override, pinned \
         FROM sidebar_threads \
         ORDER BY updated_at DESC";
-
+ 
     /// List all sidebar thread metadata, ordered by updated_at descending.
     ///
     /// Only returns threads that have a `session_id`.
     pub fn list(&self) -> anyhow::Result<Vec<ThreadMetadata>> {
         self.select::<ThreadMetadata>(Self::LIST_QUERY)?()
     }
-
+ 
     /// Upsert metadata for a thread.
     ///
     /// Drafts are persisted with `session_id = None`. They get a real
@@ -1520,10 +1551,11 @@ impl ThreadMetadataDb {
         let title_override = row.title_override.as_ref().map(|t| t.to_string());
         let thread_id = row.thread_id;
         let archived = row.archived;
-
+        let pinned = row.pinned;
+ 
         self.write(move |conn| {
-            let sql = "INSERT INTO sidebar_threads(thread_id, session_id, agent_id, title, updated_at, created_at, interacted_at, folder_paths, folder_paths_order, archived, main_worktree_paths, main_worktree_paths_order, remote_connection, title_override) \
-                       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14) \
+            let sql = "INSERT INTO sidebar_threads(thread_id, session_id, agent_id, title, updated_at, created_at, interacted_at, folder_paths, folder_paths_order, archived, main_worktree_paths, main_worktree_paths_order, remote_connection, title_override, pinned) \
+                       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15) \
                        ON CONFLICT(thread_id) DO UPDATE SET \
                            session_id = excluded.session_id, \
                            agent_id = excluded.agent_id, \
@@ -1537,7 +1569,8 @@ impl ThreadMetadataDb {
                            main_worktree_paths = excluded.main_worktree_paths, \
                            main_worktree_paths_order = excluded.main_worktree_paths_order, \
                            remote_connection = excluded.remote_connection, \
-                           title_override = excluded.title_override";
+                           title_override = excluded.title_override, \
+                           pinned = excluded.pinned";
             let mut stmt = Statement::prepare(conn, sql)?;
             let mut i = stmt.bind(&thread_id, 1)?;
             i = stmt.bind(&session_id, i)?;
@@ -1552,7 +1585,8 @@ impl ThreadMetadataDb {
             i = stmt.bind(&main_worktree_paths, i)?;
             i = stmt.bind(&main_worktree_paths_order, i)?;
             i = stmt.bind(&remote_connection, i)?;
-            stmt.bind(&title_override, i)?;
+            i = stmt.bind(&title_override, i)?;
+            stmt.bind(&pinned, i)?;
             stmt.exec()
         })
         .await
@@ -1710,6 +1744,7 @@ impl Column for ThreadMetadata {
         let (remote_connection_json, next): (Option<String>, i32) =
             Column::column(statement, next)?;
         let (title_override, next): (Option<String>, i32) = Column::column(statement, next)?;
+        let (pinned, next): (bool, i32) = Column::column(statement, next)?;
 
         let agent_id = agent_id
             .map(|id| AgentId::new(id))
@@ -1776,6 +1811,7 @@ impl Column for ThreadMetadata {
                 worktree_paths,
                 remote_connection,
                 archived,
+                pinned,
             },
             next,
         ))
@@ -1865,6 +1901,7 @@ mod tests {
             interacted_at: None,
             worktree_paths: WorktreePaths::from_folder_paths(&folder_paths),
             remote_connection: None,
+            pinned: false,
         }
     }
 
@@ -2211,6 +2248,7 @@ mod tests {
             worktree_paths: WorktreePaths::from_folder_paths(&project_a_paths),
             remote_connection: None,
             archived: false,
+            pinned: false,
         };
 
         cx.update(|cx| {
@@ -2337,6 +2375,7 @@ mod tests {
             worktree_paths: WorktreePaths::from_folder_paths(&project_paths),
             remote_connection: None,
             archived: false,
+            pinned: false,
         };
 
         cx.update(|cx| {

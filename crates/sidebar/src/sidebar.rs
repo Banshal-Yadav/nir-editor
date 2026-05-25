@@ -306,6 +306,10 @@ enum ListEntry {
         is_active: bool,
         has_threads: bool,
     },
+    SectionHeader {
+        label: SharedString,
+        color: Color,
+    },
     Thread(ThreadEntry),
     Terminal(TerminalEntry),
 }
@@ -333,7 +337,7 @@ impl ActivatableEntry {
                 metadata: terminal.metadata.clone(),
                 workspace: terminal.workspace.clone(),
             }),
-            ListEntry::ProjectHeader { .. } => None,
+            ListEntry::ProjectHeader { .. } | ListEntry::SectionHeader { .. } => None,
         }
     }
 
@@ -381,7 +385,7 @@ impl ListEntry {
     fn session_id(&self) -> Option<&acp::SessionId> {
         match self {
             ListEntry::Thread(thread_entry) => thread_entry.metadata.session_id.as_ref(),
-            ListEntry::Terminal(_) | ListEntry::ProjectHeader { .. } => None,
+            ListEntry::Terminal(_) | ListEntry::ProjectHeader { .. } | ListEntry::SectionHeader { .. } => None,
         }
     }
 
@@ -402,6 +406,7 @@ impl ListEntry {
             ListEntry::ProjectHeader { key, .. } => multi_workspace
                 .workspaces_for_project_group(key, cx)
                 .unwrap_or_default(),
+            ListEntry::SectionHeader { .. } => Vec::new(),
         }
     }
 }
@@ -1892,6 +1897,9 @@ impl Sidebar {
                     cx,
                 )
             }
+            ListEntry::SectionHeader { label, color } => {
+                self.render_section_header(ix, label, *color, cx)
+            }
             ListEntry::Thread(thread) => self.render_thread(ix, thread, is_active, is_selected, cx),
             ListEntry::Terminal(terminal) => {
                 self.render_terminal(ix, terminal, is_active, is_selected, cx)
@@ -1908,6 +1916,28 @@ impl Sidebar {
         } else {
             rendered
         }
+    }
+
+    fn render_section_header(
+        &self,
+        ix: usize,
+        label: &SharedString,
+        color: Color,
+        _cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let id = SharedString::from(format!("section-header-{}", ix));
+        h_flex()
+            .id(id)
+            .w_full()
+            .px_3()
+            .py_1()
+            .child(
+                Label::new(label.clone())
+                    .color(color)
+                    .size(LabelSize::Small)
+                    .weight(gpui::FontWeight::BOLD)
+            )
+            .into_any_element()
     }
 
     fn render_remote_project_icon(
@@ -2798,6 +2828,7 @@ impl Sidebar {
                 let workspace = terminal.workspace.clone();
                 self.activate_terminal_entry(metadata, workspace, false, window, cx);
             }
+            ListEntry::SectionHeader { .. } => {}
         }
     }
 
@@ -3358,6 +3389,7 @@ impl Sidebar {
                     }
                 }
             }
+            Some(ListEntry::SectionHeader { .. }) => {}
             None => {}
         }
     }
@@ -3379,6 +3411,7 @@ impl Sidebar {
                     Some(ListEntry::ProjectHeader { .. })
                 )
             }),
+            Some(ListEntry::SectionHeader { .. }) => None,
             None => None,
         };
 
@@ -4896,9 +4929,12 @@ impl Sidebar {
             match entry {
                 ListEntry::Thread(thread) => Sidebar::thread_display_time(&thread.metadata),
                 ListEntry::Terminal(terminal) => terminal.metadata.created_at,
-                ListEntry::ProjectHeader { .. } => unreachable!(),
+                ListEntry::ProjectHeader { .. } | ListEntry::SectionHeader { .. } => unreachable!(),
             }
         }
+
+        let mut pinned_entries = Vec::new();
+        let mut recent_entries = Vec::new();
 
         let row_entries = terminals
             .into_iter()
@@ -4913,7 +4949,33 @@ impl Sidebar {
                 }
                 current_thread_ids.insert(thread.metadata.thread_id);
             }
-            entries.push(entry);
+
+            let is_pinned = match &entry {
+                ListEntry::Thread(thread) => thread.metadata.pinned,
+                _ => false,
+            };
+
+            if is_pinned {
+                pinned_entries.push(entry);
+            } else {
+                recent_entries.push(entry);
+            }
+        }
+
+        if !pinned_entries.is_empty() {
+            entries.push(ListEntry::SectionHeader {
+                label: "Pinned".into(),
+                color: Color::Warning,
+            });
+            entries.extend(pinned_entries);
+
+            entries.push(ListEntry::SectionHeader {
+                label: "Recent".into(),
+                color: Color::Muted,
+            });
+            entries.extend(recent_entries);
+        } else {
+            entries.extend(recent_entries);
         }
     }
 
@@ -5019,6 +5081,7 @@ impl Sidebar {
                         timestamp,
                     }))
                 }
+                ListEntry::SectionHeader { .. } => None,
             })
             .collect();
 
@@ -5357,9 +5420,27 @@ impl Sidebar {
                 }
                 cx.notify();
             }))
-            .when(is_hovered && is_running, |this| {
-                this.action_slot(
-                    IconButton::new("stop-thread", IconName::Stop)
+            .when(is_hovered, |this| {
+                let is_pinned = thread.metadata.pinned;
+                let pin_btn = IconButton::new("pin-thread", IconName::Pin)
+                    .icon_size(IconSize::Small)
+                    .icon_color(if is_pinned { Color::Accent } else { Color::Muted })
+                    .tooltip(Tooltip::text(if is_pinned { "Unpin Thread" } else { "Pin Thread" }))
+                    .on_click({
+                        let thread_id = thread.metadata.thread_id;
+                        cx.listener(move |_, _, _window, cx| {
+                            ThreadMetadataStore::global(cx).update(cx, |store, cx| {
+                                if is_pinned {
+                                    store.unpin_thread(thread_id, cx);
+                                } else {
+                                    store.pin_thread(thread_id, cx);
+                                }
+                            });
+                        })
+                    });
+
+                if is_running {
+                    let stop_btn = IconButton::new("stop-thread", IconName::Stop)
                         .icon_size(IconSize::Small)
                         .icon_color(Color::Error)
                         .style(ButtonStyle::Tinted(TintColor::Error))
@@ -5368,12 +5449,27 @@ impl Sidebar {
                             cx.listener(move |this, _, _window, cx| {
                                 this.stop_thread(&thread_id_for_actions, cx);
                             })
-                        }),
-                )
-            })
-            .when(is_hovered && !is_running && !is_draft, |this| {
-                this.action_slot(
-                    IconButton::new("archive-thread", IconName::Archive)
+                        });
+                    this.action_slot(h_flex().gap_1().child(pin_btn).child(stop_btn))
+                } else if is_draft {
+                    let discard_btn = IconButton::new("discard_thread", IconName::Close)
+                        .icon_size(IconSize::Small)
+                        .icon_color(Color::Muted)
+                        .tooltip(Tooltip::text("Discard Draft"))
+                        .on_click({
+                            let thread_workspace = thread_workspace.clone();
+                            cx.listener(move |this, _, window, cx| {
+                                this.remove_draft(
+                                    thread_id_for_actions,
+                                    &thread_workspace,
+                                    window,
+                                    cx,
+                                );
+                            })
+                        });
+                    this.action_slot(h_flex().gap_1().child(pin_btn).child(discard_btn))
+                } else {
+                    let archive_btn = IconButton::new("archive-thread", IconName::Archive)
                         .icon_size(IconSize::Small)
                         .icon_color(Color::Muted)
                         .tooltip({
@@ -5394,27 +5490,9 @@ impl Sidebar {
                                     this.archive_thread(session_id, window, cx);
                                 }
                             })
-                        }),
-                )
-            })
-            .when(is_hovered && !is_running && is_draft, |this| {
-                this.action_slot(
-                    IconButton::new("discard_thread", IconName::Close)
-                        .icon_size(IconSize::Small)
-                        .icon_color(Color::Muted)
-                        .tooltip(Tooltip::text("Discard Draft"))
-                        .on_click({
-                            let thread_workspace = thread_workspace.clone();
-                            cx.listener(move |this, _, window, cx| {
-                                this.remove_draft(
-                                    thread_id_for_actions,
-                                    &thread_workspace,
-                                    window,
-                                    cx,
-                                );
-                            })
-                        }),
-                )
+                        });
+                    this.action_slot(h_flex().gap_1().child(pin_btn).child(archive_btn))
+                }
             })
             .on_click({
                 cx.listener(move |this, _, window, cx| {
@@ -6218,7 +6296,7 @@ impl Sidebar {
                 let workspace = terminal.workspace.clone();
                 self.activate_terminal_entry(metadata, workspace, true, window, cx);
             }
-            ListEntry::ProjectHeader { .. } => {}
+            ListEntry::ProjectHeader { .. } | ListEntry::SectionHeader { .. } => {}
         }
     }
 
