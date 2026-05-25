@@ -32,9 +32,13 @@ impl AudioCapture {
         let device = host.default_input_device()
             .ok_or_else(|| anyhow!("No default input device found"))?;
             
+        log::info!("Using input device: {}", device.name().unwrap_or("unknown".to_string()));
+            
         let config = device.default_input_config()?;
         let sample_rate = config.sample_rate();
         let channels = config.channels();
+        
+        log::info!("Audio config: {}Hz, {} channels", sample_rate, channels);
         
         self.sample_rate = sample_rate;
         self.channels = channels;
@@ -47,10 +51,8 @@ impl AudioCapture {
                 device.build_input_stream(
                     &config.into(),
                     move |data: &[f32], _: &_| {
-                        // In a real app we'd resample to 16kHz and convert to mono here
-                        // For now we just push the raw data
                         let mut buf = buffer_clone.lock().unwrap();
-                        buf.extend_from_slice(data);
+                        buf.extend(data.iter().map(|s| (s * 2.5).clamp(-1.0, 1.0)));
                     },
                     move |err| {
                         eprintln!("Audio input error: {}", err);
