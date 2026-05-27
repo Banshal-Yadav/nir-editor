@@ -322,7 +322,7 @@ impl TerminalInlineAssistant {
                     )
                 };
 
-                // Fire /void telemetry
+                // Fire /nir telemetry
                 telemetry::event!(
                     event_type,
                     kind = "inline_terminal",

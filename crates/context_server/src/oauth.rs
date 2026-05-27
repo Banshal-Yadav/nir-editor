@@ -33,7 +33,7 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use url::Url;
 
-/// The CIMD URL where /void's OAuth client metadata document is hosted.
+/// The CIMD URL where /nir's OAuth client metadata document is hosted.
 pub const CIMD_URL: &str = "https://zed.dev/oauth/client-metadata.json";
 
 /// Validate that a URL is safe to use as an OAuth endpoint.
@@ -66,7 +66,7 @@ fn require_https_or_loopback(url: &Url) -> Result<()> {
 /// protections against private/reserved IP ranges.
 ///
 /// This wraps [`require_https_or_loopback`] and adds IP-range checks to prevent
-/// an attacker-controlled MCP server from directing /void to fetch internal
+/// an attacker-controlled MCP server from directing /nir to fetch internal
 /// network resources via metadata URLs.
 ///
 /// **Known limitation:** Domain-name URLs that resolve to private IPs are *not*

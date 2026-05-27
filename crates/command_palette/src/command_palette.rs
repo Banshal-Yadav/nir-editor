@@ -462,7 +462,7 @@ impl PickerDelegate for CommandPaletteDelegate {
             async move {
                 commands.sort_by_key(|action| {
                     (
-                        action.name != "/void: show welcome",
+                        action.name != "/nir: show welcome",
                         Reverse(hit_counts.get(&action.name).cloned()),
                         action.name.clone(),
                     )
@@ -752,7 +752,7 @@ mod tests {
     fn test_humanize_action_name() {
         assert_eq!(
             humanize_action_name("zed::ShowWelcome"),
-            "/void: show welcome"
+            "/nir: show welcome"
         );
         assert_eq!(
             humanize_action_name("editor::GoToDefinition"),

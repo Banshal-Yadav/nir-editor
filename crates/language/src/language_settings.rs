@@ -89,7 +89,7 @@ pub struct LanguageSettings {
     pub line_ending: LineEndingSetting,
     /// How to perform a buffer format.
     pub formatter: settings::FormatterList,
-    /// /void's Prettier integration settings.
+    /// /nir's Prettier integration settings.
     pub prettier: PrettierSettings,
     /// Whether to automatically close JSX tags.
     pub jsx_tag_auto_close: bool,
@@ -245,13 +245,13 @@ pub struct LanguageTaskSettings {
     /// Extra task variables to set for a particular language.
     pub variables: HashMap<String, String>,
     pub enabled: bool,
-    /// Use LSP tasks over /void language extension ones.
+    /// Use LSP tasks over /nir language extension ones.
     /// If no LSP tasks are returned due to error/timeout or regular execution,
-    /// /void language extension tasks will be used instead.
+    /// /nir language extension tasks will be used instead.
     ///
-    /// Other /void tasks will still be shown:
-    /// * /void task from either of the task config file
-    /// * /void task from history (e.g. one-off task was spawned before)
+    /// Other /nir tasks will still be shown:
+    /// * /nir task from either of the task config file
+    /// * /nir task from history (e.g. one-off task was spawned before)
     pub prefer_lsp: bool,
 }
 

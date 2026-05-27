@@ -1,9 +1,9 @@
 #![allow(dead_code, unused_imports)]
 
-//! Visual testing infrastructure for /void.
+//! Visual testing infrastructure for /nir.
 //!
-//! This module provides utilities for visual regression testing of /void's UI.
-//! It allows capturing screenshots of the real /void application window and comparing
+//! This module provides utilities for visual regression testing of /nir's UI.
+//! It allows capturing screenshots of the real /nir application window and comparing
 //! them against baseline images.
 //!
 //! ## Important: Main Thread Requirement
@@ -43,7 +43,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use workspace::AppState;
 
-/// Initialize a visual test context with all necessary /void subsystems.
+/// Initialize a visual test context with all necessary /nir subsystems.
 pub fn init_visual_test(cx: &mut VisualTestAppContext) -> Arc<AppState> {
     cx.update(|cx| {
         env_logger::builder().is_test(true).try_init().ok();
@@ -465,7 +465,7 @@ mod tests {
         cx.run_until_parked();
     }
 
-    /// This test captures a screenshot of an empty /void workspace.
+    /// This test captures a screenshot of an empty /nir workspace.
     ///
     /// Note: This test is ignored by default because:
     /// 1. It requires macOS with Screen Recording permission granted

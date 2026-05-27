@@ -363,9 +363,9 @@ pub async fn load_login_shell_environment() -> Result<()> {
         .await
         .with_context(|| format!("capturing environment with {:?}", get_system_shell()))?
     {
-        // Skip SHLVL to prevent it from polluting /void's process environment.
+        // Skip SHLVL to prevent it from polluting /nir's process environment.
         // The login shell used for env capture increments SHLVL, and if we propagate it,
-        // terminals spawned by /void will inherit it and increment again, causing SHLVL
+        // terminals spawned by /nir will inherit it and increment again, causing SHLVL
         // to start at 2 instead of 1 (and increase by 2 on each reload).
         if name == "SHLVL" {
             continue;

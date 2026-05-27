@@ -336,7 +336,7 @@ pub enum Event {
     LanguageServerRemoved(LanguageServerId),
     LanguageServerLog(LanguageServerId, LanguageServerLogType, String),
     // [`lsp::notification::DidOpenTextDocument`] was sent to this server using the buffer data.
-    // /void's buffer-related data is updated accordingly.
+    // /nir's buffer-related data is updated accordingly.
     LanguageServerBufferRegistered {
         server_id: LanguageServerId,
         buffer_id: BufferId,
@@ -1095,7 +1095,7 @@ pub enum PulledDiagnostics {
     },
 }
 
-/// Whether to disable all AI features in /void.
+/// Whether to disable all AI features in /nir.
 ///
 /// Default: false
 #[derive(Copy, Clone, Debug, RegisterSetting)]

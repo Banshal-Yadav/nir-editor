@@ -416,11 +416,11 @@ impl PaneLeaderDecorator for PaneRenderContext<'_> {
                         }
                     }
                     ParticipantLocation::UnsharedProject => Some(Label::new(format!(
-                        "{} is viewing an unshared /void project",
+                        "{} is viewing an unshared /nir project",
                         leader.user.github_login
                     ))),
                     ParticipantLocation::External => Some(Label::new(format!(
-                        "{} is viewing a window outside of /void",
+                        "{} is viewing a window outside of /nir",
                         leader.user.github_login
                     ))),
                 };

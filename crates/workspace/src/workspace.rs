@@ -9312,9 +9312,9 @@ pub struct OpenChannelNotesById {
 actions!(
     zed,
     [
-        /// Opens the /void log file.
+        /// Opens the /nir log file.
         OpenLog,
-        /// Reveals the /void log file in the system file manager.
+        /// Reveals the /nir log file in the system file manager.
         RevealLogInFileManager
     ]
 );
@@ -9528,7 +9528,7 @@ pub fn join_channel(
                         let detail: SharedString = match err.error_code() {
                             ErrorCode::SignedOut => "Please sign in to continue.".into(),
                             ErrorCode::UpgradeRequired => concat!(
-                                "Your are running an unsupported version of /void. ",
+                                "Your are running an unsupported version of /nir. ",
                                 "Please update to continue."
                             )
                             .into(),
@@ -9585,7 +9585,7 @@ pub async fn get_any_active_multi_workspace(
         })
         .await?;
     }
-    activate_any_workspace_window(&mut cx).context("could not open /void")
+    activate_any_workspace_window(&mut cx).context("could not open /nir")
 }
 
 pub fn activate_any_workspace_window(cx: &mut AsyncApp) -> Option<WindowHandle<MultiWorkspace>> {

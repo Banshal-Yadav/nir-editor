@@ -159,7 +159,7 @@ impl Component for Vector {
                     example_group_with_title(
                         "Different Vectors",
                         vec![single_example(
-                            "Void X Copilot",
+                            "Nir X Copilot",
                             Vector::square(VectorName::VoidXCopilot, rems_from_px(100.))
                                 .into_any_element(),
                         )],

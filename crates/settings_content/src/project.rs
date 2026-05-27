@@ -81,7 +81,7 @@ pub struct ProjectSettingsContent {
     /// The list of custom Git hosting providers.
     pub git_hosting_providers: Option<ExtendingVec<GitHostingProviderConfig>>,
 
-    /// Whether to disable all AI features in /void.
+    /// Whether to disable all AI features in /nir.
     ///
     /// Default: false
     pub disable_ai: Option<SaturatingBool>,
@@ -153,7 +153,7 @@ pub struct LspSettings {
     /// Consult the documentation for the specific language server to see which settings are supported.
     pub settings: Option<serde_json::Value>,
     /// If the server supports sending tasks over LSP extensions,
-    /// this setting can be used to enable or disable them in /void.
+    /// this setting can be used to enable or disable them in /nir.
     /// Default: true
     #[serde(default = "default_true")]
     pub enable_lsp_tasks: bool,
@@ -691,7 +691,7 @@ pub struct DiagnosticsSettingsContent {
     /// Default: true
     pub include_warnings: Option<bool>,
 
-    /// Settings for using LSP pull diagnostics mechanism in /void.
+    /// Settings for using LSP pull diagnostics mechanism in /nir.
     pub lsp_pull_diagnostics: Option<LspPullDiagnosticsSettingsContent>,
 
     /// Settings for showing inline diagnostics.
@@ -748,9 +748,9 @@ pub struct InlineDiagnosticsSettingsContent {
 pub struct NodeBinarySettings {
     /// The path to the Node binary.
     pub path: Option<String>,
-    /// The path to the npm binary /void should use (defaults to `.path/../npm`).
+    /// The path to the npm binary /nir should use (defaults to `.path/../npm`).
     pub npm_path: Option<String>,
-    /// If enabled, /void will download its own copy of Node.
+    /// If enabled, /nir will download its own copy of Node.
     pub ignore_system_version: Option<bool>,
 }
 

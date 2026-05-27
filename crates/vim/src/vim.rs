@@ -1,4 +1,4 @@
-//! Vim support for /void.
+//! Vim support for /nir.
 
 #[cfg(test)]
 mod test;

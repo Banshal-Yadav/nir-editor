@@ -612,7 +612,7 @@ pub async fn connect(
 
 const MINIMUM_SUPPORTED_VERSION: acp::ProtocolVersion = acp::ProtocolVersion::V1;
 
-/// Build a `Client` connection over `transport` with /void's full
+/// Build a `Client` connection over `transport` with /nir's full
 /// agent→client handler set wired up.
 ///
 /// All incoming requests and notifications are forwarded to the foreground

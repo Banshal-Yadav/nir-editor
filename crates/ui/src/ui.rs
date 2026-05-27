@@ -1,6 +1,6 @@
-//! # UI – /void UI Primitives & Components
+//! # UI – /nir UI Primitives & Components
 //!
-//! This crate provides a set of UI primitives and components that are used to build all of the elements in /void's UI.
+//! This crate provides a set of UI primitives and components that are used to build all of the elements in /nir's UI.
 //!
 //! ## Related Crates:
 //!

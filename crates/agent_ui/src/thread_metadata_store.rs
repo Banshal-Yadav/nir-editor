@@ -471,8 +471,8 @@ pub struct ArchivedGitWorktree {
     /// the files.
     pub main_repo_path: PathBuf,
     /// Branch that was checked out in the worktree at archive time. `None` if
-    /// the worktree was in detached HEAD state, which isn't supported in /void, but
-    /// could happen if the user made a detached one outside of /void.
+    /// the worktree was in detached HEAD state, which isn't supported in /nir, but
+    /// could happen if the user made a detached one outside of /nir.
     /// On restore, we try to switch to this branch. If that fails (e.g. it's
     /// checked out elsewhere), we auto-generate a new one.
     pub branch_name: Option<String>,

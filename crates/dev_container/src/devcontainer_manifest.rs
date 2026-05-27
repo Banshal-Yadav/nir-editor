@@ -4252,7 +4252,7 @@ ENV DOCKER_BUILDKIT=1
         // that directory IS `<config>/.devcontainer`. A compose file at the
         // workspace root (as `"dockerComposeFile": "../docker-compose.yml"`
         // produces) must derive to the plain dir basename, not
-        // `project_devcontainer` — otherwise /void diverges from the CLI.
+        // `project_devcontainer` — otherwise /nir diverges from the CLI.
         use crate::devcontainer_manifest::derive_project_name;
 
         let got = derive_project_name(

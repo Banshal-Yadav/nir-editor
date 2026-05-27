@@ -846,7 +846,7 @@ impl Render for ConfigurationView {
                         .p_3()
                         .child(Label::new("💡 Recommended — Free models available with OpenRouter").color(Color::Accent))
                 )
-                .child(Label::new("To use /void with OpenRouter, you need to add an API key. Follow these steps:"))
+                .child(Label::new("To use /nir with OpenRouter, you need to add an API key. Follow these steps:"))
                 .child(
                     List::new()
                         .child(
@@ -862,7 +862,7 @@ impl Render for ConfigurationView {
                 .child(self.api_key_editor.clone())
                 .child(
                     Label::new(
-                        format!("You can also set the {API_KEY_ENV_VAR_NAME} environment variable and restart /void."),
+                        format!("You can also set the {API_KEY_ENV_VAR_NAME} environment variable and restart /nir."),
                     )
                     .size(LabelSize::Small).color(Color::Muted),
                 )

@@ -72,10 +72,10 @@ fn archived_worktree_ref_name(id: i64) -> String {
     format!("refs/archived-worktrees/{}", id)
 }
 
-/// Resolves the /void-managed worktrees base directory for a given repo.
+/// Resolves the /nir-managed worktrees base directory for a given repo.
 ///
 /// This intentionally reads the *global* `git.worktree_directory` setting
-/// rather than any project-local override, because /void always uses the
+/// rather than any project-local override, because /nir always uses the
 /// global value when creating worktrees and the archive check must match.
 fn worktrees_base_for_repo(
     main_repo_path: &Path,
@@ -166,7 +166,7 @@ pub fn build_root_plan(
     let (linked_snapshot, repo) = linked_repo?;
     let main_repo_path = linked_snapshot.main_worktree_abs_path()?.to_path_buf();
 
-    // Only archive worktrees that live inside the /void-managed worktrees
+    // Only archive worktrees that live inside the /nir-managed worktrees
     // directory (configured via `git.worktree_directory`). Worktrees the
     // user created outside that directory should be left untouched.
     let worktrees_base = worktrees_base_for_repo(&main_repo_path, linked_snapshot.path_style, cx)?;

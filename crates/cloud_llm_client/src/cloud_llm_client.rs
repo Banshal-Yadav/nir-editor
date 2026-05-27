@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use strum::{Display, EnumIter, EnumString};
 use uuid::Uuid;
 
-/// The name of the header used to indicate which version of /void the client is running.
+/// The name of the header used to indicate which version of /nir the client is running.
 pub const ZED_VERSION_HEADER_NAME: &str = "x-zed-version";
 
 /// The name of the header used to indicate which edit prediction experiment should be used.
@@ -37,9 +37,9 @@ pub const EDIT_PREDICTIONS_USAGE_AMOUNT_HEADER_NAME: &str = "x-zed-edit-predicti
 
 pub const EDIT_PREDICTIONS_RESOURCE_HEADER_VALUE: &str = "edit_predictions";
 
-/// The name of the header used to indicate the minimum required /void version.
+/// The name of the header used to indicate the minimum required /nir version.
 ///
-/// This can be used to force a /void upgrade in order to continue communicating
+/// This can be used to force a /nir upgrade in order to continue communicating
 /// with the LLM service.
 pub const MINIMUM_REQUIRED_VERSION_HEADER_NAME: &str = "x-zed-minimum-required-version";
 

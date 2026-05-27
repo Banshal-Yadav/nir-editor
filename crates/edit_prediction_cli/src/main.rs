@@ -584,7 +584,7 @@ impl EpArgs {
     }
 }
 
-/// Minimum /void version required for Snowflake queries.
+/// Minimum /nir version required for Snowflake queries.
 /// This version introduced the current request schema with predicted edits in the edit
 /// history, and open source repos distinguished.
 const MIN_CAPTURE_VERSION: pull_examples::MinCaptureVersion = pull_examples::MinCaptureVersion {

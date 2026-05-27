@@ -242,7 +242,7 @@ fn render_theme_section(tab_index: &mut isize, cx: &mut App) -> impl IntoElement
 }
 
 fn render_telemetry_section(tab_index: &mut isize, _cx: &App) -> impl IntoElement {
-    // Telemetry toggles hidden in /void - disabled by default
+    // Telemetry toggles hidden in /nir - disabled by default
     *tab_index += 2; // Skip the tab indices that would have been used
     v_flex()
 }
@@ -349,12 +349,12 @@ fn render_worktree_auto_trust_switch(tab_index: &mut isize, cx: &mut App) -> imp
         ui::ToggleState::Unselected
     };
 
-    let tooltip_description = "/void can only allow services like language servers, project settings, and MCP servers to run after you mark a new project as trusted.";
+    let tooltip_description = "/nir can only allow services like language servers, project settings, and MCP servers to run after you mark a new project as trusted.";
 
     SwitchField::new(
         "onboarding-auto-trust-worktrees",
         Some("Trust All Projects By Default"),
-        Some("Automatically mark all new projects as trusted to unlock all /void's features".into()),
+        Some("Automatically mark all new projects as trusted to unlock all /nir's features".into()),
         toggle_state,
         {
             let fs = <dyn Fs>::global(cx);
@@ -554,7 +554,7 @@ fn render_void_agent_button(user_store: &Entity<UserStore>, cx: &mut App) -> imp
                 .size(IconSize::Small)
                 .color(Color::Muted),
         )
-        .name("/void Agent")
+        .name("/nir agent")
         .state(state_element)
         .disabled(is_trial || is_pro)
         .map(|this| {
@@ -677,7 +677,7 @@ fn render_ai_setup_section(cx: &mut App) -> impl IntoElement {
         .gap_2()
         .child(render_item(
             "ai-setup-openrouter",
-            "/void Agent",
+            "/nir agent",
             "free tier available",
             "100+ models — Claude, GPT, Gemini, Llama. Get a free API key in 30 seconds.",
             "Get free key",

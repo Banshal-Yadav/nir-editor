@@ -13,7 +13,7 @@ use release_channel::ReleaseChannel;
 /// An environment variable whose presence indicates that the system keychain
 /// should be used in development.
 ///
-/// By default, running /void in development uses the development credentials
+/// By default, running /nir in development uses the development credentials
 /// provider. Setting this environment variable allows you to interact with the
 /// system keychain (for instance, if you need to test something).
 ///
@@ -106,7 +106,7 @@ impl CredentialsProvider for KeychainCredentialsProvider {
 /// credentials on user machines.
 ///
 /// Its existence is purely to work around the annoyance of having to constantly
-/// re-allow access to the system keychain when developing /void.
+/// re-allow access to the system keychain when developing /nir.
 struct DevelopmentCredentialsProvider {
     path: PathBuf,
 }

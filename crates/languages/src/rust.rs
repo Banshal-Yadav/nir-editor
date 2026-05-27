@@ -1272,7 +1272,7 @@ async fn human_readable_package_name(
 }
 
 // For providing local `cargo check -p $pkgid` task, we do not need most of the information we have returned.
-// Output example in the root of /void project:
+// Output example in the root of /nir project:
 // ```sh
 // ❯ cargo pkgid zed
 // path+file:///absolute/path/to/project/zed/crates/zed#0.131.0

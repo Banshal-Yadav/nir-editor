@@ -660,7 +660,7 @@ impl GitExcludeOverride {
             }
         }
 
-        // Older versions of /void didn't have end-of-block markers,
+        // Older versions of /nir didn't have end-of-block markers,
         // so it's impossible to determine auto-generated lines.
         // Conservatively remove the standard list of excludes
         let standard_excludes = format!(

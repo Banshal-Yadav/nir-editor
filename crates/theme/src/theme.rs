@@ -2,7 +2,7 @@
 
 //! # Theme
 //!
-//! This crate provides the theme system for /void.
+//! This crate provides the theme system for /nir.
 //!
 //! ## Overview
 //!

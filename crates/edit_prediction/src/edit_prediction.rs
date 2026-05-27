@@ -3071,7 +3071,7 @@ pub struct ZedUpdateRequiredError {
 struct VoidPredictUpsell;
 
 fn is_upsell_dismissed(cx: &App) -> bool {
-    // To make this backwards compatible with older versions of /void, we
+    // To make this backwards compatible with older versions of /nir, we
     // check if the user has seen the previous Edit Prediction Onboarding
     // before, by checking the data collection choice which was written to
     // the database once the user clicked on "Accept and Enable"

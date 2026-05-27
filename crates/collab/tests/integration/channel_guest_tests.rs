@@ -187,7 +187,7 @@ async fn test_channel_requires_zed_cla(cx_a: &mut TestAppContext, cx_b: &mut Tes
     let active_call_a = cx_a.read(ActiveCall::global);
     let active_call_b = cx_b.read(ActiveCall::global);
 
-    // Create a parent channel that requires the /void CLA
+    // Create a parent channel that requires the /nir CLA
     let parent_channel_id = server
         .make_channel("the-channel", None, (&client_a, cx_a), &mut [])
         .await;

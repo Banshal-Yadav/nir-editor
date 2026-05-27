@@ -23,12 +23,12 @@ use zed_actions::OpenOnboarding;
 actions!(
     zed,
     [
-        /// Show the /void welcome screen
+        /// Show the /nir welcome screen
         ShowWelcome
     ]
 );
 
-/// Custom /void logo component with SVG and blinking cursor
+/// Custom /nir logo component with SVG and blinking cursor
 #[derive(IntoElement)]
 struct VoidLogo {
     #[allow(dead_code)]

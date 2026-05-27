@@ -366,7 +366,7 @@ impl Component for Label {
                         vec![
                             single_example("Default", Label::new("Project Explorer").into_any_element()),
                             single_example("Small", Label::new("File: main.rs").size(LabelSize::Small).into_any_element()),
-                            single_example("Large", Label::new("/void").size(LabelSize::Large).into_any_element()),
+                            single_example("Large", Label::new("/nir").size(LabelSize::Large).into_any_element()),
                         ],
                     ),
                     example_group_with_title(

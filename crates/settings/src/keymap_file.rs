@@ -1877,7 +1877,7 @@ mod tests {
             KeybindUpdateOperation::add(KeybindUpdateTarget {
                 keystrokes: &parse_keystrokes("ctrl-b"),
                 action_name: "zed::SomeOtherAction",
-                context: Some("/void > Editor && some_condition = true"),
+                context: Some("/nir > Editor && some_condition = true"),
                 action_arguments: Some(r#"{"foo": "bar"}"#),
             }),
             r#"[

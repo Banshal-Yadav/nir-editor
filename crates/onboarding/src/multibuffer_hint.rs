@@ -166,7 +166,7 @@ impl Render for MultibufferHint {
                                     .color(Color::Muted),
                             )
                             .on_click(move |_event, _, cx| {
-                                cx.open_url("https://void.placeholder/coming-soon")
+                                cx.open_url("https://nir.placeholder/coming-soon")
                             }),
                     ),
             )

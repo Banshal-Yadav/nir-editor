@@ -156,13 +156,13 @@ impl ZedAiOnboarding {
             .gap_1()
             .child(Headline::new("/nir"))
             .child(
-                Label::new("Sign in to try /void Pro for 14 days, no credit card required.")
+                Label::new("Sign in to try /nir Pro for 14 days, no credit card required.")
                     .color(Color::Muted)
                     .mb_2(),
             )
             .child(PlanDefinitions.sign_in_upsell())
             .child(
-                Button::new("sign_in", "Try /void Pro for Free")
+                Button::new("sign_in", "Try /nir Pro for Free")
                     .disabled(signing_in)
                     .full_width()
                     .style(ButtonStyle::Tinted(ui::TintColor::Accent))
@@ -288,7 +288,7 @@ impl ZedAiOnboarding {
             .relative()
             .gap_1()
             .child(Self::pro_trial_stamp(cx))
-            .child(Headline::new("Welcome to the /void Pro Trial"))
+            .child(Headline::new("Welcome to the /nir Pro Trial"))
             .child(
                 Label::new("Here's what you get for the next 14 days:")
                     .color(Color::Muted)
@@ -306,7 +306,7 @@ impl ZedAiOnboarding {
             .relative()
             .gap_1()
             .child(Self::certified_user_stamp(cx))
-            .child(Headline::new("Welcome to /void Pro"))
+            .child(Headline::new("Welcome to /nir Pro"))
             .child(
                 Label::new("Here's what you get:")
                     .color(Color::Muted)
@@ -324,7 +324,7 @@ impl ZedAiOnboarding {
             .relative()
             .gap_1()
             .child(Self::business_stamp(cx))
-            .child(Headline::new("Welcome to /void Business"))
+            .child(Headline::new("Welcome to /nir Business"))
             .child(
                 Label::new("Here's what you get:")
                     .color(Color::Muted)
@@ -342,7 +342,7 @@ impl ZedAiOnboarding {
             .relative()
             .gap_1()
             .child(Self::student_stamp(cx))
-            .child(Headline::new("Welcome to /void Student"))
+            .child(Headline::new("Welcome to /nir Student"))
             .child(
                 Label::new("Here's what you get:")
                     .color(Color::Muted)
@@ -356,7 +356,7 @@ impl ZedAiOnboarding {
 
 impl RenderOnce for ZedAiOnboarding {
     fn render(self, _window: &mut ui::Window, cx: &mut App) -> impl IntoElement {
-        // Sign-in UI disabled for /void - show free plan state
+        // Sign-in UI disabled for /nir - show free plan state
         self.render_free_plan_state(cx)
     }
 }

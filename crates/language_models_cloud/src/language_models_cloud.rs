@@ -184,7 +184,7 @@ struct ApiError {
     headers: HeaderMap<HeaderValue>,
 }
 
-/// Represents error responses from /void's cloud API.
+/// Represents error responses from /nir's cloud API.
 ///
 /// Example JSON for an upstream HTTP error:
 /// ```json
@@ -916,7 +916,7 @@ mod tests {
             ),
         }
 
-        // Regular 500 error without upstream_http_error should remain ApiInternalServerError for /void
+        // Regular 500 error without upstream_http_error should remain ApiInternalServerError for /nir
         let error_body = "Regular internal server error";
 
         let api_error = ApiError {

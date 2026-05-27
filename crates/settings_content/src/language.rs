@@ -972,13 +972,13 @@ impl AsRef<[Formatter]> for FormatterList {
 #[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq, Eq, JsonSchema, MergeFrom)]
 #[serde(rename_all = "snake_case")]
 pub enum Formatter {
-    /// Format files using /void's Prettier integration (if applicable),
+    /// Format files using /nir's Prettier integration (if applicable),
     /// or falling back to formatting via language server.
     #[default]
     Auto,
     /// Do not format code.
     None,
-    /// Format code using /void's Prettier integration.
+    /// Format code using /nir's Prettier integration.
     Prettier,
     /// Format code using an external command.
     External {
@@ -1091,13 +1091,13 @@ pub struct LanguageTaskSettingsContent {
     /// Extra task variables to set for a particular language.
     pub variables: Option<HashMap<String, String>>,
     pub enabled: Option<bool>,
-    /// Use LSP tasks over /void language extension ones.
+    /// Use LSP tasks over /nir language extension ones.
     /// If no LSP tasks are returned due to error/timeout or regular execution,
-    /// /void language extension tasks will be used instead.
+    /// /nir language extension tasks will be used instead.
     ///
-    /// Other /void tasks will still be shown:
-    /// * /void task from either of the task config file
-    /// * /void task from history (e.g. one-off task was spawned before)
+    /// Other /nir tasks will still be shown:
+    /// * /nir task from either of the task config file
+    /// * /nir task from history (e.g. one-off task was spawned before)
     pub prefer_lsp: Option<bool>,
 }
 

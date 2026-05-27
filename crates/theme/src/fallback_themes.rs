@@ -8,14 +8,14 @@ use crate::{
     ThemeFamily, ThemeStyles, default_color_scales,
 };
 
-/// The default theme family for /void.
+/// The default theme family for /nir.
 ///
 /// This is used to construct the default theme fallback values, as well as to
 /// have a theme available at compile time for tests.
 pub fn zed_default_themes() -> ThemeFamily {
     ThemeFamily {
         id: "zed-default".to_string(),
-        name: "/void Default".into(),
+        name: "/nir Default".into(),
         author: "".into(),
         themes: vec![
             zed_default_dark(),

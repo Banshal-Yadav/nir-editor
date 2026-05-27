@@ -1314,7 +1314,7 @@ mod test {
     async fn test_replace_gdefault(cx: &mut gpui::TestAppContext) {
         let mut cx = NeovimBackedTestContext::new(cx).await;
 
-        // Set the `gdefault` option in both /void and Neovim.
+        // Set the `gdefault` option in both /nir and Neovim.
         cx.simulate_shared_keystrokes(": s e t space g d e f a u l t")
             .await;
         cx.simulate_shared_keystrokes("enter").await;

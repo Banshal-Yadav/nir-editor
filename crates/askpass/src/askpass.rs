@@ -288,7 +288,7 @@ impl PasswordProxy {
         }
     }
 }
-/// The main function for when /void is running in netcat mode for use in askpass.
+/// The main function for when /nir is running in netcat mode for use in askpass.
 /// Called from both the remote server binary and the zed binary in their respective main functions.
 pub fn main(socket: &str) {
     use net::UnixStream;

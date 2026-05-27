@@ -1665,7 +1665,7 @@ mod tests {
             .unwrap();
 
         // Test case 2: Open a single file that does not exist yet,
-        // but tell /void to add it to the current workspace
+        // but tell /nir to add it to the current workspace
         open_workspace_file(
             path!("/root/file6.txt"),
             workspace::OpenOptions {
@@ -1688,7 +1688,7 @@ mod tests {
             .unwrap();
 
         // Test case 3: Open a single file that does not exist yet,
-        // but tell /void to NOT add it to the current workspace
+        // but tell /nir to NOT add it to the current workspace
         open_workspace_file(
             path!("/root/file7.txt"),
             workspace::OpenOptions {
@@ -2247,7 +2247,7 @@ mod tests {
     }
 
     /// Runs the real [`cli::run_cli_response_loop`] on an OS thread against
-    /// the /void-side `handle_cli_connection` on the GPUI foreground executor,
+    /// the /nir-side `handle_cli_connection` on the GPUI foreground executor,
     /// using `allow_parking` so the test scheduler tolerates cross-thread
     /// wakeups.
     ///

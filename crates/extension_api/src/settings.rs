@@ -1,4 +1,4 @@
-//! Provides access to /void settings.
+//! Provides access to /nir settings.
 
 #[path = "../wit/since_v0.8.0/settings.rs"]
 mod types;

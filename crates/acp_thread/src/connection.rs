@@ -432,7 +432,7 @@ pub trait AgentModelSelector: 'static {
 /// Icon for a model in the model selector.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AgentModelIcon {
-    /// A built-in icon from /void's icon set.
+    /// A built-in icon from /nir's icon set.
     Named(IconName),
     /// Path to a custom SVG icon file.
     Path(SharedString),

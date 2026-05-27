@@ -24,7 +24,7 @@ macro_rules! onboarding_event {
     };
 }
 
-/// Introduces user to /void's Edit Prediction feature
+/// Introduces user to /nir's Edit Prediction feature
 pub struct VoidPredictModal {
     onboarding: Entity<EditPredictionOnboarding>,
     focus_handle: FocusHandle,

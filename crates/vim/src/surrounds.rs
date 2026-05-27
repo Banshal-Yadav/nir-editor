@@ -510,14 +510,14 @@ impl Vim {
             // below could be done.
             //
             // ```
-            // (< name:ˇ'/void' >)
+            // (< name:ˇ'/nir' >)
             // <[ name:ˇ'DeltaDB' ]>
             // ```
             //
             // After using `csb{`:
             //
             // ```
-            // (ˇ{ name:'/void' })
+            // (ˇ{ name:'/nir' })
             // <ˇ{ name:'DeltaDB' }>
             // ```
             if let Some(selection) = selections.first() {

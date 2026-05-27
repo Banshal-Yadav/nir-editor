@@ -1,4 +1,4 @@
-//! Which-key support for /void.
+//! Which-key support for /nir.
 
 mod which_key_modal;
 mod which_key_settings;

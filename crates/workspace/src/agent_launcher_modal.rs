@@ -191,7 +191,7 @@ impl Render for AgentLauncherModal {
                             .child(
                                 div()
                                     .font_weight(gpui::FontWeight::EXTRA_BOLD)
-                                    .child("void Agent Launcher"),
+                                    .child("nir agent Launcher"),
                             ),
                     )
                     .child(

@@ -1,4 +1,4 @@
-//! See [Telemetry in /void](https://zed.dev/docs/telemetry) for additional information.
+//! See [Telemetry in /nir](https://zed.dev/docs/telemetry) for additional information.
 
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -6,23 +6,23 @@ use std::{collections::HashMap, fmt::Display, time::Duration};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EventRequestBody {
-    /// Identifier unique to each system /void is installed on
+    /// Identifier unique to each system /nir is installed on
     pub system_id: Option<String>,
-    /// Identifier unique to each /void installation (differs for stable, preview, dev)
+    /// Identifier unique to each /nir installation (differs for stable, preview, dev)
     pub installation_id: Option<String>,
-    /// Identifier unique to each logged in /void user (randomly generated on first sign in)
-    /// Identifier unique to each /void session (differs for each time you open /void)
+    /// Identifier unique to each logged in /nir user (randomly generated on first sign in)
+    /// Identifier unique to each /nir session (differs for each time you open /nir)
     pub session_id: Option<String>,
     pub metrics_id: Option<String>,
-    /// True for /void staff, otherwise false
+    /// True for /nir staff, otherwise false
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_staff: Option<bool>,
-    /// /void version number
+    /// /nir version number
     pub app_version: String,
     pub os_name: String,
     pub os_version: Option<String>,
     pub architecture: String,
-    /// /void release channel (stable, preview, dev)
+    /// /nir release channel (stable, preview, dev)
     pub release_channel: Option<String>,
     pub events: Vec<EventWrapper>,
 }

@@ -9,7 +9,7 @@ pub trait ToLspPosition {
 
 /// Context provided to LSP adapters when a user responds to a ShowMessageRequest prompt.
 /// This allows adapters to intercept preference selections (like "Always" or "Never")
-/// and potentially persist them to /void's settings.
+/// and potentially persist them to /nir's settings.
 #[derive(Debug, Clone)]
 pub struct PromptResponseContext {
     /// The original message shown to the user
