@@ -3,7 +3,7 @@ use crate::{
     DbLanguageModel, DbThread, DeletePathTool, DiagnosticsTool, EditFileTool,
     FetchTool, FindPathTool, FindReferencesTool, GetCodeActionsTool, GoToDefinitionTool, GrepTool,
     ListDirectoryTool, MovePathTool, ProjectSnapshot, ReadFileTool, RenameTool,
-    BrainMemoryTool, BackupTool, SpawnAgentTool, SystemPromptTemplate, Template, Templates, TerminalTool,
+    BrainMemoryTool, BackupTool, ScratchpadTool, SpawnAgentTool, SystemPromptTemplate, Template, Templates, TerminalTool,
     ToolPermissionDecision, UpdatePlanTool, UpdateTitleTool, UserAgentsMd, WebSearchTool,
     WriteFileTool, decide_permission_from_settings,
 };
@@ -1698,6 +1698,7 @@ impl Thread {
         self.add_tool(WebSearchTool);
         self.add_tool(BrainMemoryTool::new(self.project.clone()));
         self.add_tool(BackupTool::new(self.project.clone()));
+        self.add_tool(ScratchpadTool::new(self.project.clone()));
 
         self.add_tool(DiagnosticsTool::new(self.project.clone()));
 
@@ -3176,7 +3177,8 @@ impl Thread {
             for file_name in ["about.md", "settings.md"] {
                 let path = crate::tools::memory_dir().join(file_name);
                 if let Ok(content) = std::fs::read_to_string(&path) {
-                    contents.push_str(&format!("\n# {}\n{}\n", file_name.to_uppercase(), content));
+                    let target_name = file_name.strip_suffix(".md").unwrap_or(file_name);
+                    contents.push_str(&format!("\n### Memory Target: `{}`\n{}\n", target_name, content));
                 }
             }
             if contents.is_empty() { None } else { Some(contents) }

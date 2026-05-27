@@ -248,13 +248,33 @@ impl BrainMemoryTarget {
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct BrainMemoryInput {
+    /// Action to perform:
+    /// - auto: Infer from content
+    /// - create: Add a new entry
+    /// - read: Retrieve entries
+    /// - read-many: Batch read files
+    /// - read-all: Dump all memory
+    /// - list: Index entries
+    /// - modify: Update existing entry
+    /// - delete: Remove entry
     #[serde(default)]
     action: BrainMemoryAction,
+    /// Destination file target:
+    /// - auto: Defaults to 'settings'
+    /// - about: Identity/Personal info
+    /// - goals: Objectives/Milestones
+    /// - settings: System configurations
+    /// - projects: Active work tracking
+    /// - bookmark: Quick links and ideas
     #[serde(default)]
     target: BrainMemoryTarget,
+    /// Comma-separated list of targets (for ReadMany).
     targets: Option<String>,
+    /// The content to write or modify.
     content: Option<String>,
+    /// The date of the entry to modify or delete.
     date: Option<String>,
+    /// The ID of the entry to modify or delete.
     id: Option<String>,
 }
 

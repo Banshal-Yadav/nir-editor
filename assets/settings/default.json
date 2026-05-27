@@ -1137,6 +1137,7 @@
           "search_web": true,
           "brain_memory": true,
           "brain_backup": true,
+          "scratchpad": true,
         },
       },
       "ask": {
@@ -1160,6 +1161,7 @@
           "search_web": true,
           "brain_memory": true,
           "brain_backup": true,
+          "scratchpad": true,
         },
       },
       "minimal": {
