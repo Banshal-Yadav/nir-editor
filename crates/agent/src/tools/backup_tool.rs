@@ -138,8 +138,12 @@ fn collect_all_backup_entries() -> Vec<BackupEntry> {
 }
 
 fn prune_old_backups_for_target(target: &str, keep_days: u32) -> usize {
-    let cutoff = Utc::now() - chrono::Duration::days((std::cmp::max(1, keep_days) - 1) as i64);
-    let cutoff = Utc.with_ymd_and_hms(cutoff.year(), cutoff.month(), cutoff.day(), 0, 0, 0).unwrap();
+    let cutoff = if keep_days == 0 {
+        None
+    } else {
+        let c = Utc::now() - chrono::Duration::days((keep_days - 1) as i64);
+        Some(Utc.with_ymd_and_hms(c.year(), c.month(), c.day(), 0, 0, 0).unwrap())
+    };
     
     let entries = collect_all_backup_entries();
     let mut pruned = 0;
@@ -150,8 +154,10 @@ fn prune_old_backups_for_target(target: &str, keep_days: u32) -> usize {
         }
 
         if let Ok(entry_date) = chrono::NaiveDateTime::parse_from_str(&format!("{} 00:00:00", entry.date), "%Y-%m-%d %H:%M:%S").map(|dt| dt.and_utc()) {
-            if entry_date >= cutoff {
-                continue;
+            if let Some(c) = cutoff {
+                if entry_date >= c {
+                    continue;
+                }
             }
             if entry.is_directory {
                 let _ = fs::remove_dir_all(&entry.full_path);
@@ -224,6 +230,7 @@ pub enum BackupAction {
     List,
     Restore,
     Prune,
+    Delete,
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema, Default)]
@@ -417,13 +424,26 @@ impl AgentTool for BackupTool {
                     pruned += prune_old_backups_for_target(t, keep_days);
                 }
                 if pruned > 0 {
-                    return Ok(format!("Pruned {} backup(s) older than {} days.", pruned, std::cmp::max(1, keep_days)));
+                    return Ok(format!("Pruned {} backup(s) older than {} days.", pruned, keep_days));
                 } else {
-                    return Ok(format!("No backups older than {} days found.", std::cmp::max(1, keep_days)));
+                    return Ok(format!("No backups older than {} days found.", keep_days));
                 }
+            }
+
+            if let BackupAction::Delete = input.action {
+                let backup_file = input.backup_file.ok_or_else(|| "Error: backup_file is required for delete.".to_string())?;
+                let resolved = resolve_backup_entry(&backup_file)?;
+                
+                if resolved.is_directory {
+                    let _ = fs::remove_dir_all(&resolved.full_path);
+                } else {
+                    let _ = fs::remove_file(&resolved.full_path);
+                }
+                return Ok(format!("Deleted backup {}/{}.", resolved.target, resolved.name));
             }
 
             Err("Invalid action.".to_string())
         })
     }
 }
+
