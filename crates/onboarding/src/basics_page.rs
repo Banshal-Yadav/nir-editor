@@ -548,7 +548,7 @@ fn render_void_agent_button(user_store: &Entity<UserStore>, cx: &mut App) -> imp
             .into_any_element()
     };
 
-    AgentSetupButton::new("void-agent-onboarding")
+    AgentSetupButton::new("nir-agent-onboarding")
         .icon(
             Icon::new(IconName::VoidAgent)
                 .size(IconSize::Small)

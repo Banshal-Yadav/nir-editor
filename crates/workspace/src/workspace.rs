@@ -6371,7 +6371,7 @@ impl Workspace {
 
             let Some(task) = task else {
                 anyhow::bail!(
-                    "failed to construct view from leader (maybe from a different version of void?)"
+                    "failed to construct view from leader (maybe from a different version of nir?)"
                 );
             };
 

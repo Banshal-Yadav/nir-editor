@@ -76,7 +76,7 @@ impl RenderOnce for VoidLogo {
                     .line_height(relative(1.))
                     .text_color(cx.theme().colors().text_accent)
                     .child("▊")
-                    .with_animation("void-cursor", cursor_animation, |el, delta| {
+                    .with_animation("nir-cursor", cursor_animation, |el, delta| {
                         el.opacity(delta)
                     }),
             )

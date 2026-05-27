@@ -1,190 +1,109 @@
 # Memory System
 
 > **Status:** ✅ IMPLEMENTED
-> **Last updated:** 2026-05-27
+> **Last updated:** 2026-05-28
 
 ---
 
 ## Overview
 
-Nir has a persistent memory system that lets the agent remember things across conversations. Memories are stored on disk as append-only JSONL files and automatically injected into the system prompt at the start of every conversation — so the agent knows them without you having to repeat yourself.
+Nir features a persistent, Markdown-based memory system that allows the agent to remember context, goals, and preferences across sessions. Unlike traditional JSON-based systems, this memory is entirely human-readable and human-editable. Memories are stored as standard `.md` files in a centralized `~/.nir/brain/memory/` directory.
 
 ---
 
-## Storage
+## Storage Architecture
+
+All memory files are stored globally in your home directory (or `%APPDATA%` on Windows).
 
 | Scope | Path (Windows) | Path (macOS/Linux) |
 |---|---|---|
-| **Global** | `%APPDATA%\.nir\memory.jsonl` | `~/.nir/memory.jsonl` |
-| **Project** | `<project-root>\.nir\memory.jsonl` | `<project-root>/.nir/memory.jsonl` |
+| **Core Memory** | `%APPDATA%\.nir\brain\memory\` | `~/.nir/brain/memory/` |
 
-- **Global** — for personal preferences and info that apply everywhere (e.g. "I prefer tabs", "my name is X")
-- **Project** — for project-specific context (e.g. "this project uses PostgreSQL", "run `pnpm dev` to start")
+### The 5 Core Files
 
-### File Format (JSONL)
+The system relies on 5 specific markdown files:
 
-Each memory is one JSON object per line:
+1. **`about.md`**: Core identity, background, and personal details. (Rarely updated).
+2. **`settings.md`**: Tool rules, communication style, formatting preferences.
+3. **`goals.md`**: Current focus, milestones, and active objectives.
+4. **`projects.md`**: Codebase context, active directories, tech stacks.
+5. **`bookmark.md`**: Ideas, links, prompts, resources, and things to try later.
 
-```jsonl
-{"id":"mem_1716834291000","content":"User prefers tabs over spaces","created_at":"2026-05-27T12:00:00Z"}
-{"id":"mem_1716834299000","content":"Project uses Rust 2021 edition","created_at":"2026-05-27T12:01:00Z"}
+### The "Working Notes" Section
+
+Inside every file, the agent maintains a specific section headed by `## 📝 Working Notes`.
+The agent will **only** read, write, modify, and delete timestamped entries under this section. Any text you write *above* the Working Notes section is treated as established, static context that the agent will read but never overwrite.
+
+Example of an entry in the Working Notes section:
+```markdown
+## 📝 Working Notes
+
+### [14:30:05] 2026-05-28 | ID: 2026-05-28-20260528T143005-1234
+User prefers direct communication with no fluff.
 ```
 
-When a memory is deleted, the file is rewritten and the line is completely removed. No traces or tombstone entries are left behind.
+---
+
+## Pre-loading (System Prompt Injection)
+
+To provide instant context without wasting tokens or API calls, Nir automatically injects the contents of **`about.md`** and **`settings.md`** directly into the system prompt at the start of every session. 
+
+The agent instantly knows your identity and rules. The heavier files (`goals`, `projects`, `bookmark`) are **not** pre-loaded to save tokens. The agent must use the `brain_memory` tool to query them when needed.
 
 ---
 
 ## Tools (LLM-callable)
 
-The agent has three memory tools registered in [`crates/agent/src/tools.rs`](../crates/agent/src/tools.rs):
+The agent has two powerful tools to interact with this system:
 
-### `save_memory`
-**File:** [`crates/agent/src/tools/memory_tool.rs`](../crates/agent/src/tools/memory_tool.rs) — `SaveMemoryTool`
+### `brain_memory`
+**File:** [`crates/agent/src/tools/brain_memory_tool.rs`](../crates/agent/src/tools/brain_memory_tool.rs)
 
-Saves a piece of information to persistent memory.
+A Swiss-army knife tool for reading and writing memory files.
+**Actions:**
+- `create`: Appends a new timestamped entry to a file's Working Notes.
+- `read`: Reads the Working Notes of a file (optionally filtered by ID or date).
+- `read-many`: Reads the *entire* contents of multiple files at once.
+- `modify`: Edits an existing entry by ID.
+- `delete`: Removes an existing entry by ID.
+- `list`: Lists all IDs and snippets in a file.
 
-```json
-{
-  "content": "User prefers functional React components",
-  "scope": "global"
-}
-```
+### `brain_backup`
+**File:** [`crates/agent/src/tools/backup_tool.rs`](../crates/agent/src/tools/backup_tool.rs)
 
-| Parameter | Type | Description |
-|---|---|---|
-| `content` | string | The text to remember. Be concise but complete. |
-| `scope` | `"global"` \| `"project"` | Where to store it. Defaults to `"global"`. |
-
-The agent calls this automatically when:
-- You say "remember this" or "don't forget"
-- You state a preference ("I always use TypeScript")
-- It discovers a key project pattern or architecture detail
-- You correct it about something
-
----
-
-### `recall_memory`
-**File:** [`crates/agent/src/tools/memory_tool.rs`](../crates/agent/src/tools/memory_tool.rs) — `RecallMemoryTool`
-
-Searches saved memories. Useful mid-conversation to check something specific.
-
-```json
-{
-  "query": "database",
-  "scope": "all"
-}
-```
-
-| Parameter | Type | Description |
-|---|---|---|
-| `query` | string | Case-insensitive substring search. Leave empty to list all. |
-| `scope` | `"global"` \| `"project"` \| `"all"` | Which memories to search. Defaults to `"all"`. |
-
-Returns a formatted list with IDs, timestamps, and content.
-
----
-
-### `delete_memory`
-**File:** [`crates/agent/src/tools/memory_tool.rs`](../crates/agent/src/tools/memory_tool.rs) — `DeleteMemoryTool`
-
-Removes a memory completely by scrubbing it from the file (no traces left).
-
-```json
-{
-  "id": "mem_1716834291000",
-  "scope": "global"
-}
-```
-
-| Parameter | Type | Description |
-|---|---|---|
-| `id` | string | The memory ID shown in `recall_memory` or the injected system prompt. |
-| `scope` | `"global"` \| `"project"` | Where the memory lives. Defaults to `"global"`. |
-
-The agent calls this when you say "forget that" or "that's no longer true".
-
----
-
-## System Prompt Injection
-
-**Every conversation**, both memory files are read from disk and injected into the system prompt automatically — no tool call needed. The agent always starts knowing what's been saved.
-
-### Where it's injected
-
-In [`system_prompt.hbs`](../crates/agent/src/templates/system_prompt.hbs), a `## Your Memory` section appears before the User's Custom Instructions block:
-
-```
-## Your Memory
-
-The following memories were saved from previous conversations...
-
-### Global (all projects)
-- User prefers tabs over spaces (id: mem_1716834291000)
-
-### Project-specific
-- Project uses PostgreSQL with Prisma ORM (id: mem_1716834299000)
-```
-
-### Limits
-
-| Limit | Value |
-|---|---|
-| Max entries injected per scope | 50 |
-| Max characters injected per scope | 4,000 |
-| Truncation notice | Shown if limit hit |
-
-Entries are shown oldest-first (most established context first). Each entry includes its `id` so the agent can call `delete_memory` if needed.
-
----
-
-## Implementation Files
-
-| File | Role |
-|---|---|
-| [`crates/agent/src/tools/memory_tool.rs`](../crates/agent/src/tools/memory_tool.rs) | All three tool implementations + storage helpers |
-| [`crates/agent/src/tools.rs`](../crates/agent/src/tools.rs) | Tool registration in the `tools!` macro |
-| [`crates/agent/src/templates.rs`](../crates/agent/src/templates.rs) | `SystemPromptTemplate` struct — holds `global_memories` and `project_memories` fields |
-| [`crates/agent/src/thread.rs`](../crates/agent/src/thread.rs) | Reads memory files and passes them to the template in `build_request_messages()` |
-| [`crates/agent/src/templates/system_prompt.hbs`](../crates/agent/src/templates/system_prompt.hbs) | Renders the `## Your Memory` section |
+A tool dedicated to safely backing up the markdown files before major modifications, and restoring them if something goes wrong.
+- Backups are stored in `.backups/`.
+- Includes support for backing up an entire `drafts` directory for generated content.
+- Automatically handles timestamping and deduplication.
 
 ---
 
 ## How to Use It
 
-### As a user
+### As a User
 
-Just talk naturally. The agent will save things on its own. You can also be explicit:
+You can interact with the system naturally or explicitly:
+- "Save my new tech stack to my projects memory."
+- "What milestones do we have in our goals right now?"
+- "Add a note to my settings that I hate markdown tables."
+- "Forget the memory entry with ID 2026-05-28-..."
 
-- "Remember that I prefer snake_case for Python variables."
-- "Don't forget — we use `pnpm`, not `npm`."
-- "Save this to global memory: my timezone is IST."
-- "Forget the memory about tabs."
-- "What do you remember about this project?"
+### Manually Editing
 
-### Manually editing memories
-
-The JSONL files are plain text. You can open them and add entries by hand:
-
-```jsonl
-{"id":"mem_manual_001","content":"Team standup is at 10am IST","created_at":"2026-05-27T00:00:00Z"}
-```
-
-Or delete entries by removing the line from the file.
-
-The agent will pick up your manual edits on the next conversation.
+Because the system is pure Markdown, you can open `~/.nir/brain/memory/about.md` in any editor and type directly into it.
+1. Add static context above the `## 📝 Working Notes` header.
+2. Edit the AI's entries directly.
+3. The agent will read your exact changes on the next turn.
 
 ---
 
 ## FAQ
 
-**Q: Does the agent automatically save everything?**  
-No — the docstrings on the tools tell it *when* to save (preferences, corrections, "remember this"). It won't blindly log every message.
+**Q: Where did the old JSON system go?**
+A: It was replaced entirely. The markdown system provides better transparency, easier manual editing, and eliminates the need for separate global vs project scopes by centralizing everything.
 
-**Q: Can I see what's saved?**  
-Yes — ask "what do you remember?" and the agent will call `recall_memory`. Or just open the JSONL files directly.
+**Q: What if the files get too big?**
+A: `about` and `settings` are pre-loaded, so you should manually prune them if they get massive. `goals`, `projects`, and `bookmarks` are fetched on-demand, so they can grow much larger without impacting every single chat.
 
-**Q: What happens if the memory file doesn't exist?**  
-`read_memories()` returns an empty list. No error. The first `save_memory` call creates the directory and file automatically.
-
-**Q: Is there a UI for memories?**  
-Not yet. It's all tool-based and file-based for now.
+**Q: Can I use this for non-coding notes?**
+A: Absolutely! The `bookmark.md` file is explicitly designed for generic ideas, links, and scratchpad thoughts.

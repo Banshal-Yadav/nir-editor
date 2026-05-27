@@ -1,9 +1,9 @@
 use crate::{
     ApplyCodeActionTool, CodeActionStore, ContextServerRegistry, CopyPathTool, CreateDirectoryTool,
-    DbLanguageModel, DbThread, DeleteMemoryTool, DeletePathTool, DiagnosticsTool, EditFileTool,
+    DbLanguageModel, DbThread, DeletePathTool, DiagnosticsTool, EditFileTool,
     FetchTool, FindPathTool, FindReferencesTool, GetCodeActionsTool, GoToDefinitionTool, GrepTool,
-    ListDirectoryTool, MovePathTool, ProjectSnapshot, ReadFileTool, RecallMemoryTool, RenameTool,
-    SaveMemoryTool, SpawnAgentTool, SystemPromptTemplate, Template, Templates, TerminalTool,
+    ListDirectoryTool, MovePathTool, ProjectSnapshot, ReadFileTool, RenameTool,
+    BrainMemoryTool, BackupTool, SpawnAgentTool, SystemPromptTemplate, Template, Templates, TerminalTool,
     ToolPermissionDecision, UpdatePlanTool, UpdateTitleTool, UserAgentsMd, WebSearchTool,
     WriteFileTool, decide_permission_from_settings,
 };
@@ -1696,9 +1696,8 @@ impl Thread {
         ));
         self.add_tool(TerminalTool::new(self.project.clone(), environment.clone()));
         self.add_tool(WebSearchTool);
-        self.add_tool(SaveMemoryTool::new(self.project.clone()));
-        self.add_tool(RecallMemoryTool::new(self.project.clone()));
-        self.add_tool(DeleteMemoryTool::new(self.project.clone()));
+        self.add_tool(BrainMemoryTool::new(self.project.clone()));
+        self.add_tool(BackupTool::new(self.project.clone()));
 
         self.add_tool(DiagnosticsTool::new(self.project.clone()));
 
@@ -3173,23 +3172,15 @@ impl Thread {
 
         // Load memories for injection into the system prompt.
         let global_memories = {
-            let path = crate::tools::global_memory_path();
-            let entries = crate::tools::read_memories(&path);
-            crate::tools::format_memories_for_prompt(&entries)
+            let mut contents = String::new();
+            for file_name in ["about.md", "settings.md"] {
+                let path = crate::tools::memory_dir().join(file_name);
+                if let Ok(content) = std::fs::read_to_string(&path) {
+                    contents.push_str(&format!("\n# {}\n{}\n", file_name.to_uppercase(), content));
+                }
+            }
+            if contents.is_empty() { None } else { Some(contents) }
         };
-        let project_memories = {
-            let path = self.project_context.read(cx)
-                .worktrees
-                .first()
-                .map(|wt| wt.abs_path.join(".nir").join("memory.jsonl"));
-            path.as_ref()
-                .map(|p| {
-                    let entries = crate::tools::read_memories(p);
-                    crate::tools::format_memories_for_prompt(&entries)
-                })
-                .flatten()
-        };
-
         let system_prompt = SystemPromptTemplate {
             project: self.project_context.read(cx),
             available_tools,
@@ -3197,7 +3188,6 @@ impl Thread {
             date: Local::now().format("%Y-%m-%d").to_string(),
             user_agents_md,
             global_memories,
-            project_memories,
         }
         .render(&self.templates)
         .context("failed to build system prompt")

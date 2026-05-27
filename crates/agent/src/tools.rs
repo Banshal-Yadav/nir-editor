@@ -15,7 +15,8 @@ mod get_code_actions_tool;
 mod go_to_definition_tool;
 mod grep_tool;
 mod list_directory_tool;
-mod memory_tool;
+mod brain_memory_tool;
+mod backup_tool;
 mod move_path_tool;
 mod read_file_tool;
 mod rename_tool;
@@ -74,7 +75,8 @@ pub use get_code_actions_tool::*;
 pub use go_to_definition_tool::*;
 pub use grep_tool::*;
 pub use list_directory_tool::*;
-pub use memory_tool::*;
+pub use brain_memory_tool::*;
+pub use backup_tool::*;
 pub use move_path_tool::*;
 pub use read_file_tool::*;
 pub use rename_tool::*;
@@ -172,9 +174,8 @@ tools! {
     MovePathTool,
     ReadFileTool,
     RenameTool,
-    SaveMemoryTool,
-    RecallMemoryTool,
-    DeleteMemoryTool,
+    BrainMemoryTool,
+    BackupTool,
     SkillTool,
     SpawnAgentTool,
     EditFileTool,

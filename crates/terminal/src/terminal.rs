@@ -124,8 +124,8 @@ pub fn insert_zed_terminal_env(
     env: &mut HashMap<String, String>,
     version: &impl std::fmt::Display,
 ) {
-    env.insert("VOID_TERM".to_string(), "true".to_string());
-    env.insert("TERM_PROGRAM".to_string(), "void".to_string());
+    env.insert("NIR_TERM".to_string(), "true".to_string());
+    env.insert("TERM_PROGRAM".to_string(), "nir".to_string());
     env.insert("TERM".to_string(), "xterm-256color".to_string());
     env.insert("COLORTERM".to_string(), "truecolor".to_string());
     env.insert("TERM_PROGRAM_VERSION".to_string(), version.to_string());

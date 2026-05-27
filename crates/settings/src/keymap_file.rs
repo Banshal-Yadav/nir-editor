@@ -1887,7 +1887,7 @@ mod tests {
                     }
                 },
                 {
-                    "context": "/void > Editor && some_condition = true",
+                    "context": "/nir > Editor && some_condition = true",
                     "bindings": {
                         "ctrl-b": [
                             "zed::SomeOtherAction",

@@ -7831,7 +7831,7 @@ fn network_page() -> SettingsPage {
                     },
                 }),
                 metadata: Some(Box::new(SettingsFieldMetadata {
-                    placeholder: Some("https://voideditor.com"),
+                    placeholder: Some("https://nireditor.com"),
                     ..Default::default()
                 })),
                 files: USER,

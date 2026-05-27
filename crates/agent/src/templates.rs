@@ -45,8 +45,6 @@ pub struct SystemPromptTemplate<'a> {
     pub user_agents_md: Option<SharedString>,
     /// Formatted bullet list of global memories (cross-project), or None if empty.
     pub global_memories: Option<String>,
-    /// Formatted bullet list of project-scoped memories, or None if empty.
-    pub project_memories: Option<String>,
 }
 
 impl Template for SystemPromptTemplate<'_> {
@@ -92,7 +90,7 @@ mod tests {
             date: "2026-01-01".to_string(),
             user_agents_md: None,
             global_memories: None,
-            project_memories: None,
+
         };
         let templates = Templates::new();
         let rendered = template.render(&templates).unwrap();
@@ -126,7 +124,7 @@ mod tests {
             date: "2026-01-01".to_string(),
             user_agents_md: Some("always be concise".into()),
             global_memories: None,
-            project_memories: None,
+
         };
         let templates = Templates::new();
         let rendered = template.render(&templates).unwrap();
@@ -154,7 +152,7 @@ mod tests {
             date: "2026-01-01".to_string(),
             user_agents_md: None,
             global_memories: None,
-            project_memories: None,
+
         };
         let templates = Templates::new();
         let rendered = template.render(&templates).unwrap();

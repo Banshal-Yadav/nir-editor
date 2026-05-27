@@ -29,7 +29,7 @@ impl Render for AgentLauncherButton {
                     .unwrap_or_else(|| cx.entity());
 
                 let spawn = SpawnInTerminal {
-                    id: TaskId("void-agent-launcher".to_string()),
+                    id: TaskId("nir-agent-launcher".to_string()),
                     label: "AI Agent".to_string(),
                     command: Some("opencode".to_string()),
                     args: vec![],

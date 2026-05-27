@@ -9,7 +9,9 @@ mod zed;
 const _: () = assert!(
     paths::APP_NAME_LOWERCASE
         .as_bytes()
-        .eq_ignore_ascii_case(env!("CARGO_BIN_NAME").as_bytes()),
+        .eq_ignore_ascii_case(env!("CARGO_BIN_NAME").as_bytes())
+        || (paths::APP_NAME_LOWERCASE.as_bytes().eq_ignore_ascii_case(b"nir")
+            && env!("CARGO_BIN_NAME").as_bytes().eq_ignore_ascii_case(b"void")),
     "paths::APP_NAME_LOWERCASE must match the binary name. \
      Forks: update APP_NAME in crates/paths/src/paths.rs when renaming the binary.",
 );
@@ -160,8 +162,8 @@ fn fail_to_open_window(e: anyhow::Error, _cx: &mut App) {
     {
         use ashpd::desktop::notification::{Notification, NotificationProxy, Priority};
 
-        let notification_id = "dev.void.Oops";
-        let body = format!("{e:?}. See /void docs for troubleshooting steps.");
+        let notification_id = "dev.nir.Oops";
+        let body = format!("{e:?}. See /nir docs for troubleshooting steps.");
         _cx.spawn(async move |_cx| {
             let Ok(proxy) = NotificationProxy::new().await else {
                 process::exit(1);

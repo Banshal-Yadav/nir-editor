@@ -123,7 +123,7 @@ pub fn config_path() -> PathBuf {
         let base = std::env::var("APPDATA")
             .map(PathBuf::from)
             .unwrap_or_else(|_| PathBuf::from("~"));
-        base.join("void").join("terminal-agents.json")
+        base.join("nir").join("terminal-agents.json")
     }
     #[cfg(not(windows))]
     {
@@ -132,7 +132,7 @@ pub fn config_path() -> PathBuf {
             .unwrap_or_else(|_| {
                 PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".config")
             });
-        base.join("void").join("terminal-agents.json")
+        base.join("nir").join("terminal-agents.json")
     }
 }
 

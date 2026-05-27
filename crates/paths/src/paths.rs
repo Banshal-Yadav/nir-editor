@@ -1,4 +1,4 @@
-//! Paths to locations used by Void.
+//! Paths to locations used by Nir.
 
 use std::env;
 use std::path::{Path, PathBuf};
@@ -15,7 +15,7 @@ pub const EDITORCONFIG_NAME: &str = ".editorconfig";
 /// and state directory paths.
 ///
 /// Forks should change this to avoid colliding with Zed's user data.
-pub const APP_NAME: &str = "Void";
+pub const APP_NAME: &str = "Nir";
 
 /// Lowercased form of [`APP_NAME`], for use in XDG-style paths on
 /// Linux/FreeBSD and the macOS `~/.config` fallback.
@@ -53,16 +53,16 @@ static CUSTOM_DATA_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 /// The resolved data directory, combining custom override or platform defaults.
 /// This is set once and cached for subsequent calls.
-/// On macOS, this is `~/Library/Application Support/Void`.
-/// On Linux/FreeBSD, this is `$XDG_DATA_HOME/void`.
-/// On Windows, this is `%LOCALAPPDATA%\Void`.
+/// On macOS, this is `~/Library/Application Support/Nir`.
+/// On Linux/FreeBSD, this is `$XDG_DATA_HOME/nir`.
+/// On Windows, this is `%LOCALAPPDATA%\Nir`.
 static CURRENT_DATA_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 /// The resolved config directory, combining custom override or platform defaults.
 /// This is set once and cached for subsequent calls.
-/// On macOS, this is `~/.config/void`.
-/// On Linux/FreeBSD, this is `$XDG_CONFIG_HOME/void`.
-/// On Windows, this is `%APPDATA%\Void`.
+/// On macOS, this is `~/.config/nir`.
+/// On Linux/FreeBSD, this is `$XDG_CONFIG_HOME/nir`.
+/// On Windows, this is `%APPDATA%\Nir`.
 static CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 /// Returns the relative path to the zed_server directory on the ssh host.
@@ -118,7 +118,7 @@ pub fn set_custom_data_dir(dir: &str) -> &'static PathBuf {
     })
 }
 
-/// Returns the path to the configuration directory used by /void.
+/// Returns the path to the configuration directory used by /nir.
 pub fn config_dir() -> &'static PathBuf {
     CONFIG_DIR.get_or_init(|| {
         if let Some(custom_dir) = CUSTOM_DATA_DIR.get() {
@@ -126,38 +126,38 @@ pub fn config_dir() -> &'static PathBuf {
         } else if cfg!(target_os = "windows") {
             dirs::config_dir()
                 .expect("failed to determine RoamingAppData directory")
-                .join("void")
+                .join("nir")
         } else if cfg!(any(target_os = "linux", target_os = "freebsd")) {
             if let Ok(flatpak_xdg_config) = std::env::var("FLATPAK_XDG_CONFIG_HOME") {
                 flatpak_xdg_config.into()
             } else {
                 dirs::config_dir().expect("failed to determine XDG_CONFIG_HOME directory")
             }
-            .join("void")
+            .join("nir")
         } else {
-            home_dir().join(".config").join("void")
+            home_dir().join(".config").join("nir")
         }
     })
 }
 
-/// Returns the path to the data directory used by /void.
+/// Returns the path to the data directory used by /nir.
 pub fn data_dir() -> &'static PathBuf {
     CURRENT_DATA_DIR.get_or_init(|| {
         if let Some(custom_dir) = CUSTOM_DATA_DIR.get() {
             custom_dir.clone()
         } else if cfg!(target_os = "macos") {
-            home_dir().join("Library/Application Support/Void")
+            home_dir().join("Library/Application Support/Nir")
         } else if cfg!(any(target_os = "linux", target_os = "freebsd")) {
             if let Ok(flatpak_xdg_data) = std::env::var("FLATPAK_XDG_DATA_HOME") {
                 flatpak_xdg_data.into()
             } else {
                 dirs::data_local_dir().expect("failed to determine XDG_DATA_HOME directory")
             }
-            .join("void")
+            .join("nir")
         } else if cfg!(target_os = "windows") {
             dirs::data_local_dir()
                 .expect("failed to determine LocalAppData directory")
-                .join("void")
+                .join("nir")
         } else {
             config_dir().clone() // Fallback
         }
@@ -168,7 +168,7 @@ pub fn state_dir() -> &'static PathBuf {
     static STATE_DIR: OnceLock<PathBuf> = OnceLock::new();
     STATE_DIR.get_or_init(|| {
         if cfg!(target_os = "macos") {
-            return home_dir().join(".local").join("state").join("void");
+            return home_dir().join(".local").join("state").join("nir");
         }
 
         if cfg!(any(target_os = "linux", target_os = "freebsd")) {
@@ -177,30 +177,30 @@ pub fn state_dir() -> &'static PathBuf {
             } else {
                 dirs::state_dir().expect("failed to determine XDG_STATE_HOME directory")
             }
-            .join("void");
+            .join("nir");
         } else {
             // Windows
             return dirs::data_local_dir()
                 .expect("failed to determine LocalAppData directory")
-                .join("void");
+                .join("nir");
         }
     })
 }
 
-/// Returns the path to the temp directory used by /void.
+/// Returns the path to the temp directory used by /nir.
 pub fn temp_dir() -> &'static PathBuf {
     static TEMP_DIR: OnceLock<PathBuf> = OnceLock::new();
     TEMP_DIR.get_or_init(|| {
         if cfg!(target_os = "macos") {
             return dirs::cache_dir()
                 .expect("failed to determine cachesDirectory directory")
-                .join("void");
+                .join("nir");
         }
 
         if cfg!(target_os = "windows") {
             return dirs::cache_dir()
                 .expect("failed to determine LocalAppData directory")
-                .join("void");
+                .join("nir");
         }
 
         if cfg!(any(target_os = "linux", target_os = "freebsd")) {
@@ -209,10 +209,10 @@ pub fn temp_dir() -> &'static PathBuf {
             } else {
                 dirs::cache_dir().expect("failed to determine XDG_CACHE_HOME directory")
             }
-            .join("void");
+            .join("nir");
         }
 
-        home_dir().join(".cache").join("void")
+        home_dir().join(".cache").join("nir")
     })
 }
 
@@ -227,29 +227,29 @@ pub fn logs_dir() -> &'static PathBuf {
     static LOGS_DIR: OnceLock<PathBuf> = OnceLock::new();
     LOGS_DIR.get_or_init(|| {
         if cfg!(target_os = "macos") {
-            home_dir().join("Library/Logs/Void")
+            home_dir().join("Library/Logs/Nir")
         } else {
             data_dir().join("logs")
         }
     })
 }
 
-/// Returns the path to the /void server directory on this SSH host.
+/// Returns the path to the /nir server directory on this SSH host.
 pub fn remote_server_state_dir() -> &'static PathBuf {
     static REMOTE_SERVER_STATE: OnceLock<PathBuf> = OnceLock::new();
     REMOTE_SERVER_STATE.get_or_init(|| data_dir().join("server_state"))
 }
 
-/// Returns the path to the `void.log` file.
+/// Returns the path to the `nir.log` file.
 pub fn log_file() -> &'static PathBuf {
     static LOG_FILE: OnceLock<PathBuf> = OnceLock::new();
-    LOG_FILE.get_or_init(|| logs_dir().join("void.log"))
+    LOG_FILE.get_or_init(|| logs_dir().join("nir.log"))
 }
 
-/// Returns the path to the `void.log.old` file.
+/// Returns the path to the `nir.log.old` file.
 pub fn old_log_file() -> &'static PathBuf {
     static OLD_LOG_FILE: OnceLock<PathBuf> = OnceLock::new();
-    OLD_LOG_FILE.get_or_init(|| logs_dir().join("void.log.old"))
+    OLD_LOG_FILE.get_or_init(|| logs_dir().join("nir.log.old"))
 }
 
 /// Returns the path to the database directory.
@@ -398,7 +398,7 @@ pub fn prompts_dir() -> &'static PathBuf {
 ///
 /// # Arguments
 ///
-/// * `dev_mode` - If true, assumes the current working directory is the /void repository.
+/// * `dev_mode` - If true, assumes the current working directory is the /nir repository.
 pub fn prompt_overrides_dir(repo_path: Option<&Path>) -> PathBuf {
     if let Some(path) = repo_path {
         let dev_path = path.join("assets").join("prompts");
@@ -435,7 +435,7 @@ pub fn embeddings_dir() -> &'static PathBuf {
 
 /// Returns the path to the languages directory.
 ///
-/// This is where language servers are downloaded to for languages built-in to /void.
+/// This is where language servers are downloaded to for languages built-in to /nir.
 pub fn languages_dir() -> &'static PathBuf {
     static LANGUAGES_DIR: OnceLock<PathBuf> = OnceLock::new();
     LANGUAGES_DIR.get_or_init(|| data_dir().join("languages"))
@@ -443,7 +443,7 @@ pub fn languages_dir() -> &'static PathBuf {
 
 /// Returns the path to the debug adapters directory
 ///
-/// This is where debug adapters are downloaded to for DAPs that are built-in to /void.
+/// This is where debug adapters are downloaded to for DAPs that are built-in to /nir.
 pub fn debug_adapters_dir() -> &'static PathBuf {
     static DEBUG_ADAPTERS_DIR: OnceLock<PathBuf> = OnceLock::new();
     DEBUG_ADAPTERS_DIR.get_or_init(|| data_dir().join("debug_adapters"))
@@ -481,9 +481,9 @@ pub fn devcontainer_dir() -> &'static PathBuf {
     DEVCONTAINER_DIR.get_or_init(|| data_dir().join("devcontainer"))
 }
 
-/// Returns the relative path to a `.void` folder within a project.
+/// Returns the relative path to a `.nir` folder within a project.
 pub fn local_settings_folder_name() -> &'static str {
-    ".void"
+    ".nir"
 }
 
 /// Returns the relative path to a `.vscode` folder within a project.
@@ -494,14 +494,14 @@ pub fn local_vscode_folder_name() -> &'static str {
 /// Returns the relative path to a `settings.json` file within a project.
 pub fn local_settings_file_relative_path() -> &'static RelPath {
     static CACHED: LazyLock<&'static RelPath> =
-        LazyLock::new(|| RelPath::unix(".void/settings.json").unwrap());
+        LazyLock::new(|| RelPath::unix(".nir/settings.json").unwrap());
     *CACHED
 }
 
 /// Returns the relative path to a `tasks.json` file within a project.
 pub fn local_tasks_file_relative_path() -> &'static RelPath {
     static CACHED: LazyLock<&'static RelPath> =
-        LazyLock::new(|| RelPath::unix(".void/tasks.json").unwrap());
+        LazyLock::new(|| RelPath::unix(".nir/tasks.json").unwrap());
     *CACHED
 }
 
@@ -521,10 +521,10 @@ pub fn task_file_name() -> &'static str {
 }
 
 /// Returns the relative path to a `debug.json` file within a project.
-/// .void/debug.json
+/// .nir/debug.json
 pub fn local_debug_file_relative_path() -> &'static RelPath {
     static CACHED: LazyLock<&'static RelPath> =
-        LazyLock::new(|| RelPath::unix(".void/debug.json").unwrap());
+        LazyLock::new(|| RelPath::unix(".nir/debug.json").unwrap());
     *CACHED
 }
 

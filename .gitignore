@@ -7,7 +7,7 @@
 **/.direnv
 *.wasm
 *.xcodeproj
-void-docs/
+nir-docs/
 AGENTS.md
 .DS_Store
 .blob_store

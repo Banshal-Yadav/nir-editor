@@ -1423,9 +1423,9 @@ mod tests {
             // update_plan updates UI-visible planning state but does not use
             // tool permission rules.
             "update_plan",
-            // memory tools manage internal .void files and don't need regex permissions
-            "save_memory",
-            "recall_memory",
+            // memory tools manage internal .nir files and don't need regex permissions
+            "brain_memory",
+            "backup",
             // update_title updates UI-visible session metadata but
             // does not use tool permission rules.
             "update_title",
