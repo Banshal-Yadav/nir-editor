@@ -226,10 +226,15 @@ fn resolve_backup_entry(backup_ref: &str) -> Result<BackupEntry, String> {
 #[serde(rename_all = "kebab-case")]
 pub enum BackupAction {
     #[default]
+    /// Create a new backup
     Create,
+    /// List all backups
     List,
+    /// Restore from a backup
     Restore,
+    /// Prune old backups
     Prune,
+    /// Delete a backup
     Delete,
 }
 
@@ -237,12 +242,19 @@ pub enum BackupAction {
 #[serde(rename_all = "kebab-case")]
 pub enum BackupTargetEnum {
     #[default]
+    /// All backup targets
     All,
+    /// The about/identity memory file
     About,
+    /// The goals memory file
     Goals,
+    /// The settings memory file
     Settings,
+    /// The bookmark memory file
     Bookmark,
+    /// The projects memory file
     Projects,
+    /// The drafts memory file
     Drafts,
 }
 
@@ -262,11 +274,15 @@ impl BackupTargetEnum {
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct BackupInput {
+    /// The action to perform.
     #[serde(default)]
     action: BackupAction,
+    /// The specific target to backup, restore, list, etc.
     #[serde(default)]
     target: BackupTargetEnum,
+    /// The filename of the backup to restore or delete.
     backup_file: Option<String>,
+    /// The number of days to keep backups when pruning.
     keep_days: Option<u32>,
 }
 

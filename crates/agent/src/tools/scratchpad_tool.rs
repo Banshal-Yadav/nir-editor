@@ -33,13 +33,10 @@ fn get_today_date() -> String {
 
 fn build_entry_id(date: &str) -> String {
     let compact = Utc::now().format("%Y%m%dT%H%M%S").to_string();
-    let random: u32 = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos() % 10000;
+    let random: u32 = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().subsec_nanos() % 10000;
     format!("{}-{}-{:04}", date, compact, random)
 }
 
-fn escape_reg_exp(value: &str) -> String {
-    regex::escape(value)
-}
 
 fn ensure_scratch_file() -> String {
     let dir = scratchpad_dir();
@@ -95,20 +92,88 @@ struct ParsedEntry {
     date: String,
     time: String,
     content: String,
+    updated_time: Option<String>,
 }
 
 fn list_entries(section: &str) -> Vec<ParsedEntry> {
-    let re = Regex::new(r"(?m)### \[([^\]]+)\] (\d{4}-\d{2}-\d{2}) \| ID: ([^\n]+)\n([\s\S]*?)(?:\n---\n|$)").unwrap();
     let mut entries = Vec::new();
-    for cap in re.captures_iter(section) {
+    let lines: Vec<&str> = section.lines().collect();
+    let header_re = Regex::new(r"^### \[([^\]]+)\] (\d{4}-\d{2}-\d{2}) \| ID: ([a-zA-Z0-9_-]+)(?:\s+\[updated\s+([^\]]+)\])?\s*$").unwrap();
+    
+    let mut current_entry: Option<ParsedEntry> = None;
+    let mut current_content = Vec::new();
+    
+    for line in lines {
+        let trimmed_line = line.trim();
+        if trimmed_line.starts_with("### [") {
+            if let Some(cap) = header_re.captures(trimmed_line) {
+                if let Some(entry) = current_entry.take() {
+                    let content_str = current_content.join("\n");
+                    let mut trimmed = content_str.trim().to_string();
+                    if trimmed.ends_with("\n---") {
+                        trimmed.truncate(trimmed.len() - 4);
+                    } else if trimmed == "---" {
+                        trimmed.clear();
+                    }
+                    entries.push(ParsedEntry {
+                        time: entry.time,
+                        date: entry.date,
+                        id: entry.id,
+                        content: trimmed.trim().to_string(),
+                        updated_time: entry.updated_time,
+                    });
+                    current_content.clear();
+                }
+                
+                current_entry = Some(ParsedEntry {
+                    time: cap[1].trim().to_string(),
+                    date: cap[2].trim().to_string(),
+                    id: cap[3].trim().to_string(),
+                    content: String::new(),
+                    updated_time: cap.get(4).map(|m| m.as_str().to_string()),
+                });
+                continue;
+            }
+        }
+        
+        if current_entry.is_some() {
+            current_content.push(line);
+        }
+    }
+    
+    if let Some(entry) = current_entry {
+        let content_str = current_content.join("\n");
+        let mut trimmed = content_str.trim().to_string();
+        if trimmed.ends_with("\n---") {
+            trimmed.truncate(trimmed.len() - 4);
+        } else if trimmed == "---" {
+            trimmed.clear();
+        }
         entries.push(ParsedEntry {
-            time: cap[1].trim().to_string(),
-            date: cap[2].trim().to_string(),
-            id: cap[3].trim().to_string(),
-            content: cap[4].trim().to_string(),
+            time: entry.time,
+            date: entry.date,
+            id: entry.id,
+            content: trimmed.trim().to_string(),
+            updated_time: entry.updated_time,
         });
     }
+    
     entries
+}
+
+fn serialize_entries(entries: &[ParsedEntry]) -> String {
+    let mut out = String::new();
+    out.push_str(WORKING_NOTES_SECTION);
+    out.push_str("\n\n");
+    for e in entries {
+        let updated_suffix = if let Some(ref ut) = e.updated_time {
+            format!(" [updated {}]", ut)
+        } else {
+            "".to_string()
+        };
+        out.push_str(&format!("### [{}] {} | ID: {}{}\n{}\n\n---\n\n", e.time, e.date, e.id, updated_suffix, e.content.trim()));
+    }
+    out
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema, Default)]
@@ -162,7 +227,6 @@ impl AgentTool for ScratchpadTool {
 WHEN TO USE:
 - Storing intermediate results mid-task (e.g. a list of files to process, IDs collected from a search)
 - Saving a checkpoint before a risky multi-step operation so you can resume if interrupted
-- Tracking TODO sub-tasks within a complex user request
 - Dumping raw tool output you need to reference again later in the same session
 - Breaking a large reasoning chain into labeled steps you can refer back to
 
@@ -204,7 +268,7 @@ EFFICIENCY RULES:
             let file_path = scratch_file();
             let content = fs::read_to_string(&file_path).unwrap_or_default();
             let block = extract_working_notes_block(&content);
-            let entries = list_entries(&block.section);
+            let mut entries = list_entries(&block.section);
 
             match input.action {
                 ScratchpadAction::List => {
@@ -213,7 +277,12 @@ EFFICIENCY RULES:
                     }
                     let lines: Vec<String> = entries.iter().enumerate().map(|(i, e)| {
                         let preview = e.content.lines().next().unwrap_or("No content").to_string();
-                        format!("{}. [{}] {} | ID: {}\n   {}", i + 1, e.time, e.date, e.id, preview)
+                        let updated_suffix = if let Some(ref ut) = e.updated_time {
+                            format!(" [updated {}]", ut)
+                        } else {
+                            "".to_string()
+                        };
+                        format!("{}. [{}] {} | ID: {}{}\n   {}", i + 1, e.time, e.date, e.id, updated_suffix, preview)
                     }).collect();
                     Ok(format!("Scratchpad Entries ({}):\n\n{}", entries.len(), lines.join("\n\n")))
                 }
@@ -229,7 +298,12 @@ EFFICIENCY RULES:
                 ScratchpadAction::Read => {
                     if let Some(id) = input.id {
                         if let Some(found) = entries.iter().find(|e| e.id == id) {
-                            Ok(format!("[{}] {} | ID: {}\n{}", found.time, found.date, found.id, found.content))
+                            let updated_suffix = if let Some(ref ut) = found.updated_time {
+                                format!(" [updated {}]", ut)
+                            } else {
+                                "".to_string()
+                            };
+                            Ok(format!("[{}] {} | ID: {}{}\n{}", found.time, found.date, found.id, updated_suffix, found.content))
                         } else {
                             Ok(format!("Note {} not found.", id))
                         }
@@ -237,28 +311,25 @@ EFFICIENCY RULES:
                         if entries.is_empty() {
                             return Ok("Scratchpad is empty.".to_string());
                         }
-                        let text = entries.iter().map(|e| format!("[{}] {} | ID: {}\n{}", e.time, e.date, e.id, e.content)).collect::<Vec<_>>().join("\n\n---\n\n");
+                        let text = entries.iter().map(|e| {
+                            let updated_suffix = if let Some(ref ut) = e.updated_time {
+                                format!(" [updated {}]", ut)
+                            } else {
+                                "".to_string()
+                            };
+                            format!("[{}] {} | ID: {}{}\n{}", e.time, e.date, e.id, updated_suffix, e.content)
+                        }).collect::<Vec<_>>().join("\n\n---\n\n");
                         Ok(text)
                     }
                 }
                 ScratchpadAction::Modify => {
                     let id = input.id.ok_or_else(|| "Error: id required for modify.".to_string())?;
                     let text = input.content.ok_or_else(|| "Error: content required for modify.".to_string())?;
-                    if let Some(_target) = entries.iter().find(|e| e.id == id) {
-                        let escaped_id = escape_reg_exp(&id);
-                        let pattern = format!(r"(?m)(### \[[^\]]+\] \d{{4}}-\d{{2}}-\d{{2}} \| ID: {}\n)([\s\S]*?)(\n---\n)", escaped_id);
-                        let re = Regex::new(&pattern).map_err(|e| e.to_string())?;
+                    if let Some(target) = entries.iter_mut().find(|e| e.id == id) {
+                        target.content = text.trim().to_string();
+                        target.updated_time = Some(get_clock_time());
                         
-                        if !re.is_match(&block.section) {
-                            return Err(format!("Error: could not locate entry {} for update.", id));
-                        }
-                        
-                        let updated_section = re.replace(&block.section, |caps: &regex::Captures| {
-                            let header = caps[1].trim_end();
-                            let sep = &caps[3];
-                            format!("{} [updated {}]\n{}{}", header, get_clock_time(), text.trim(), sep)
-                        }).to_string();
-                        
+                        let updated_section = serialize_entries(&entries);
                         let _ = fs::write(&file_path, format!("{}{}{}", block.before, updated_section, block.after));
                         Ok(format!("Checkpoint {} updated.", id))
                     } else {
@@ -267,16 +338,18 @@ EFFICIENCY RULES:
                 }
                 ScratchpadAction::Delete => {
                     let id = input.id.ok_or_else(|| "Error: id required.".to_string())?;
-                    let escaped_id = escape_reg_exp(&id);
-                    let pattern = format!(r"(?m)### \[[^\]]+\] \d{{4}}-\d{{2}}-\d{{2}} \| ID: {}\n[\s\S]*?\n---\n\n?", escaped_id);
-                    let re = Regex::new(&pattern).map_err(|e| e.to_string())?;
-                    let updated_section = re.replace(&block.section, "").to_string();
-                    let _ = fs::write(&file_path, format!("{}{}{}", block.before, updated_section, block.after));
-                    Ok(format!("Deleted note {}.", id))
+                    if entries.iter().any(|e| e.id == id) {
+                        entries.retain(|e| e.id != id);
+                        let updated_section = serialize_entries(&entries);
+                        let _ = fs::write(&file_path, format!("{}{}{}", block.before, updated_section, block.after));
+                        Ok(format!("Deleted note {}.", id))
+                    } else {
+                        Err(format!("Note {} not found in scratchpad.", id))
+                    }
                 }
                 ScratchpadAction::Clear => {
-                    let content = format!("# 📝 Scratch Pad — Temporary Notes\n\n{}\n\n---\n\n", WORKING_NOTES_SECTION);
-                    let _ = fs::write(&file_path, content);
+                    let updated_section = format!("{}\n\n", WORKING_NOTES_SECTION);
+                    let _ = fs::write(&file_path, format!("{}{}{}", block.before, updated_section, block.after));
                     Ok("Scratchpad cleared.".to_string())
                 }
             }

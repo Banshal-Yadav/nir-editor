@@ -48,13 +48,10 @@ fn is_valid_iso_date(date: &str) -> bool {
 
 fn build_entry_id(date: &str) -> String {
     let compact = Utc::now().format("%Y%m%dT%H%M%S").to_string();
-    let random: u32 = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos() % 10000;
+    let random: u32 = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().subsec_nanos() % 10000;
     format!("{}-{}-{:04}", date, compact, random)
 }
 
-fn escape_reg_exp(value: &str) -> String {
-    regex::escape(value)
-}
 
 fn ensure_dir(dir_path: &Path) {
     if !dir_path.exists() {
@@ -172,20 +169,88 @@ struct ParsedEntry {
     date: String,
     time: String,
     content: String,
+    updated_time: Option<String>,
 }
 
 fn list_entries(section: &str) -> Vec<ParsedEntry> {
-    let re = Regex::new(r"(?m)### \[([^\]]+)\] (\d{4}-\d{2}-\d{2}) \| ID: ([^\n]+)\n([\s\S]*?)(?:\n---\n|$)").unwrap();
     let mut entries = Vec::new();
-    for cap in re.captures_iter(section) {
+    let lines: Vec<&str> = section.lines().collect();
+    let header_re = Regex::new(r"^### \[([^\]]+)\] (\d{4}-\d{2}-\d{2}) \| ID: ([a-zA-Z0-9_-]+)(?:\s+\[updated\s+([^\]]+)\])?\s*$").unwrap();
+    
+    let mut current_entry: Option<ParsedEntry> = None;
+    let mut current_content = Vec::new();
+    
+    for line in lines {
+        let trimmed_line = line.trim();
+        if trimmed_line.starts_with("### [") {
+            if let Some(cap) = header_re.captures(trimmed_line) {
+                if let Some(entry) = current_entry.take() {
+                    let content_str = current_content.join("\n");
+                    let mut trimmed = content_str.trim().to_string();
+                    if trimmed.ends_with("\n---") {
+                        trimmed.truncate(trimmed.len() - 4);
+                    } else if trimmed == "---" {
+                        trimmed.clear();
+                    }
+                    entries.push(ParsedEntry {
+                        time: entry.time,
+                        date: entry.date,
+                        id: entry.id,
+                        content: trimmed.trim().to_string(),
+                        updated_time: entry.updated_time,
+                    });
+                    current_content.clear();
+                }
+                
+                current_entry = Some(ParsedEntry {
+                    time: cap[1].trim().to_string(),
+                    date: cap[2].trim().to_string(),
+                    id: cap[3].trim().to_string(),
+                    content: String::new(),
+                    updated_time: cap.get(4).map(|m| m.as_str().to_string()),
+                });
+                continue;
+            }
+        }
+        
+        if current_entry.is_some() {
+            current_content.push(line);
+        }
+    }
+    
+    if let Some(entry) = current_entry {
+        let content_str = current_content.join("\n");
+        let mut trimmed = content_str.trim().to_string();
+        if trimmed.ends_with("\n---") {
+            trimmed.truncate(trimmed.len() - 4);
+        } else if trimmed == "---" {
+            trimmed.clear();
+        }
         entries.push(ParsedEntry {
-            time: cap[1].trim().to_string(),
-            date: cap[2].trim().to_string(),
-            id: cap[3].trim().to_string(),
-            content: cap[4].trim().to_string(),
+            time: entry.time,
+            date: entry.date,
+            id: entry.id,
+            content: trimmed.trim().to_string(),
+            updated_time: entry.updated_time,
         });
     }
+    
     entries
+}
+
+fn serialize_entries(entries: &[ParsedEntry]) -> String {
+    let mut out = String::new();
+    out.push_str(WORKING_NOTES_SECTION);
+    out.push_str("\n\n");
+    for e in entries {
+        let updated_suffix = if let Some(ref ut) = e.updated_time {
+            format!(" [updated {}]", ut)
+        } else {
+            "".to_string()
+        };
+        out.push_str(&format!("### [{}] {} | ID: {}{}\n{}\n\n---\n\n", e.time, e.date, e.id, updated_suffix, e.content.trim()));
+    }
+    out
 }
 
 fn is_duplicate_entry(entries: &[ParsedEntry], target_date: &str, new_content: &str) -> bool {
@@ -383,7 +448,12 @@ impl AgentTool for BrainMemoryTool {
                 }
                 let lines: Vec<String> = entries.iter().enumerate().map(|(i, e)| {
                     let first_line = e.content.lines().next().unwrap_or("");
-                    format!("{}. [{}] {} | ID: {}\n   {}", i + 1, e.time, e.date, e.id, first_line)
+                    let updated_suffix = if let Some(ref ut) = e.updated_time {
+                        format!(" [updated {}]", ut)
+                    } else {
+                        "".to_string()
+                    };
+                    format!("{}. [{}] {} | ID: {}{}\n   {}", i + 1, e.time, e.date, e.id, updated_suffix, first_line)
                 }).collect();
                 return Ok(format!("Working Notes in {}.md ({}):\n\n{}", target_name, entries.len(), lines.join("\n\n")));
             }
@@ -418,7 +488,12 @@ impl AgentTool for BrainMemoryTool {
 
                 if let Some(id) = input.id {
                     if let Some(found) = entries.iter().find(|e| e.id == id) {
-                        return Ok(format!("[{}] {} | ID: {}\n{}", found.time, found.date, found.id, found.content));
+                        let updated_suffix = if let Some(ref ut) = found.updated_time {
+                            format!(" [updated {}]", ut)
+                        } else {
+                            "".to_string()
+                        };
+                        return Ok(format!("[{}] {} | ID: {}{}\n{}", found.time, found.date, found.id, updated_suffix, found.content));
                     }
                     return Err(format!("No working note found with ID {} in {}.md.", id, target_name));
                 }
@@ -428,11 +503,25 @@ impl AgentTool for BrainMemoryTool {
                     if filtered.is_empty() {
                         return Ok(format!("No working notes for {} in {}.md.", date, target_name));
                     }
-                    let res: Vec<String> = filtered.iter().map(|e| format!("[{}] {} | ID: {}\n{}", e.time, e.date, e.id, e.content)).collect();
+                    let res: Vec<String> = filtered.iter().map(|e| {
+                        let updated_suffix = if let Some(ref ut) = e.updated_time {
+                            format!(" [updated {}]", ut)
+                        } else {
+                            "".to_string()
+                        };
+                        format!("[{}] {} | ID: {}{}\n{}", e.time, e.date, e.id, updated_suffix, e.content)
+                    }).collect();
                     return Ok(res.join("\n\n---\n\n"));
                 }
 
-                let res: Vec<String> = entries.iter().map(|e| format!("[{}] {} | ID: {}\n{}", e.time, e.date, e.id, e.content)).collect();
+                let res: Vec<String> = entries.iter().map(|e| {
+                    let updated_suffix = if let Some(ref ut) = e.updated_time {
+                        format!(" [updated {}]", ut)
+                    } else {
+                        "".to_string()
+                    };
+                    format!("[{}] {} | ID: {}{}\n{}", e.time, e.date, e.id, updated_suffix, e.content)
+                }).collect();
                 return Ok(res.join("\n\n---\n\n"));
             }
 
@@ -445,26 +534,18 @@ impl AgentTool for BrainMemoryTool {
 
                 let content = ensure_working_notes_section(&target_file, target_name)?;
                 let parts = extract_working_notes_block(&content);
-                let entries = list_entries(&parts.section);
+                let mut entries = list_entries(&parts.section);
                 
-                if !entries.iter().any(|e| e.id == id) {
+                if let Some(target) = entries.iter_mut().find(|e| e.id == id) {
+                    target.content = text.trim().to_string();
+                    target.updated_time = Some(get_clock_time());
+                    
+                    let updated_section = serialize_entries(&entries);
+                    safe_write(&target_file, &format!("{}{}{}", parts.before, updated_section, parts.after))?;
+                    return Ok(format!("Working note {} updated in {}.md.", id, target_name));
+                } else {
                     return Err(format!("No working note found with ID {} in {}.md.", id, target_name));
                 }
-
-                let escaped_id = escape_reg_exp(&id);
-                let re_str = format!(r"(?m)(### \[[^\]]+\] \d{{4}}-\d{{2}}-\d{{2}} \| ID: {}\n)([\s\S]*?)(\n---\n)", escaped_id);
-                let entry_pattern = Regex::new(&re_str).unwrap();
-
-                if !entry_pattern.is_match(&parts.section) {
-                    return Err(format!("Error: could not locate entry {} for replacement in {}.md.", id, target_name));
-                }
-
-                let updated_section = entry_pattern.replace(&parts.section, |caps: &regex::Captures| {
-                    format!("{}{}{}", &caps[1], text.trim(), &caps[3])
-                });
-
-                safe_write(&target_file, &format!("{}{}{}", parts.before, updated_section, parts.after))?;
-                return Ok(format!("Working note {} updated in {}.md.", id, target_name));
             }
 
             if action == BrainMemoryAction::Delete {
@@ -472,20 +553,16 @@ impl AgentTool for BrainMemoryTool {
                 
                 let content = ensure_working_notes_section(&target_file, target_name)?;
                 let parts = extract_working_notes_block(&content);
-                let entries = list_entries(&parts.section);
+                let mut entries = list_entries(&parts.section);
                 
-                if !entries.iter().any(|e| e.id == id) {
+                if entries.iter().any(|e| e.id == id) {
+                    entries.retain(|e| e.id != id);
+                    let updated_section = serialize_entries(&entries);
+                    safe_write(&target_file, &format!("{}{}{}", parts.before, updated_section, parts.after))?;
+                    return Ok(format!("Deleted working note {} from {}.md.", id, target_name));
+                } else {
                     return Err(format!("No working note found with ID {} in {}.md.", id, target_name));
                 }
-
-                let escaped_id = escape_reg_exp(&id);
-                let re_str = format!(r"(?m)### \[[^\]]+\] \d{{4}}-\d{{2}}-\d{{2}} \| ID: {}\n[\s\S]*?\n---\n\n?", escaped_id);
-                let entry_pattern = Regex::new(&re_str).unwrap();
-
-                let updated_section = entry_pattern.replace(&parts.section, "");
-                
-                safe_write(&target_file, &format!("{}{}{}", parts.before, updated_section, parts.after))?;
-                return Ok(format!("Deleted working note {} from {}.md.", id, target_name));
             }
 
             Err("Invalid action.".to_string())
