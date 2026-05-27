@@ -157,7 +157,26 @@ impl AgentTool for ScratchpadTool {
     const NAME: &'static str = "scratchpad";
 
     fn description() -> SharedString {
-        "Dedicated scratchpad for temporary notes, checkpoints, mid-session context, and raw data dumps. Use for thoughts that don't belong in permanent memory. Use 'modify' to update an existing checkpoint by ID instead of delete+create. NEVER output Working Notes headers.".into()
+        "A temporary, session-scoped notepad for intermediate work. Think of it as your working memory.
+
+WHEN TO USE:
+- Storing intermediate results mid-task (e.g. a list of files to process, IDs collected from a search)
+- Saving a checkpoint before a risky multi-step operation so you can resume if interrupted
+- Tracking TODO sub-tasks within a complex user request
+- Dumping raw tool output you need to reference again later in the same session
+- Breaking a large reasoning chain into labeled steps you can refer back to
+
+WHEN NOT TO USE:
+- Do NOT use scratchpad for info the user will want in a future session — use brain_memory instead
+- Do NOT create a new entry when you could modify an existing one (modify by ID is cheaper than delete+create)
+- Do NOT use scratchpad as a substitute for just responding — if a thought belongs in your reply, put it there
+- Do NOT create entries for trivial one-liners; only write if you genuinely need to refer back to it
+
+EFFICIENCY RULES:
+- Use 'list' first to check what already exists before creating duplicates
+- Use 'modify' to update a checkpoint, never 'delete' + 'create'
+- Use 'clear' at the start of a brand new unrelated task to avoid stale context
+- NEVER output Working Notes headers in your chat response — write to this tool instead".into()
     }
 
     fn kind() -> acp::ToolKind {
