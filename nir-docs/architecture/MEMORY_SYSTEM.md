@@ -46,7 +46,18 @@ User prefers direct communication with no fluff.
 
 ## Pre-loading (System Prompt Injection)
 
-To provide instant context without wasting tokens or API calls, Nir automatically injects the contents of **`about.md`** and **`settings.md`** directly into the system prompt at the start of every session. 
+To provide instant context without wasting tokens or API calls, Nir automatically injects the contents of **`about.md`** and **`settings.md`** directly into the system prompt at the start of every session.
+
+The injected memories are formatted as:
+```
+### Memory Target: `about`
+<contents of about.md>
+
+### Memory Target: `settings`
+<contents of settings.md>
+```
+
+This format is critical — it tells the LLM that `about` and `settings` are **Memory Targets** (to be interacted with via the `brain_memory` tool), not local files on disk. Using a `# ABOUT.MD` header caused the LLM to hallucinate a `read_file` call instead.
 
 The agent instantly knows your identity and rules. The heavier files (`goals`, `projects`, `bookmark`) are **not** pre-loaded to save tokens. The agent must use the `brain_memory` tool to query them when needed.
 
@@ -67,6 +78,14 @@ A Swiss-army knife tool for reading and writing memory files.
 - `modify`: Edits an existing entry by ID.
 - `delete`: Removes an existing entry by ID.
 - `list`: Lists all IDs and snippets in a file.
+
+### `scratchpad`
+**File:** [`crates/agent/src/tools/scratchpad_tool.rs`](../crates/agent/src/tools/scratchpad_tool.rs)
+
+A lightweight tool for **temporary**, session-scoped notes. Unlike `brain_memory`, scratchpad entries are not meant to persist permanently — they are for mid-task checkpoints, raw data dumps, intermediate reasoning, and context that doesn't belong in long-term memory.
+- Scratchpad file: `~/.nir/brain/scratch.md`
+- Supports `create`, `read`, `modify`, `delete`, `list`, and `clear` actions.
+- The agent is instructed never to output "Working Notes" headers directly in chat; it must use this tool instead.
 
 ### `brain_backup`
 **File:** [`crates/agent/src/tools/backup_tool.rs`](../crates/agent/src/tools/backup_tool.rs)
