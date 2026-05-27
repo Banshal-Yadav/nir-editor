@@ -26,7 +26,7 @@ pub fn project_memory_path(project: &Entity<Project>, cx: &App) -> Option<PathBu
         .read(cx)
         .visible_worktrees(cx)
         .next()
-        .map(|wt| wt.read(cx).abs_path().join(".void").join("memory.jsonl"))
+        .map(|wt| wt.read(cx).abs_path().join(".nir").join("memory.jsonl"))
 }
 
 pub fn global_memory_path() -> PathBuf {
@@ -35,7 +35,7 @@ pub fn global_memory_path() -> PathBuf {
     } else {
         std::env::var("HOME").unwrap_or_else(|_| ".".to_string())
     };
-    PathBuf::from(base).join(".void").join("memory.jsonl")
+    PathBuf::from(base).join(".nir").join("memory.jsonl")
 }
 
 pub fn read_memories(path: &PathBuf) -> Vec<MemoryEntry> {
@@ -63,6 +63,30 @@ pub fn read_memories(path: &PathBuf) -> Vec<MemoryEntry> {
 
     entries.retain(|e| !deleted_ids.contains(&e.id));
     entries
+}
+
+/// Format memories as a readable bullet list for injection into the system prompt.
+/// Returns `None` when there are no memories.
+/// Caps output at 50 entries or 4 KB of text, whichever comes first.
+pub fn format_memories_for_prompt(memories: &[MemoryEntry]) -> Option<String> {
+    if memories.is_empty() {
+        return None;
+    }
+
+    const MAX_CHARS: usize = 4_000;
+    const MAX_ENTRIES: usize = 50;
+
+    let mut output = String::new();
+    for entry in memories.iter().take(MAX_ENTRIES) {
+        let line = format!("- {} (id: {})\n", entry.content, entry.id);
+        if output.len() + line.len() > MAX_CHARS {
+            output.push_str("- ... (older memories truncated)\n");
+            break;
+        }
+        output.push_str(&line);
+    }
+
+    if output.is_empty() { None } else { Some(output) }
 }
 
 fn append_entry(path: &PathBuf, entry: &MemoryEntry) -> Result<(), String> {
@@ -93,9 +117,9 @@ fn append_entry(path: &PathBuf, entry: &MemoryEntry) -> Result<(), String> {
 #[schemars(inline)]
 pub enum MemoryScope {
     /// Store globally, accessible across all projects (personal info, preferences).
+    #[default]
     Global,
     /// Store for current project only (architecture, conventions, patterns).
-    #[default]
     Project,
 }
 
@@ -305,6 +329,113 @@ impl AgentTool for RecallMemoryTool {
             }
 
             Ok(output)
+        })
+    }
+}
+
+// ===== DELETE MEMORY TOOL =====
+
+/// Delete a previously saved memory by its ID.
+/// Use this when:
+/// - The user says "forget that", "remove that memory", or "that's no longer true"
+/// - A saved memory is outdated or incorrect
+/// Pass the `id` field shown in `recall_memory` results.
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct DeleteMemoryInput {
+    /// The ID of the memory to delete (e.g. "mem_1716834291000"), shown in recall_memory output.
+    id: String,
+    /// Which scope to delete from: "global" or "project".
+    #[serde(default)]
+    scope: MemoryScope,
+}
+
+pub struct DeleteMemoryTool {
+    project: Entity<Project>,
+}
+
+impl DeleteMemoryTool {
+    pub fn new(project: Entity<Project>) -> Self {
+        Self { project }
+    }
+}
+
+impl AgentTool for DeleteMemoryTool {
+    type Input = DeleteMemoryInput;
+    type Output = String;
+
+    const NAME: &'static str = "delete_memory";
+
+    fn kind() -> acp::ToolKind {
+        acp::ToolKind::Other
+    }
+
+    fn initial_title(
+        &self,
+        _input: Result<Self::Input, serde_json::Value>,
+        _cx: &mut App,
+    ) -> SharedString {
+        "Deleting memory".into()
+    }
+
+    fn run(
+        self: Arc<Self>,
+        input: ToolInput<Self::Input>,
+        _event_stream: ToolCallEventStream,
+        cx: &mut App,
+    ) -> Task<Result<String, String>> {
+        let project_path = project_memory_path(&self.project, cx);
+
+        cx.spawn(async move |_cx| {
+            let input = input
+                .recv()
+                .await
+                .map_err(|e| format!("Failed to receive input: {e}"))?;
+
+            let memory_path = match input.scope {
+                MemoryScope::Global => global_memory_path(),
+                MemoryScope::Project => {
+                    project_path.ok_or_else(|| "No project root found".to_string())?
+                }
+            };
+
+            let content = match std::fs::read_to_string(&memory_path) {
+                Ok(c) => c,
+                Err(_) => return Err("Memory file not found.".to_string()),
+            };
+
+            let mut new_lines = Vec::new();
+            let mut found = false;
+
+            for line in content.lines() {
+                if line.trim().is_empty() {
+                    continue;
+                }
+                if let Ok(entry) = serde_json::from_str::<MemoryEntry>(line) {
+                    if entry.id == input.id {
+                        found = true;
+                        continue; // Skip the entry we want to delete
+                    }
+                    if entry.deleted.as_ref() == Some(&input.id) {
+                        continue; // Also skip any existing tombstones for this id
+                    }
+                }
+                new_lines.push(line);
+            }
+
+            if !found {
+                return Err(format!("Memory '{}' not found.", input.id));
+            }
+
+            let new_content = if new_lines.is_empty() {
+                String::new()
+            } else {
+                new_lines.join("\n") + "\n"
+            };
+
+            std::fs::write(&memory_path, new_content)
+                .map_err(|e| format!("Failed to write memory file: {e}"))?;
+
+            Ok(format!("Memory '{}' deleted.", input.id))
         })
     }
 }

@@ -1135,6 +1135,9 @@
           "update_plan": true,
           "update_title": true,
           "search_web": true,
+          "save_memory": true,
+          "recall_memory": true,
+          "delete_memory": true,
         },
       },
       "ask": {
@@ -1156,6 +1159,9 @@
           "update_plan": true,
           "update_title": true,
           "search_web": true,
+          "save_memory": true,
+          "recall_memory": true,
+          "delete_memory": true,
         },
       },
       "minimal": {
