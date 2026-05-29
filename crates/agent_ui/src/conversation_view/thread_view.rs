@@ -4963,7 +4963,7 @@ impl ThreadView {
                         .top(line_top)
                         .bottom_0()
                         .w_px()
-                        .bg(cx.theme().colors().border.opacity(0.6)),
+                        .bg(cx.theme().colors().border.opacity(0.3)),
                 )
                 .child(primary)
                 .into_any_element()
