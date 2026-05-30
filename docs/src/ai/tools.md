@@ -51,7 +51,7 @@ Searches the web for information, providing results with snippets and links from
 
 **Example:** Looking up whether a known bug in a dependency has been patched in a recent release, or finding the current API signature for a third-party library when the local docs are out of date.
 
-> **Note:** The built-in `search_web` tool is only available to [/nir Pro](https://zed.dev/pricing) subscribers using the /nir provider. If you're on a free plan or using a different provider, you can get equivalent functionality by connecting an MCP server that provides web search capabilities. See [MCP servers](./mcp.md) for details.
+> **Note:** The built-in `search_web` tool is only available to [/nir Pro](https://github.com/Banshal-Yadav/nir're on a free plan or using a different provider, you can get equivalent functionality by connecting an MCP server that provides web search capabilities. See [MCP servers](./mcp.md) for details.
 
 ## Edit Tools
 

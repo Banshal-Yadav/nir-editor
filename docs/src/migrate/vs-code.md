@@ -17,176 +17,7 @@ For macOS, you can download it from zed.dev/download, or install via Homebrew:
 `brew install zed-editor/zed/zed`
 
 For most Linux users, the easiest way to install Zed is through our installation script:
-`curl -f https://zed.dev/install.sh | sh`
-
-After installation, you can launch Zed from your Applications folder (macOS) or directly from the terminal (Linux) using:
-`zed .`
-This opens the current directory in Zed.
-
-## Import Settings from VS Code
-
-During setup, you have the option to import key settings from VS Code. Zed imports the following settings:
-
-### Settings Imported from VS Code
-
-The following VS Code settings are automatically imported when you use **Import Settings from VS Code**:
-
-**Editor**
-
-| VS Code Setting                             | Zed Setting                                    |
-| ------------------------------------------- | ---------------------------------------------- |
-| `editor.fontFamily`                         | `buffer_font_family`                           |
-| `editor.fontSize`                           | `buffer_font_size`                             |
-| `editor.fontWeight`                         | `buffer_font_weight`                           |
-| `editor.tabSize`                            | `tab_size`                                     |
-| `editor.insertSpaces`                       | `hard_tabs` (inverted)                         |
-| `editor.wordWrap`                           | `soft_wrap`                                    |
-| `editor.wordWrapColumn`                     | `preferred_line_length`                        |
-| `editor.cursorStyle`                        | `cursor_shape`                                 |
-| `editor.cursorBlinking`                     | `cursor_blink`                                 |
-| `editor.renderLineHighlight`                | `current_line_highlight`                       |
-| `editor.lineNumbers`                        | `gutter.line_numbers`, `relative_line_numbers` |
-| `editor.showFoldingControls`                | `gutter.folds`                                 |
-| `editor.minimap.enabled`                    | `minimap.show`                                 |
-| `editor.minimap.autohide`                   | `minimap.show`                                 |
-| `editor.minimap.showSlider`                 | `minimap.thumb`                                |
-| `editor.minimap.maxColumn`                  | `minimap.max_width_columns`                    |
-| `editor.stickyScroll.enabled`               | `sticky_scroll.enabled`                        |
-| `editor.scrollbar.horizontal`               | `scrollbar.axes.horizontal`                    |
-| `editor.scrollbar.vertical`                 | `scrollbar.axes.vertical`                      |
-| `editor.mouseWheelScrollSensitivity`        | `scroll_sensitivity`                           |
-| `editor.fastScrollSensitivity`              | `fast_scroll_sensitivity`                      |
-| `editor.cursorSurroundingLines`             | `vertical_scroll_margin`                       |
-| `editor.hover.enabled`                      | `hover_popover_enabled`                        |
-| `editor.hover.delay`                        | `hover_popover_delay`                          |
-| `editor.hover.sticky`                       | `hover_popover_sticky`                         |
-| `editor.hover.hidingDelay`                  | `hover_popover_hiding_delay`                   |
-| `editor.parameterHints.enabled`             | `auto_signature_help`                          |
-| `editor.multiCursorModifier`                | `multi_cursor_modifier`                        |
-| `editor.selectionHighlight`                 | `selection_highlight`                          |
-| `editor.roundedSelection`                   | `rounded_selection`                            |
-| `editor.find.seedSearchStringFromSelection` | `seed_search_query_from_cursor`                |
-| `editor.rulers`                             | `wrap_guides`                                  |
-| `editor.renderWhitespace`                   | `show_whitespaces`                             |
-| `editor.guides.indentation`                 | `indent_guides.enabled`                        |
-| `editor.linkedEditing`                      | `linked_edits`                                 |
-| `editor.autoSurround`                       | `use_auto_surround`                            |
-| `editor.formatOnSave`                       | `format_on_save`                               |
-| `editor.formatOnPaste`                      | `auto_indent_on_paste`                         |
-| `editor.formatOnType`                       | `use_on_type_format`                           |
-| `editor.trimAutoWhitespace`                 | `remove_trailing_whitespace_on_save`           |
-| `editor.suggestOnTriggerCharacters`         | `show_completions_on_input`                    |
-| `editor.suggest.showWords`                  | `completions.words`                            |
-| `editor.inlineSuggest.enabled`              | `show_edit_predictions`                        |
-
-**Files & Workspace**
-
-| VS Code Setting             | Zed Setting                    |
-| --------------------------- | ------------------------------ |
-| `files.autoSave`            | `autosave`                     |
-| `files.autoSaveDelay`       | `autosave.milliseconds`        |
-| `files.insertFinalNewline`  | `ensure_final_newline_on_save` |
-| `files.associations`        | `file_types`                   |
-| `files.watcherExclude`      | `file_scan_exclusions`         |
-| `files.watcherInclude`      | `file_scan_inclusions`         |
-| `files.simpleDialog.enable` | `use_system_path_prompts`      |
-| `search.smartCase`          | `use_smartcase_search`         |
-| `search.useIgnoreFiles`     | `search.include_ignored`       |
-
-**Terminal**
-
-| VS Code Setting                       | Zed Setting                         |
-| ------------------------------------- | ----------------------------------- |
-| `terminal.integrated.fontFamily`      | `terminal.font_family`              |
-| `terminal.integrated.fontSize`        | `terminal.font_size`                |
-| `terminal.integrated.lineHeight`      | `terminal.line_height`              |
-| `terminal.integrated.cursorStyle`     | `terminal.cursor_shape`             |
-| `terminal.integrated.cursorBlinking`  | `terminal.blinking`                 |
-| `terminal.integrated.copyOnSelection` | `terminal.copy_on_select`           |
-| `terminal.integrated.scrollback`      | `terminal.max_scroll_history_lines` |
-| `terminal.integrated.macOptionIsMeta` | `terminal.option_as_meta`           |
-| `terminal.integrated.{platform}Exec`  | `terminal.shell`                    |
-| `terminal.integrated.env.{platform}`  | `terminal.env`                      |
-
-**Tabs & Panels**
-
-| VS Code Setting                                    | Zed Setting                                        |
-| -------------------------------------------------- | -------------------------------------------------- |
-| `workbench.editor.showTabs`                        | `tab_bar.show`                                     |
-| `workbench.editor.showIcons`                       | `tabs.file_icons`                                  |
-| `workbench.editor.tabActionLocation`               | `tabs.close_position`                              |
-| `workbench.editor.tabActionCloseVisibility`        | `tabs.show_close_button`                           |
-| `workbench.editor.focusRecentEditorAfterClose`     | `tabs.activate_on_close`                           |
-| `workbench.editor.enablePreview`                   | `preview_tabs.enabled`                             |
-| `workbench.editor.enablePreviewFromQuickOpen`      | `preview_tabs.enable_preview_from_file_finder`     |
-| `workbench.editor.enablePreviewFromCodeNavigation` | `preview_tabs.enable_preview_from_code_navigation` |
-| `workbench.editor.editorActionsLocation`           | `tab_bar.show_tab_bar_buttons`                     |
-| `workbench.editor.limit.enabled` / `value`         | `max_tabs`                                         |
-| `workbench.editor.restoreViewState`                | `restore_on_file_reopen`                           |
-| `workbench.statusBar.visible`                      | `status_bar.show`                                  |
-
-**Project Panel (File Explorer)**
-
-| VS Code Setting                | Zed Setting                         |
-| ------------------------------ | ----------------------------------- |
-| `explorer.compactFolders`      | `project_panel.auto_fold_dirs`      |
-| `explorer.autoReveal`          | `project_panel.auto_reveal_entries` |
-| `explorer.excludeGitIgnore`    | `project_panel.hide_gitignore`      |
-| `problems.decorations.enabled` | `project_panel.show_diagnostics`    |
-| `explorer.decorations.badges`  | `project_panel.git_status`          |
-
-**Git**
-
-| VS Code Setting                      | Zed Setting                                    |
-| ------------------------------------ | ---------------------------------------------- |
-| `git.enabled`                        | `git_panel.button`                             |
-| `git.defaultBranchName`              | `git_panel.fallback_branch_name`               |
-| `git.decorations.enabled`            | `git.inline_blame`, `project_panel.git_status` |
-| `git.blame.editorDecoration.enabled` | `git.inline_blame.enabled`                     |
-
-**Window & Behavior**
-
-| VS Code Setting                                  | Zed Setting                              |
-| ------------------------------------------------ | ---------------------------------------- |
-| `window.confirmBeforeClose`                      | `confirm_quit`                           |
-| `window.nativeTabs`                              | `use_system_window_tabs`                 |
-| `window.closeWhenEmpty`                          | `when_closing_with_no_tabs`              |
-| `accessibility.dimUnfocused.enabled` / `opacity` | `active_pane_modifiers.inactive_opacity` |
-
-**Other**
-
-| VS Code Setting            | Zed Setting                                              |
-| -------------------------- | -------------------------------------------------------- |
-| `http.proxy`               | `proxy`                                                  |
-| `npm.packageManager`       | `node.npm_path`                                          |
-| `telemetry.telemetryLevel` | `telemetry.metrics`, `telemetry.diagnostics`             |
-| `outline.icons`            | `outline_panel.file_icons`, `outline_panel.folder_icons` |
-| `chat.agent.enabled`       | `agent.enabled`                                          |
-| `mcp`                      | `context_servers`                                        |
-
-Zed doesn’t import extensions or keybindings, but this import gets core editor behavior close to your VS Code setup. If you skip that step during setup, you can still import settings manually later via the command palette:
-
-`Cmd+Shift+P → {#action zed::ImportVsCodeSettings}`
-
-## Set Up Editor Preferences
-
-You can configure most settings in the Settings Editor ({#kb zed::OpenSettings}). For advanced settings, run {#action zed::OpenSettingsFile} from the Command Palette to edit your settings file directly.
-
-Here’s how common VS Code settings translate:
-| VS Code | Zed | Notes |
-| --- | --- | --- |
-| editor.fontFamily | buffer_font_family | Zed uses Zed Mono by default |
-| editor.fontSize | buffer_font_size | Set in pixels |
-| editor.tabSize | tab_size | Can override per language |
-| editor.insertSpaces | insert_spaces | Boolean |
-| editor.formatOnSave | format_on_save | Works with formatter enabled |
-| editor.wordWrap | soft_wrap | Supports optional wrap column |
-
-Zed also supports per-project settings. You can find these in the Settings Editor as well.
-
-## Open or Create a Project
-
-After setup, press `Cmd+O` (`Ctrl+O` on Linux) to open a folder. By default, new folders open in the current window's threads sidebar, letting you work on multiple projects without juggling windows. See [Windows & Projects](../windows-and-projects.md) for details on managing multiple projects and opening in new windows.
+`curl -f https://github.com/Banshal-Yadav/nir's threads sidebar, letting you work on multiple projects without juggling windows. See [Windows & Projects](../windows-and-projects.md) for details on managing multiple projects and opening in new windows.
 
 To start a new project, create a directory using your terminal or file manager, then open it in Zed. The editor will treat that folder as the root of your project.
 
@@ -305,22 +136,9 @@ You won’t find one-to-one replacements for every VS Code extension, especially
 Unlike VS Code, Zed doesn’t require an extension to collaborate. It’s built into the core experience.
 
 - Open the Collab Panel in the left dock.
-- Create a channel and [invite your collaborators](https://zed.dev/docs/collaboration#inviting-a-collaborator) to join.
-- [Share your screen or your codebase](https://zed.dev/docs/collaboration#share-a-project) directly.
+- Create a channel and [invite your collaborators](https://github.com/Banshal-Yadav/nir/wiki's cursors, selections, and edits in real time. Voice chat is included, so you can talk as you work. There’s no need for separate tools or third-party logins.
 
-Once connected, you’ll see each other's cursors, selections, and edits in real time. Voice chat is included, so you can talk as you work. There’s no need for separate tools or third-party logins.
-
-Learn how [Zed uses Zed](https://zed.dev/blog/zed-is-our-office) to plan work and collaborate.
-
-### Using AI in Zed
-
-If you’re used to GitHub Copilot in VS Code, you can do the same in Zed. You can also explore other agents through Zed Pro, or bring your own keys and connect without authentication. You can disable AI features entirely if you prefer.
-
-#### Configuring GitHub Copilot
-
-1. Open Settings with `Cmd+,` (macOS) or `Ctrl+,` (Linux/Windows)
-2. Navigate to **AI → Edit Predictions**
-3. Click **Configure** next to "Configure Providers"
+Learn how [Zed uses Zed](https://github.com/Banshal-Yadav/nir"Configure Providers"
 4. Under **GitHub Copilot**, click **Sign in to GitHub**
 
 Once signed in, just start typing. Zed will offer suggestions inline for you to accept.
@@ -329,20 +147,7 @@ Once signed in, just start typing. Zed will offer suggestions inline for you to 
 
 To use other AI models in Zed, you have several options:
 
-- Use Zed’s hosted models, with higher rate limits. Requires [authentication](https://zed.dev/docs/authentication) and subscription to [Zed Pro](https://zed.dev/docs/ai/subscription.html).
-- Bring your own [API keys](https://zed.dev/docs/ai/llm-providers.html), no authentication needed
-- Use [external agents like Claude Agent](https://zed.dev/docs/ai/external-agents.html).
-
-### Advanced Config and Productivity Tweaks
-
-Zed exposes advanced settings for power users who want to fine-tune their environment.
-
-Here are a few useful tweaks:
-
-**Format on Save:**
-
-```json
-"format_on_save": "on"
+- Use Zed’s hosted models, with higher rate limits. Requires [authentication](https://github.com/Banshal-Yadav/nir/wiki"format_on_save": "on"
 ```
 
 **Enable direnv support:**

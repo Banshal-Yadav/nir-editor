@@ -65,10 +65,7 @@ IndentWidth: 4
 ColumnLimit: 120
 ```
 
-Or you can have zed directly invoke `clang-format` by specifying it as a [formatter](https://zed.dev/docs/reference/all-settings#formatter) in your settings:
-
-```json [settings]
-  "languages": {
+Or you can have zed directly invoke `clang-format` by specifying it as a [formatter](https://github.com/Banshal-Yadav/nir/wiki"languages": {
     "Proto": {
       "format_on_save": "on",
       "tab_size": 4,

@@ -25,29 +25,11 @@ Check out the [MCP Server Extensions](../extensions/mcp-extensions.md) page to l
 
 Many MCP servers are available as extensions. Find them via:
 
-1. [the Zed website](https://zed.dev/extensions?filter=context-servers)
-2. in the app, open the Command Palette and run the {#action zed::Extensions} action
-3. in the app, go to the Agent Panel's top-right menu and look for the "View Server Extensions" menu item
+1. [the Zed website](https://github.com/Banshal-Yadav/nir's top-right menu and look for the "View Server Extensions" menu item
 
 Popular servers available as an extension include:
 
-- [Context7](https://zed.dev/extensions/mcp-server-context7)
-- [GitHub](https://zed.dev/extensions/mcp-server-github)
-- [Puppeteer](https://zed.dev/extensions/mcp-server-puppeteer)
-- [Gem](https://zed.dev/extensions/gem)
-- [Brave Search](https://zed.dev/extensions/mcp-server-brave-search)
-- [Prisma](https://github.com/aqrln/prisma-mcp-zed)
-- [Framelink Figma](https://zed.dev/extensions/mcp-server-figma)
-- [Resend](https://zed.dev/extensions/mcp-server-resend)
-
-### As Custom Servers
-
-Creating an extension is not the only way to use MCP servers in Zed.
-You can connect them by adding their commands directly to your settings file ([how to edit](../configuring-zed.md#settings-files)), like so:
-
-```json [settings]
-{
-  "context_servers": {
+- [Context7](https://github.com/Banshal-Yadav/nir"context_servers": {
     "local-mcp-server": {
       "command": "some-command",
       "args": ["arg-1", "arg-2"],
@@ -93,10 +75,7 @@ Mentioning the MCP server by name can help the model pick tools from that server
 
 However, if you want to _ensure_ a given MCP server will be used, you can create [a custom profile](./agent-panel.md#custom-profiles) where all built-in tools (or the ones that could cause conflicts with the server's tools) are turned off and only the tools coming from the MCP server are turned on.
 
-As an example, [the Dagger team suggests](https://container-use.com/agent-integrations#zed) doing that with their [Container Use MCP server](https://zed.dev/extensions/mcp-server-container-use):
-
-```json [settings]
-"agent": {
+As an example, [the Dagger team suggests](https://container-use.com/agent-integrations#zed) doing that with their [Container Use MCP server](https://github.com/Banshal-Yadav/nir"agent": {
   "profiles": {
     "container-use": {
       "name": "Container Use",

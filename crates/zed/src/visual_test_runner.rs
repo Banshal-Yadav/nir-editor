@@ -944,7 +944,7 @@ edition = "2021"
     // Create README.md
     let readme = r#"# Test Project
 
-This is a test project for visual testing of Zed.
+This is a test project for visual testing of /nir.
 
 ## Features
 
@@ -2198,7 +2198,7 @@ fn run_agent_thread_view_test(
 
     // Send the message to trigger the image response
     let send_future = thread.update(cx, |thread, cx| {
-        thread.send(vec!["Show me the Zed logo".into()], cx)
+        thread.send(vec!["Show me the /nir logo".into()], cx)
     });
 
     cx.background_executor.allow_parking();
@@ -2734,6 +2734,7 @@ fn run_multi_workspace_sidebar_visual_tests(
                             thinking_effort: None,
                             ui_scroll_position: None,
                             draft_prompt: None,
+                            sandboxed_terminal_temp_dir: None,
                         },
                         path_list,
                         cx,

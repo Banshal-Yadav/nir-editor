@@ -20,7 +20,7 @@ use futures_lite::future::yield_now;
 use gpui::{App, Context, Entity, EventEmitter};
 use itertools::Itertools;
 use language::{
-    AutoindentMode, Buffer, BufferChunks, BufferRow, BufferSnapshot, Capability, CharClassifier,
+    AutoindentMode, Buffer, BufferChunks, BufferEditSource, BufferRow, BufferSnapshot, Capability, CharClassifier,
     CharKind, CharScopeContext, Chunk, CursorShape, DiagnosticEntryRef, File, IndentGuideSettings,
     IndentSize, Language, LanguageAwareStyling, LanguageScope, OffsetRangeExt, OffsetUtf16,
     Outline, OutlineItem, Point, PointUtf16, Selection, TextDimension, TextObject, ToOffset as _,
@@ -69,7 +69,7 @@ pub fn excerpt_context_lines(cx: &App) -> u32 {
 
 /// One or more [`Buffers`](Buffer) being edited in a single view.
 ///
-/// See <https://zed.dev/features#multi-buffers>
+/// See <https://github.com/Banshal-Yadav/nir>
 pub struct MultiBuffer {
     /// A snapshot of the [`Excerpt`]s in the MultiBuffer.
     /// Use [`MultiBuffer::snapshot`] to get a up-to-date snapshot.
@@ -110,7 +110,7 @@ pub enum Event {
     DiffHunksToggled,
     Edited {
         edited_buffer: Option<Entity<Buffer>>,
-        is_local: bool,
+        source: BufferEditSource,
     },
     TransactionUndone {
         transaction_id: TransactionId,
@@ -1828,7 +1828,7 @@ impl MultiBuffer {
         }
         cx.emit(Event::Edited {
             edited_buffer: None,
-            is_local: true,
+            source: BufferEditSource::User,
         });
         cx.emit(Event::BuffersRemoved { removed_buffer_ids });
         cx.notify();
@@ -1952,9 +1952,9 @@ impl MultiBuffer {
         use language::BufferEvent;
         let buffer_id = buffer.read(cx).remote_id();
         cx.emit(match event {
-            &BufferEvent::Edited { is_local } => Event::Edited {
+            &BufferEvent::Edited { source } => Event::Edited {
                 edited_buffer: Some(buffer),
-                is_local,
+                source,
             },
             BufferEvent::DirtyChanged => Event::DirtyChanged,
             BufferEvent::Saved => Event::Saved,
@@ -2044,7 +2044,7 @@ impl MultiBuffer {
         }
         cx.emit(Event::Edited {
             edited_buffer: None,
-            is_local: true,
+            source: BufferEditSource::User,
         });
     }
 
@@ -2090,7 +2090,7 @@ impl MultiBuffer {
         }
         cx.emit(Event::Edited {
             edited_buffer: None,
-            is_local: true,
+            source: BufferEditSource::User,
         });
     }
 
@@ -2313,7 +2313,7 @@ impl MultiBuffer {
         cx.emit(Event::DiffHunksToggled);
         cx.emit(Event::Edited {
             edited_buffer: None,
-            is_local: true,
+            source: BufferEditSource::User,
         });
     }
 
@@ -2449,7 +2449,7 @@ impl MultiBuffer {
         cx.emit(Event::DiffHunksToggled);
         cx.emit(Event::Edited {
             edited_buffer: None,
-            is_local: true,
+            source: BufferEditSource::User,
         });
     }
 
@@ -3102,7 +3102,7 @@ impl MultiBuffer {
         cx.emit(Event::DiffHunksToggled);
         cx.emit(Event::Edited {
             edited_buffer: None,
-            is_local: true,
+            source: BufferEditSource::User,
         });
     }
 }
@@ -8281,3 +8281,4 @@ pub mod debug {
         }
     }
 }
+

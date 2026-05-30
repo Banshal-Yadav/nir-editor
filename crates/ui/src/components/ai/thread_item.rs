@@ -40,6 +40,7 @@ pub struct ThreadItem {
     icon_visible: bool,
     custom_icon_from_external_svg: Option<SharedString>,
     title: SharedString,
+    title_slot: Option<AnyElement>,
     title_label_color: Option<Color>,
     title_generating: bool,
     highlight_positions: Vec<usize>,
@@ -50,6 +51,7 @@ pub struct ThreadItem {
     focused: bool,
     hovered: bool,
     rounded: bool,
+    is_truncated: bool,
     added: Option<usize>,
     removed: Option<usize>,
     project_paths: Option<Arc<[PathBuf]>>,
@@ -73,6 +75,7 @@ impl ThreadItem {
             icon_visible: true,
             custom_icon_from_external_svg: None,
             title: title.into(),
+            title_slot: None,
             title_label_color: None,
             title_generating: false,
             highlight_positions: Vec::new(),
@@ -83,6 +86,7 @@ impl ThreadItem {
             focused: false,
             hovered: false,
             rounded: false,
+            is_truncated: true,
             added: None,
             removed: None,
             project_paths: None,
@@ -147,6 +151,11 @@ impl ThreadItem {
         self
     }
 
+    pub fn title_slot(mut self, element: impl IntoElement) -> Self {
+        self.title_slot = Some(element.into_any_element());
+        self
+    }
+
     pub fn highlight_positions(mut self, positions: Vec<usize>) -> Self {
         self.highlight_positions = positions;
         self
@@ -204,6 +213,11 @@ impl ThreadItem {
 
     pub fn rounded(mut self, rounded: bool) -> Self {
         self.rounded = rounded;
+        self
+    }
+
+    pub fn is_truncated(mut self, is_truncated: bool) -> Self {
+        self.is_truncated = is_truncated;
         self
     }
 
@@ -324,7 +338,9 @@ impl RenderOnce for ThreadItem {
         let title = self.title;
         let highlight_positions = self.highlight_positions;
 
-        let title_label = if self.title_generating {
+        let title_label = if let Some(title_slot) = self.title_slot {
+            title_slot
+        } else if self.title_generating {
             Label::new(title)
                 .color(Color::Muted)
                 .with_animation(
@@ -410,6 +426,7 @@ impl RenderOnce for ThreadItem {
                 h_flex()
                     .min_w_0()
                     .w_full()
+                    .h_6()
                     .gap_2()
                     .justify_between()
                     .child(
@@ -421,7 +438,7 @@ impl RenderOnce for ThreadItem {
                             .child(icon)
                             .child(title_label),
                     )
-                    .child(gradient_overlay)
+                    .when(self.is_truncated, |this| this.child(gradient_overlay))
                     .when(self.hovered, |this| {
                         this.when_some(self.action_slot, |this, slot| {
                             let overlay = GradientFade::new(base_bg, hover_bg, hover_bg)
@@ -600,7 +617,12 @@ impl Component for ThreadItem {
         ComponentScope::Agent
     }
 
-    fn preview(_window: &mut Window, cx: &mut App) -> Option<AnyElement> {
+    fn description() -> &'static str {
+        "A row representing an agent thread in a list, showing its title, status, \
+        timestamp, and contextual metadata such as worktree and branch information."
+    }
+
+    fn preview(_window: &mut Window, cx: &mut App) -> AnyElement {
         let color = cx.theme().colors();
         let bg = color
             .title_bar_background
@@ -937,10 +959,8 @@ impl Component for ThreadItem {
             ),
         ];
 
-        Some(
-            example_group(thread_item_examples)
-                .vertical()
-                .into_any_element(),
-        )
+        example_group(thread_item_examples)
+            .vertical()
+            .into_any_element()
     }
 }

@@ -1,48 +1,4 @@
-//! The /nir Rust Extension API allows you write extensions for [/nir](https://zed.dev/) in Rust.
-
-pub mod http_client;
-pub mod process;
-pub mod settings;
-
-use core::fmt;
-
-use wit::*;
-
-pub use serde_json;
-
-// WIT re-exports.
-//
-// We explicitly enumerate the symbols we want to re-export, as there are some
-// that we may want to shadow to provide a cleaner Rust API.
-pub use wit::{
-    CodeLabel, CodeLabelSpan, CodeLabelSpanLiteral, Command, DownloadedFileType, EnvVars,
-    KeyValueStore, LanguageServerInstallationStatus, Project, Range, Worktree, download_file,
-    make_file_executable,
-    zed::extension::context_server::ContextServerConfiguration,
-    zed::extension::dap::{
-        AttachRequest, BuildTaskDefinition, BuildTaskDefinitionTemplatePayload, BuildTaskTemplate,
-        DebugAdapterBinary, DebugConfig, DebugRequest, DebugScenario, DebugTaskDefinition,
-        LaunchRequest, StartDebuggingRequestArguments, StartDebuggingRequestArgumentsRequest,
-        TaskTemplate, TcpArguments, TcpArgumentsTemplate, resolve_tcp_template,
-    },
-    zed::extension::github::{
-        GithubRelease, GithubReleaseAsset, GithubReleaseOptions, github_release_by_tag_name,
-        latest_github_release,
-    },
-    zed::extension::nodejs::{
-        node_binary_path, npm_install_package, npm_package_installed_version,
-        npm_package_latest_version,
-    },
-    zed::extension::platform::{Architecture, Os, current_platform},
-    zed::extension::slash_command::{
-        SlashCommand, SlashCommandArgumentCompletion, SlashCommandOutput, SlashCommandOutputSection,
-    },
-};
-
-// Undocumented WIT re-exports.
-//
-// These are symbols that need to be public for the purposes of implementing
-// the extension host, but aren't relevant to extension authors.
+//! The /nir Rust Extension API allows you write extensions for [/nir](https://github.com/Banshal-Yadav/nir't relevant to extension authors.
 #[doc(hidden)]
 pub use wit::Guest;
 

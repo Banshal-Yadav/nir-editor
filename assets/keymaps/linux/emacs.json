@@ -1,10 +1,4 @@
-// documentation: https://zed.dev/docs/key-bindings
-//
-// To see the default key bindings run `zed: open default keymap`
-// from the command palette.
-[
-  {
-    "bindings": {
+// documentation: https://github.com/Banshal-Yadav/nir/wiki"bindings": {
       "ctrl-g": "menu::Cancel",
     },
   },

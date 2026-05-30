@@ -1,4 +1,4 @@
-//! See [Telemetry in /nir](https://zed.dev/docs/telemetry) for additional information.
+//! See [Telemetry in /nir](https://github.com/Banshal-Yadav/nir/wiki) for additional information.
 use futures::channel::mpsc;
 pub use serde_json;
 use std::sync::OnceLock;
@@ -64,3 +64,4 @@ pub fn init(tx: mpsc::UnboundedSender<Event>) {
 }
 
 static TELEMETRY_QUEUE: OnceLock<mpsc::UnboundedSender<Event>> = OnceLock::new();
+

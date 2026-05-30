@@ -212,7 +212,7 @@ pub enum RequestMessage {
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         tool_calls: Vec<ToolCall>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        reasoning_details: Option<serde_json::Value>,
+        reasoning_details: Option<std::sync::Arc<serde_json::Value>>,
     },
     User {
         content: MessageContent,
@@ -447,7 +447,7 @@ pub async fn stream_completion(
         .uri(uri)
         .header("Content-Type", "application/json")
         .header("Authorization", format!("Bearer {}", api_key))
-        .header("HTTP-Referer", "https://zed.dev")
+        .header("HTTP-Referer", "https://github.com/Banshal-Yadav/nir")
         .header("X-Title", "/nir");
 
     let request = request_builder
@@ -540,7 +540,7 @@ pub async fn list_models(
         .uri(uri)
         .header("Accept", "application/json")
         .header("Authorization", format!("Bearer {}", api_key))
-        .header("HTTP-Referer", "https://zed.dev")
+        .header("HTTP-Referer", "https://github.com/Banshal-Yadav/nir")
         .header("X-Title", "/nir");
 
     let request = request_builder

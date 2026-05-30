@@ -13,12 +13,7 @@ Zed's AI features run inside a native, GPU-accelerated application built in Rust
 
 - **Open source.** The editor and all AI features are [open source](https://github.com/zed-industries/zed). You can read how AI is implemented, how data flows to providers, and how tool calls execute.
 - **Multi-model.** Use Zed's hosted models or [bring your own API keys](./llm-providers.md) from Anthropic, OpenAI, Google, Ollama, and 8+ other providers. Run local models, connect to cloud APIs, or mix both. Switch models per task.
-- **External agents.** Run Claude Agent, Gemini CLI, Codex, and other CLI-based agents directly in Zed through the [Agent Client Protocol](https://zed.dev/acp). See [External Agents](./external-agents.md).
-- **Privacy by default.** AI data sharing is opt-in. When you use your own API keys, Zed maintains zero-data retention agreements with providers. See [Privacy and Security](./privacy-and-security.md).
-
-## Agentic editing
-
-The [Threads Sidebar](./parallel-agents.md#threads-sidebar) is where you organize agent work. Start a thread, give it a task, and the agent reads, edits, and runs code in your project. You can also open terminal threads directly in the sidebar alongside your agent threads. Run multiple agent threads and terminal threads at once, each using a different agent and working against different projects. See [Tools](./tools.md) for the capabilities available to Zed's built-in agent.
+- **External agents.** Run Claude Agent, Gemini CLI, Codex, and other CLI-based agents directly in Zed through the [Agent Client Protocol](https://github.com/Banshal-Yadav/nir's built-in agent.
 
 The [Agent Panel](./agent-panel.md) is the conversation view for the active thread. Use it to send prompts, review changes, add context, and interact with the agent as it works.
 
@@ -40,4 +35,4 @@ The default provider is Zeta, Zed's open-source model trained on open data. You 
 - [Subscription](./subscription.md): Zed's hosted models and billing.
 - [Privacy and Security](./privacy-and-security.md): How Zed handles data when using AI features.
 
-New to Zed? Start with [Getting Started](../getting-started.md), then come back here to set up AI. For a higher-level overview, see [zed.dev/ai](https://zed.dev/ai).
+New to Zed? Start with [Getting Started](../getting-started.md), then come back here to set up AI. For a higher-level overview, see [zed.dev/ai](https://github.com/Banshal-Yadav/nir

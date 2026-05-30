@@ -9,58 +9,7 @@ Zed is developed primarily on macOS, making it a first-class platform with full 
 
 ## Installing Zed
 
-Download Zed from the [download page](https://zed.dev/download). The download is a `.dmg` file—open it and drag Zed to your Applications folder.
-
-For the preview build, which receives updates about a week ahead of stable, visit the [preview releases page](https://zed.dev/releases/preview).
-
-After installation, Zed checks for updates automatically and prompts you when a new version is available.
-
-### Homebrew
-
-You can also install Zed using Homebrew:
-
-```sh
-brew install --cask zed
-```
-
-For the preview version:
-
-```sh
-brew install --cask zed@preview
-```
-
-### Building from Source
-
-To build Zed from source, see the [macOS development documentation](./development/macos.md).
-
-## System Requirements
-
-- macOS 10.15.7 (Catalina) or later
-- Apple Silicon (M1/M2/M3/M4) or Intel processor
-
-Zed uses Metal for GPU-accelerated rendering, which is available on all supported macOS versions.
-
-## Installing the CLI
-
-Zed includes a command-line tool for opening files and projects from Terminal. To install it:
-
-1. Open Zed
-2. Open the command palette with `Cmd+Shift+P`
-3. Run {#action cli::InstallCliBinary}
-
-This creates a `zed` command in `/usr/local/bin`. You can then open files and folders:
-
-```sh
-zed .                    # Open current folder
-zed file.txt             # Open a file
-zed project/ file.txt    # Open a folder and a file
-```
-
-See the [CLI Reference](./reference/cli.md) for all available options.
-
-## Uninstall
-
-1. Quit Zed if it's running
+Download Zed from the [download page](https://github.com/Banshal-Yadav/nir's running
 2. Drag Zed from Applications to the Trash
 3. Optionally, remove your settings and extensions:
 

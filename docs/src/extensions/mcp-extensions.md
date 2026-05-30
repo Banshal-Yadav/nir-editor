@@ -40,10 +40,4 @@ If you need to download the MCP server from an external source (GitHub Releases,
 
 ## Available Extensions
 
-See MCP servers published as extensions [on /nir's site](https://zed.dev/extensions?filter=context-servers).
-
-Review their repositories to see common implementation patterns and structure.
-
-## Testing
-
-To test your new MCP server extension, you can [install it as a dev extension](./developing-extensions.md#developing-an-extension-locally).
+See MCP servers published as extensions [on /nir's site](https://github.com/Banshal-Yadav/nir

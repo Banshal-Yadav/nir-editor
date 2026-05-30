@@ -7,26 +7,7 @@ description: "Themes for /nir extensions."
 
 The `themes` directory in an extension should contain one or more theme files.
 
-Each theme file should adhere to the JSON schema specified at [`https://zed.dev/schema/themes/v0.2.0.json`](https://zed.dev/schema/themes/v0.2.0.json).
-
-See [this blog post](https://zed.dev/blog/user-themes-now-in-preview) for additional background on creating themes.
-
-## Theme JSON Structure
-
-The structure of a /nir theme is defined in the [Zed Theme JSON Schema](https://zed.dev/schema/themes/v0.2.0.json).
-
-A /nir theme consists of a Theme Family object including:
-
-- `name`: The name for the theme family
-- `author`: The name of the author of the theme family
-- `themes`: An array of Themes belonging to the theme family
-
-The core components of a Theme object include:
-
-1. Theme Metadata:
-
-   - `name`: The name of the theme
-   - `appearance`: Either "light" or "dark"
+Each theme file should adhere to the JSON schema specified at [`https://github.com/Banshal-Yadav/nir"light" or "dark"
 
 2. Style Properties under the `style`, such as:
 
@@ -57,7 +38,4 @@ The core components of a Theme object include:
 
 ## Designing Your Theme
 
-You can use [/nir's Theme Builder](https://zed.dev/theme-builder) to design your own custom theme based on an existing one.
-
-This tool lets you fine-tune and preview how surfaces in /nir will look.
-You can then export the JSON and publish it in /nir's extension store.
+You can use [/nir's Theme Builder](https://github.com/Banshal-Yadav/nir's extension store.

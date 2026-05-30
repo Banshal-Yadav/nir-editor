@@ -42,9 +42,7 @@ use workspace::{
 };
 use zed_actions::{OpenBrowser, OpenSettingsAt};
 
-use crate::{
-    CaptureExample, RatePredictions, rate_prediction_modal::PredictEditsRatePredictionsFeatureFlag,
-};
+use crate::{RatePredictions, rate_prediction_modal::PredictEditsRatePredictionsFeatureFlag};
 
 actions!(
     edit_prediction,
@@ -56,7 +54,7 @@ actions!(
 
 const COPILOT_SETTINGS_PATH: &str = "/settings/copilot";
 const COPILOT_SETTINGS_URL: &str = concat!("https://github.com", "/settings/copilot");
-const PRIVACY_DOCS: &str = "https://zed.dev/docs/ai/privacy-and-security";
+const PRIVACY_DOCS: &str = "https://github.com/Banshal-Yadav/nir/wiki";
 
 struct CopilotErrorToast;
 
@@ -337,7 +335,7 @@ impl Render for EditPredictionButton {
                     .as_ref()
                     .map(|p| p.icons(cx))
                     .unwrap_or_else(|| {
-                        edit_prediction_types::EditPredictionIconSet::new(IconName::VoidPredict)
+                        edit_prediction_types::EditPredictionIconSet::new(IconName::NirPredict)
                     });
 
                 let ep_icon;
@@ -388,7 +386,7 @@ impl Render for EditPredictionButton {
                                     source = "Edit Prediction Status Button"
                                 );
                                 window.dispatch_action(
-                                    zed_actions::OpenVoidPredictOnboarding.boxed_clone(),
+                                    zed_actions::OpenNirPredictOnboarding.boxed_clone(),
                                     cx,
                                 );
                             })),
@@ -951,7 +949,7 @@ impl EditPredictionButton {
                 .as_ref()
                 .map(|p| p.icons(cx))
                 .unwrap_or_else(|| {
-                    edit_prediction_types::EditPredictionIconSet::new(IconName::VoidPredict)
+                    edit_prediction_types::EditPredictionIconSet::new(IconName::NirPredict)
                 });
             menu = menu.item(
                 ContextMenuEntry::new("This file is excluded.")
@@ -982,10 +980,7 @@ impl EditPredictionButton {
                 .context(editor_focus_handle)
                 .when(
                     cx.has_flag::<PredictEditsRatePredictionsFeatureFlag>(),
-                    |this| {
-                        this.action("Capture Prediction Example", CaptureExample.boxed_clone())
-                            .action("Rate Predictions", RatePredictions.boxed_clone())
-                    },
+                    |this| this.action("Rate Predictions", RatePredictions.boxed_clone()),
                 );
         }
 
@@ -1597,7 +1592,7 @@ fn render_zeta_tab_animation(cx: &App) -> impl IntoElement {
             8.,
         ))
         .child(tab_sequence(true))
-        .child(Icon::new(IconName::VoidPredict))
+        .child(Icon::new(IconName::NirPredict))
         .child(tab_sequence(false))
 }
 

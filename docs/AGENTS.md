@@ -117,20 +117,7 @@ Use bold labels for callouts:
 Images are hosted externally. Reference format:
 
 ```markdown
-![Alt text description](https://zed.dev/img/path/to/image.webp)
-```
-
-### Cross-Linking
-
-- Relative links for same-directory: `[Agent Panel](./agent-panel.md)`
-- With anchors: `[Custom Models](./llm-providers.md#anthropic-custom-models)`
-- Parent directory: `[Telemetry](../telemetry.md)`
-
-## Voice and Tone
-
-### Core Principles
-
-- **Practical over promotional**: Focus on what users can do, not on selling Zed. Avoid marketing language like "powerful," "revolutionary," or "best-in-class."
+![Alt text description](https://github.com/Banshal-Yadav/nir"powerful," "revolutionary," or "best-in-class."
 - **Honest about limitations**: When Zed lacks a feature or doesn't match another tool's depth, say so directly. Pair limitations with workarounds or alternative workflows.
 - **Direct and concise**: Use short sentences. Get to the point. Developers are scanning, not reading novels.
 - **Second person**: Address the reader as "you." Avoid "the user" or "one."

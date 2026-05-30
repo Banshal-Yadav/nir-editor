@@ -7,26 +7,7 @@ description: "The installation script on the download page is the fastest way to
 
 ## Standard Installation
 
-The installation script on the [download](https://zed.dev/download) page is the fastest way to install Zed:
-
-```sh
-curl -f https://zed.dev/install.sh | sh
-```
-
-We also offer a preview build of Zed which receives updates about a week ahead of stable. You can install it with:
-
-```sh
-curl -f https://zed.dev/install.sh | ZED_CHANNEL=preview sh
-```
-
-The Zed installed by the script works best on systems that:
-
-- have a Vulkan compatible GPU available (for example Linux on an M-series macBook)
-- have a system-wide glibc (NixOS and Alpine do not by default)
-  - x86_64 (Intel/AMD): glibc version >= 2.31 (Ubuntu 20 and newer)
-  - aarch64 (ARM): glibc version >= 2.35 (Ubuntu 22 and newer)
-
-Both Nix and Alpine have third-party Zed packages available (though they are currently a few weeks out of date). If you'd like to use our builds they do work if you install a glibc compatibility layer. On NixOS you can try [nix-ld](https://github.com/Mic92/nix-ld), and on Alpine [gcompat](https://wiki.alpinelinux.org/wiki/Running_glibc_programs).
+The installation script on the [download](https://github.com/Banshal-Yadav/nir'd like to use our builds they do work if you install a glibc compatibility layer. On NixOS you can try [nix-ld](https://github.com/Mic92/nix-ld), and on Alpine [gcompat](https://wiki.alpinelinux.org/wiki/Running_glibc_programs).
 
 You will need to build from source for:
 
