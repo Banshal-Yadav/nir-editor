@@ -107,11 +107,7 @@ Certain files are always excluded from edit predictions—regardless of opt-in s
 }
 ```
 
-Users may explicitly exclude additional paths and/or file extensions by adding them to [`edit_predictions.disabled_globs`](https://zed.dev/docs/reference/all-settings#edit-predictions) in their Zed settings file ([how to edit](../configuring-zed.md#settings-files)):
-
-```json [settings]
-{
-  "edit_predictions": {
+Users may explicitly exclude additional paths and/or file extensions by adding them to [`edit_predictions.disabled_globs`](https://github.com/Banshal-Yadav/nir/wiki"edit_predictions": {
     "disabled_globs": ["secret_dir/*", "**/*.log"]
   }
 }
@@ -135,4 +131,4 @@ We then use this training dataset to fine-tune [Qwen2.5-Coder-7B](https://huggin
 
 ## Applicable terms
 
-Please see the [Zed Terms of Service](https://zed.dev/terms) for more.
+Please see the [Zed Terms of Service](https://github.com/Banshal-Yadav/nir

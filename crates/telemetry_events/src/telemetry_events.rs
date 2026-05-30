@@ -1,4 +1,4 @@
-//! See [Telemetry in /nir](https://zed.dev/docs/telemetry) for additional information.
+//! See [Telemetry in /nir](https://github.com/Banshal-Yadav/nir/wiki) for additional information.
 
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -124,3 +124,4 @@ pub struct AssistantEventData {
     pub error_message: Option<String>,
     pub language_name: Option<String>,
 }
+

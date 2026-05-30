@@ -24,30 +24,7 @@ You can keep both work and side-project channels in the Collaboration Panel.
 
 Joining a channel adds you to a shared room where you can work on projects together.
 
-_Join [our channel tree](https://zed.dev/channel/zed-283) to get an idea of how you can organize yours._
-
-## Inviting People
-
-By default, channels you create can only be accessed by you.
-You can invite collaborators by right-clicking and selecting `Manage members`.
-
-When you have subchannels nested under others, permissions are inherited.
-For instance, adding people to the top-level channel in your channel tree will automatically give them access to its subchannels.
-
-Once you have added someone, they can either join your channel by clicking on it in their Collaboration Panel, or you can share the link to the channel so that they can join directly.
-
-## Voice Chat
-
-You can mute/unmute your microphone via the microphone icon in the upper right-hand side of the window.
-
-> **Note:** When joining a channel, Zed automatically shares your microphone with other users in the call, if your OS allows it. To start muted, use the [`mute_on_join`](../reference/all-settings.md#calls) setting.
-
-## Sharing Projects
-
-After joining a channel, you can share a project over the channel via the `Share` button in the upper right-hand side of the window.
-This will allow channel members to edit the code hosted on your machine as though they had it checked out locally.
-
-When you edit someone else's project, your editor features still work: jump to definition, use AI features, and view diagnostics.
+_Join [our channel tree](https://github.com/Banshal-Yadav/nir's project, your editor features still work: jump to definition, use AI features, and view diagnostics.
 For pairing, one person can implement while the other reads and validates nearby code.
 Because you keep your own local configuration, the session still feels like your normal setup.
 

@@ -1,12 +1,12 @@
 [package]
 description = "The fast AI coding platform and personal data management app."
 edition.workspace = true
-name = "void"
-version = "0.1.0"
+name = "nir"
+version = "1.6.0"
 publish.workspace = true
 license = "GPL-3.0-or-later"
-authors = ["Void Team"]
-default-run = "void"
+authors = ["/nir Team"]
+default-run = "nir"
 
 [lints]
 workspace = true
@@ -54,11 +54,11 @@ visual-tests = [
 ]
 
 [[bin]]
-name = "void"
+name = "nir"
 path = "src/main.rs"
 
 [[bin]]
-name = "void_visual_test_runner"
+name = "nir_visual_test_runner"
 path = "src/visual_test_runner.rs"
 required-features = ["visual-tests"]
 
@@ -68,6 +68,7 @@ activity_indicator.workspace = true
 agent.workspace = true
 agent-client-protocol.workspace = true
 agent_settings.workspace = true
+agent_skills.workspace = true
 agent_ui = { workspace = true, features = ["audio"] }
 anyhow.workspace = true
 askpass.workspace = true
@@ -155,7 +156,6 @@ menu.workspace = true
 migrator.workspace = true
 miniprofiler_ui.workspace = true
 mimalloc = { version = "0.1", optional = true }
-nc.workspace = true
 node_runtime.workspace = true
 notifications.workspace = true
 onboarding.workspace = true

@@ -416,6 +416,10 @@ impl<T: ButtonBuilder, const COLS: usize, const ROWS: usize> Component
         "ToggleButtonGroup"
     }
 
+    fn description() -> &'static str {
+        "A group of toggle buttons."
+    }
+
     fn scope() -> ComponentScope {
         ComponentScope::Input
     }
@@ -424,9 +428,8 @@ impl<T: ButtonBuilder, const COLS: usize, const ROWS: usize> Component
         "ButtonG"
     }
 
-    fn preview(_window: &mut Window, _cx: &mut App) -> Option<AnyElement> {
-        Some(
-            v_flex()
+    fn preview(_window: &mut Window, _cx: &mut App) -> AnyElement {
+        v_flex()
                 .gap_6()
                 .children(vec![example_group_with_title(
                     "Transparent Variant",
@@ -763,7 +766,6 @@ impl<T: ButtonBuilder, const COLS: usize, const ROWS: usize> Component
                     .selected_index(1)
                     .into_any_element(),
                 )])
-                .into_any_element(),
-        )
+                .into_any_element()
     }
 }

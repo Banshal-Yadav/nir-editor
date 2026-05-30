@@ -14,16 +14,11 @@ For day-to-day workflows, pair remote development with [Tasks](./tasks.md),
 
 Remote development requires two computers, your local machine that runs the Zed UI and the remote server which runs a Zed headless server. The two communicate over SSH, so you will need to be able to SSH from your local machine into the remote server to use this feature.
 
-![Architectural overview of Zed Remote Development](https://zed.dev/img/remote-development/diagram.png)
-
-On your local machine, Zed runs its UI, talks to language models, uses Tree-sitter to parse and syntax-highlight code, and store unsaved changes and recent projects. The source code, language servers, tasks, and the terminal all run on the remote server. [AI features](./ai/overview.md) work in remote sessions, including the Agent Panel and Inline Assistant.
-
-> **Note:** The original version of remote development sent traffic via Zed's servers. As of Zed v0.157 you can no-longer use that mode.
+![Architectural overview of Zed Remote Development](https://github.com/Banshal-Yadav/nir's servers. As of Zed v0.157 you can no-longer use that mode.
 
 ## Setup
 
-1. Download and install the latest [Zed](https://zed.dev/releases). You need at least Zed v0.159.
-1. Use {#kb projects::OpenRemote} to open the "Remote Projects" dialog.
+1. Download and install the latest [Zed](https://github.com/Banshal-Yadav/nir"Remote Projects" dialog.
 1. Click "Connect New Server" and enter the command you use to SSH into the server. See [Supported SSH options](#supported-ssh-options) for options you can pass.
 1. Your local machine will attempt to connect to the remote server using the `ssh` binary on your path. Assuming the connection is successful, Zed will download the server on the remote host and start it.
 1. Once the Zed server is running, you will be prompted to choose a path to open on the remote server.
@@ -222,25 +217,9 @@ Any prompts that SSH needs will be shown in the UI, so you can verify host keys,
 
 Once the master connection is established, Zed will check to see if the remote server binary is present in `~/.zed_server` on the remote, and that its version matches the current version of Zed that you're using.
 
-If it is not there or the version mismatches, Zed will try to download the latest version. By default, it will download from `https://zed.dev` directly, but if you set: `{"upload_binary_over_ssh":true}` in your settings for that server, it will download the binary to your local machine and then upload it to the remote server.
+If it is not there or the version mismatches, Zed will try to download the latest version. By default, it will download from `https://github.com/Banshal-Yadav/nir"upload_binary_over_ssh":true}` in your settings for that server, it will download the binary to your local machine and then upload it to the remote server.
 
-If you'd like to maintain the server binary yourself you can. You can either download our prebuilt versions from [GitHub](https://github.com/zed-industries/zed/releases), or [build your own](https://zed.dev/docs/development) with `cargo build -p remote_server --release`. If you do this, you must upload it to `~/.zed_server/zed-remote-server-{RELEASE_CHANNEL}-{VERSION}` on the server, for example `~/.zed_server/zed-remote-server-stable-0.217.3+stable.105.80433cb239e868271457ac376673a5f75bc4adb1`. The version must exactly match the version of Zed itself you are using.
-
-## Maintaining the SSH connection
-
-Once the server is initialized. Zed will create new SSH connections (reusing the existing ControlMaster) to run the remote development server.
-
-Each connection tries to run the development server in proxy mode. This mode will start the daemon if it is not running, and reconnect to it if it is. This way when your connection drops and is restarted, you can continue to work without interruption.
-
-In the case that reconnecting fails, the daemon will not be re-used. That said, unsaved changes are by default persisted locally, so that you do not lose work. You can always reconnect to the project at a later date and Zed will restore unsaved changes.
-
-If you are struggling with connection issues, you should be able to see more information in the Zed log `cmd-shift-p Open Log`. If you are seeing things that are unexpected, please file a [GitHub issue](https://github.com/zed-industries/zed/issues/new) or reach out in the #support forums on [Discord](https://zed.dev/community-links).
-
-## Supported SSH Options
-
-Under the hood, Zed shells out to the `ssh` binary to connect to the remote server. We create one SSH control master per project, and then use that to multiplex SSH connections for the Zed protocol itself, any terminals you open and tasks you run. We read settings from your SSH config file, but if you want to specify additional options to the SSH control master you can configure Zed to set them.
-
-When typing in the "Connect New Server" dialog, you can use bash-style quoting to pass options containing a space. Once you have created a server it will be added to the `"ssh_connections": []` array in your settings file. You can edit the settings file directly to make changes to SSH connections.
+If you'd like to maintain the server binary yourself you can. You can either download our prebuilt versions from [GitHub](https://github.com/zed-industries/zed/releases), or [build your own](https://github.com/Banshal-Yadav/nir/wiki"Connect New Server" dialog, you can use bash-style quoting to pass options containing a space. Once you have created a server it will be added to the `"ssh_connections": []` array in your settings file. You can edit the settings file directly to make changes to SSH connections.
 
 Supported options:
 
@@ -268,5 +247,4 @@ Note that we deliberately disallow some options (for example `-t` or `-T`) that 
 - [Configuring Zed](./configuring-zed.md): Manage shared and project settings,
   including `.zed/settings.json`.
 - [Agent Panel](./ai/agent-panel.md): Use AI workflows in remote projects.
-- [Remote Development on zed.dev](https://zed.dev/remote-development): Product
-  overview and release updates.
+- [Remote Development on zed.dev](https://github.com/Banshal-Yadav/nir

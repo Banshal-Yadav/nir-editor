@@ -380,15 +380,7 @@
       "shift-backspace": "agent::ArchiveSelectedThread",
     },
   },
-  {
-    "context": "RulesLibrary",
-    "bindings": {
-      "new": "rules_library::NewRule",
-      "ctrl-n": "rules_library::NewRule",
-      "ctrl-shift-s": "rules_library::ToggleDefaultRule",
-      "ctrl-w": "workspace::CloseWindow",
-    },
-  },
+
   {
     "context": "BufferSearchBar",
     "bindings": {
@@ -633,7 +625,7 @@
       "shift-new": "workspace::NewWindow",
       "ctrl-shift-n": "workspace::NewWindow",
       "ctrl-`": "terminal_panel::Toggle",
-      "f10": ["app_menu::OpenApplicationMenu", "Zed"],
+      "f10": ["app_menu::OpenApplicationMenu", "/nir"],
       "alt-1": ["workspace::ActivatePane", 0],
       "alt-2": ["workspace::ActivatePane", 1],
       "alt-3": ["workspace::ActivatePane", 2],
@@ -729,6 +721,7 @@
     "use_key_equivalents": true,
     "bindings": {
       "space": "menu::Confirm",
+      "shift-r": "agent::RenameSelectedThread",
     },
   },
   {
@@ -1557,6 +1550,7 @@
     "context": "SkillCreator",
     "bindings": {
       "ctrl-w": "workspace::CloseWindow",
+      "ctrl-enter": "skill_creator::SaveSkill",
       "tab": "skill_creator::FocusNextField",
       "shift-tab": "skill_creator::FocusPreviousField",
     },
@@ -1565,6 +1559,7 @@
     "context": "SkillCreator > Editor",
     "bindings": {
       "ctrl-w": "workspace::CloseWindow",
+      "ctrl-enter": "skill_creator::SaveSkill",
       "tab": "skill_creator::FocusNextField",
       "shift-tab": "skill_creator::FocusPreviousField",
     },

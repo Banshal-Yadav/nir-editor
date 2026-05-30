@@ -114,5 +114,4 @@ Recordings automatically save after 60 seconds if not stopped manually.
 
 - [CONTRIBUTING.md](https://github.com/zed-industries/zed/blob/main/CONTRIBUTING.md)
 - [Debugging Crashes](./development/debugging-crashes.md)
-- [Code of Conduct](https://zed.dev/code-of-conduct)
-- [Zed Contributor License](https://zed.dev/cla)
+- [Code of Conduct](https://github.com/Banshal-Yadav/nir

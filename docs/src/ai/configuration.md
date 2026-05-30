@@ -24,4 +24,4 @@ To disable all AI features, add the following to your settings file ([how to edi
 }
 ```
 
-See [this blog post](https://zed.dev/blog/disable-ai-features) for further context on this option.
+See [this blog post](https://github.com/Banshal-Yadav/nir

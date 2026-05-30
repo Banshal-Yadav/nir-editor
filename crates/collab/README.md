@@ -1,14 +1,6 @@
 # Zed Server
 
-This crate is what we run at https://collab.zed.dev.
-
-It contains our back-end logic for collaboration, to which we connect from the Zed client via a websocket after authenticating via https://zed.dev, which is a separate repo running on Vercel.
-
-# Local Development
-
-## Database setup
-
-Before you can run the collab server locally, you'll need to set up a zed Postgres database. Follow the steps sequentially:
+This crate is what we run at 'll need to set up a zed Postgres database. Follow the steps sequentially:
 
 1. Ensure you have postgres installed. If not, install with `brew install postgresql@15`.
 2. Follow the steps on Brew's formula and verify your `$PATH` contains `/opt/homebrew/opt/postgresql@15/bin`.
@@ -53,13 +45,4 @@ This script starts one to four instances of Zed, depending on the `-2`, `-3` or 
 We run two instances of collab:
 
 - Staging (https://staging-collab.zed.dev)
-- Production (https://collab.zed.dev)
-
-Both of these run on the Kubernetes cluster hosted in Digital Ocean.
-
-Deployment is triggered by pushing to the `collab-staging` (or `collab-production`) tag in GitHub. The best way to do this is:
-
-- `./script/deploy-collab staging`
-- `./script/deploy-collab production`
-
-You can tell what is currently deployed with `./script/what-is-deployed`.
+- Production (

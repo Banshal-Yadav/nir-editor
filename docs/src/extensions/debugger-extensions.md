@@ -113,10 +113,4 @@ Note however that you do _not_ need to go through a 2-phase resolution; if you c
 
 ## Available Extensions
 
-See DAP servers published as extensions [on Zed's site](https://zed.dev/extensions?filter=debug-adapters).
-
-Review their repositories to see common implementation patterns and structure.
-
-## Testing
-
-To test your new Debug Adapter Protocol server extension, you can [install it as a dev extension](./developing-extensions.md#developing-an-extension-locally).
+See DAP servers published as extensions [on Zed's site](https://github.com/Banshal-Yadav/nir

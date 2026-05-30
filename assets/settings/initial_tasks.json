@@ -1,9 +1,4 @@
-// Project tasks configuration. See https://zed.dev/docs/tasks for documentation.
-//
-// Example:
-[
-  {
-    "label": "Example task",
+// Project tasks configuration. See https://github.com/Banshal-Yadav/nir/wiki"label": "Example task",
     "command": "for i in {1..5}; do echo \"Hello $i/5\"; sleep 1; done",
     //"args": [],
     // Env overrides for the command, will be appended to the terminal's environment from the settings.

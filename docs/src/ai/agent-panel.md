@@ -15,24 +15,7 @@ Open it with {#action agent::NewThread} from [the Command Palette](../getting-st
 If you're using the Agent Panel for the first time, you need to have at least one LLM provider or external agent configured.
 You can do that by:
 
-1. [subscribing to our Pro plan](https://zed.dev/pricing), so you have access to our hosted models
-2. [using your own API keys](./llm-providers.md#use-your-own-keys), either from model providers like Anthropic or model gateways like OpenRouter.
-3. using an [external agent](./external-agents.md) like [Gemini CLI](./external-agents.md#gemini-cli) or [Claude Agent](./external-agents.md#claude-agent)
-
-## Overview {#overview}
-
-With an LLM provider or external agent configured, type in the message editor and press `enter` to submit.
-Expand the editor with {#kb agent::ExpandMessageEditor} if you need more room.
-
-Responses stream in with indicators showing [which tools](./tools.md) the model is using.
-The sections below cover what you can do from here.
-
-> Note that for external agents, like [Gemini CLI](./external-agents.md#gemini-cli) or [Claude Agent](./external-agents.md#claude-agent), some of the features outlined below may _not_ be supported—for example, _restoring threads from history_, _checkpoints_, _token usage display_, and others.
-> Their availability varies depending on the agent.
-
-### Creating New Threads {#new-thread}
-
-By default, the Agent Panel uses Zed's first-party agent.
+1. [subscribing to our Pro plan](https://github.com/Banshal-Yadav/nir's first-party agent.
 
 Start a new thread with {#kb agent::NewThread}, or open the "New Thread…" menu using the agent selector button on the left (in the empty state) or the `+` icon in the top-right of the panel toolbar. You can also open that menu with {#kb agent::ToggleNewThreadMenu}.
 
@@ -121,15 +104,7 @@ To see which files specifically have been edited, expand the accordion bar that 
 You can accept or reject each individual change hunk, or the whole set of changes made by the agent.
 
 Edit diffs can also appear inline in individual files with the same
-keep/reject hunk controls as the multi-buffer review pane. This temporarily overrides the buffer's git diff while review is active. Enable it by setting `agent.single_file_review` to `true` in your settings:
-
-```json
-{
-  "agent": {
-    "single_file_review": true
-  }
-}
-```
+keep/reject hunk controls as the multi-buffer review pane. This temporarily overrides the buffer's git diff while review is active. Enable it by setting `agent.single_file_review` to `true` in your settings.
 
 ## Terminal Threads {#terminal-threads}
 

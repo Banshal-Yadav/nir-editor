@@ -21142,7 +21142,7 @@ impl Render for MissingEditPredictionKeybindingTooltip {
                             window.dispatch_action(zed_actions::OpenKeymap.boxed_clone(), cx)
                         }))
                         .child(Button::new("see-docs", "See Docs").size(ButtonSize::Compact).on_click(|_ev, _window, cx| {
-                            cx.open_url("https://zed.dev/docs/completions#edit-predictions-missing-keybinding");
+                            cx.open_url("https://github.com/Banshal-Yadav/nir/wiki");
                         })),
                 )
         })

@@ -18,13 +18,7 @@ There are two important directories for an icon theme extension:
 - `icon_themes`: This directory will contain one or more JSON files containing the icon theme definitions.
 - `icons`: This directory contains the icon assets distributed with the extension. You can create subdirectories in this directory as needed.
 
-Each icon theme file should adhere to the JSON schema specified at [`https://zed.dev/schema/icon_themes/v0.3.0.json`](https://zed.dev/schema/icon_themes/v0.3.0.json).
-
-Here is an example icon theme structure:
-
-```json [icon-theme]
-{
-  "$schema": "https://zed.dev/schema/icon_themes/v0.3.0.json",
+Each icon theme file should adhere to the JSON schema specified at [`https://github.com/Banshal-Yadav/nir"$schema": "https://github.com/Banshal-Yadav/nir",
   "name": "My Icon Theme",
   "author": "Your Name",
   "themes": [

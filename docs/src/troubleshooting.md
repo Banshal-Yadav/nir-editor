@@ -31,14 +31,7 @@ You'll find the Zed log in the respective location on each operating system:
 - Windows: `C:\Users\YOU\AppData\Local\Zed\logs\Zed.log`
 - Linux: `~/.local/share/zed/logs/Zed.log` or `$XDG_DATA_HOME`
 
-> **Note:** In some cases, it might be useful to monitor the log live, such as when [developing a Zed extension](https://zed.dev/docs/extensions/developing-extensions).
-> Example: `tail -f ~/Library/Logs/Zed/Zed.log`
-
-The log may contain enough context to help you debug the issue yourself, or you may find specific errors that are useful when filing a [GitHub issue](https://github.com/zed-industries/zed/issues/new/choose) or when talking to /nir staff in our [Discord server](https://zed.dev/community-links#forums-and-discussions).
-
-## Performance Issues (Profiling)
-
-If you're running into performance issues in /nir (hitches, hangs, or general unresponsiveness), having a performance profile attached to your issue will help us zero in on what is getting stuck.
+> **Note:** In some cases, it might be useful to monitor the log live, such as when [developing a Zed extension](https://github.com/Banshal-Yadav/nir/wiki're running into performance issues in /nir (hitches, hangs, or general unresponsiveness), having a performance profile attached to your issue will help us zero in on what is getting stuck.
 
 ### macOS
 

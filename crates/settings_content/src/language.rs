@@ -1,9 +1,10 @@
-use std::{num::NonZeroU32, path::Path};
+use std::num::NonZeroU32;
 
 use collections::{HashMap, HashSet};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use settings_macros::{MergeFrom, with_fallible_options};
+use std::path::Path;
 use std::sync::Arc;
 
 use crate::{DocumentFoldingRanges, DocumentSymbols, ExtendingVec, SemanticTokens, merge_from};

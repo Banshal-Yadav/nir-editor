@@ -19,6 +19,7 @@ pub enum VectorName {
     ProUserStamp,
     StudentStamp,
     VoidLogo,
+    NirLogo,
     
     VoidXCopilot,
 }
@@ -107,66 +108,92 @@ impl Component for Vector {
         "Vector"
     }
 
-    fn description() -> Option<&'static str> {
-        Some("A vector image component that can be displayed at specific sizes.")
+    fn description() -> &'static str {
+        "A vector image component that can be displayed at specific sizes."
     }
 
-    fn preview(_window: &mut Window, _cx: &mut App) -> Option<AnyElement> {
+    fn preview(_window: &mut Window, _cx: &mut App) -> AnyElement {
         let size = rems_from_px(60.);
 
-        Some(
-            v_flex()
-                .gap_6()
-                .children(vec![
-                    example_group_with_title(
-                        "Basic Usage",
-                        vec![
-                            single_example(
-                                "Default",
-                                Vector::square(VectorName::VoidLogo, size).into_any_element(),
-                            ),
-                            single_example(
-                                "Custom Size",
-                                h_flex()
-                                    .h(rems_from_px(120.))
-                                    .justify_center()
-                                    .child(Vector::new(
-                                        VectorName::VoidLogo,
-                                        rems_from_px(120.),
-                                        rems_from_px(200.),
-                                    ))
-                                    .into_any_element(),
-                            ),
-                        ],
-                    ),
-                    example_group_with_title(
-                        "Colored",
-                        vec![
-                            single_example(
-                                "Accent Color",
-                                Vector::square(VectorName::VoidLogo, size)
-                                    .color(Color::Accent)
-                                    .into_any_element(),
-                            ),
-                            single_example(
-                                "Error Color",
-                                Vector::square(VectorName::VoidLogo, size)
-                                    .color(Color::Error)
-                                    .into_any_element(),
-                            ),
-                        ],
-                    ),
-                    example_group_with_title(
-                        "Different Vectors",
-                        vec![single_example(
-                            "Nir X Copilot",
-                            Vector::square(VectorName::VoidXCopilot, rems_from_px(100.))
+        v_flex()
+            .gap_6()
+            .children(vec![
+                example_group_with_title(
+                    "Basic Usage",
+                    vec![
+                        single_example(
+                            "Default",
+                            Vector::square(VectorName::VoidLogo, size).into_any_element(),
+                        ),
+                        single_example(
+                            "Custom Size",
+                            h_flex()
+                                .h(rems_from_px(120.))
+                                .justify_center()
+                                .child(Vector::new(
+                                    VectorName::VoidLogo,
+                                    rems_from_px(120.),
+                                    rems_from_px(200.),
+                                ))
                                 .into_any_element(),
-                        )],
-                    ),
-                ])
-                .into_any_element(),
-        )
+                        ),
+                        single_example(
+                            "Default (Nir)",
+                            Vector::square(VectorName::NirLogo, size).into_any_element(),
+                        ),
+                        single_example(
+                            "Custom Size (Nir)",
+                            h_flex()
+                                .h(rems_from_px(120.))
+                                .justify_center()
+                                .child(Vector::new(
+                                    VectorName::NirLogo,
+                                    rems_from_px(120.),
+                                    rems_from_px(200.),
+                                ))
+                                .into_any_element(),
+                        ),
+                    ],
+                ),
+                example_group_with_title(
+                    "Colored",
+                    vec![
+                        single_example(
+                            "Accent Color",
+                            Vector::square(VectorName::VoidLogo, size)
+                                .color(Color::Accent)
+                                .into_any_element(),
+                        ),
+                        single_example(
+                            "Error Color",
+                            Vector::square(VectorName::VoidLogo, size)
+                                .color(Color::Error)
+                                .into_any_element(),
+                        ),
+                        single_example(
+                            "Accent Color (Nir)",
+                            Vector::square(VectorName::NirLogo, size)
+                                .color(Color::Accent)
+                                .into_any_element(),
+                        ),
+                        single_example(
+                            "Error Color (Nir)",
+                            Vector::square(VectorName::NirLogo, size)
+                                .color(Color::Error)
+                                .into_any_element(),
+                        ),
+                    ],
+                ),
+                example_group_with_title(
+                    "Different Vectors",
+                    vec![single_example(
+                        "Nir X Copilot",
+                        Vector::square(VectorName::VoidXCopilot, rems_from_px(100.))
+                            .into_any_element(),
+                    )],
+                ),
+            ])
+            .into_any_element()
     }
 }
 

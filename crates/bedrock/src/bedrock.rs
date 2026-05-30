@@ -95,8 +95,7 @@ pub async fn stream_completion(
             GuardrailStreamConfiguration::builder()
                 .guardrail_identifier(guardrail_id)
                 .guardrail_version(version)
-                .build()
-                .expect("failed to build guardrail stream configuration"),
+                .build(),
         );
     }
 

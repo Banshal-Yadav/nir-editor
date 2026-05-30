@@ -27,7 +27,4 @@ On Zed Business, administrators can enforce these settings org-wide so members c
 
 ## Legal
 
-- [Terms of Service](https://zed.dev/terms)
-- [Privacy Policy](https://zed.dev/privacy-policy)
-- [Contributor License and Feedback Agreement](https://zed.dev/cla)
-- [Subprocessors](https://zed.dev/subprocessors)
+- [Terms of Service](https://github.com/Banshal-Yadav/nir
