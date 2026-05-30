@@ -2553,7 +2553,7 @@
   },
   // The server to connect to. If the environment variable
   // ZED_SERVER_URL is set, it will override this setting.
-  "server_url": "https://github.com/Banshal-Yadav/nir",
+  "server_url": "https://zed.dev",
   // Settings overrides to use when using Zed Preview.
   // Mostly useful for developers who are managing multiple instances of Zed.
   "preview": {
@@ -2672,13 +2672,13 @@
   // Each profile has an optional `base` ("user" or "default") and a `settings`
   // object. When `base` is "user" (the default), the profile applies on top of
   // your user settings. When `base` is "default", user settings are ignored and
-  // the /void settings
+  // the /nir settings
   //
-  // For information on how to configure /void, see the /void
-  // documentation: https://voideditor.com/docs/configuring-void
+  // For information on how to configure /nir, see the /nir
+  // documentation: https://github.com/Banshal-Yadav/nir/wiki
   //
-  // To see all of /void's default settings without changing your
-  // custom settings, run `void: open default settings` from the
+  // To see all of /nir's default settings without changing your
+  // custom settings, run `nir: open default settings` from the
   // command palette (cmd-shift-p / ctrl-shift-p)
   //
   // Examples:

@@ -211,11 +211,12 @@ impl HttpClientWithUrl {
     }
 
     /// Builds a /nir API URL using the given path.
+    /// Restored: extensions marketplace uses api.zed.dev; telemetry is gated separately.
     pub fn build_zed_api_url(&self, path: &str, query: &[(&str, &str)]) -> Result<Url> {
         let base_url = self.base_url();
         let base_api_url = match base_url.as_ref() {
-            "https://github.com/Banshal-Yadav/nir" => "", // TODO: Disable zed endpoints
-            "https://staging.zed.dev" => "", // TODO: Disable zed endpoints
+            "https://zed.dev" => "https://api.zed.dev",
+            "https://staging.zed.dev" => "https://api-staging.zed.dev",
             "http://localhost:3000" => "http://localhost:8080",
             other => other,
         };
@@ -227,11 +228,12 @@ impl HttpClientWithUrl {
     }
 
     /// Builds a /nir Cloud URL using the given path.
+    /// Restored: authentication (/client/users/connect, /client/users/me) requires this.
     pub fn build_zed_cloud_url(&self, path: &str) -> Result<Url> {
         let base_url = self.base_url();
         let base_api_url = match base_url.as_ref() {
-            "https://github.com/Banshal-Yadav/nir" => "", // TODO: Disable zed endpoints
-            "https://staging.zed.dev" => "", // TODO: Disable zed endpoints
+            "https://zed.dev" => "https://cloud.zed.dev",
+            "https://staging.zed.dev" => "https://cloud-staging.zed.dev",
             "http://localhost:3000" => "http://localhost:8787",
             other => other,
         };
@@ -240,11 +242,12 @@ impl HttpClientWithUrl {
     }
 
     /// Builds a /nir Cloud URL using the given path and query params.
+    /// Restored: authentication and auto-update checks require this.
     pub fn build_zed_cloud_url_with_query(&self, path: &str, query: impl Serialize) -> Result<Url> {
         let base_url = self.base_url();
         let base_api_url = match base_url.as_ref() {
-            "https://github.com/Banshal-Yadav/nir" => "", // TODO: Disable zed endpoints
-            "https://staging.zed.dev" => "", // TODO: Disable zed endpoints
+            "https://zed.dev" => "https://cloud.zed.dev",
+            "https://staging.zed.dev" => "https://cloud-staging.zed.dev",
             "http://localhost:3000" => "http://localhost:8787",
             other => other,
         };
