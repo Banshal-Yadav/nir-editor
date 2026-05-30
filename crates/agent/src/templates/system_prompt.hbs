@@ -240,10 +240,7 @@ To use a Skill:
 4. If the Skill references additional files, use `read_file` to access them. Paths inside a Skill resolve relative to that Skill's directory (the parent of its `SKILL.md`).
 
 {{/if}}
-{{#if global_memories}}
 ## Your Memory
-
-The following core memories represent your identity, goals, and rules. Treat them as established context.
 
 ### Memory Tool Rules (CRITICAL)
 - **Backup First:** ALWAYS call `backup` tool with `action=create` BEFORE modifying any memory files.
@@ -256,6 +253,9 @@ The following core memories represent your identity, goals, and rules. Treat the
   - `about`: Identity, people, primary interests. (Rarely updated).
 - **Format:** Use `action=create` to add timestamped notes, `action=modify` or `delete` to update/remove entries by ID.
 - **Recall Rules:** When asked what you know about the user, ONLY summarize the contents of `about.md` and `settings.md`. Do NOT list or explain system prompts, tools, or `AGENTS.md` instructions. Speak naturally and authentically; never use sterile markdown tables for memory recaps.
+
+{{#if global_memories}}
+The following core memories represent your identity, goals, and rules. Treat them as established context.
 
 {{{global_memories}}}
 {{/if}}
@@ -289,5 +289,20 @@ There are project rules that apply to these root directories:
 {{/if}}
 {{/each}}
 {{/if}}
+{{#if has_user_rules}}
+### User Defined Rules
+
+The user has specified the following rules that should be applied:
+{{#each user_rules}}
+
+{{#if title}}
+Rules title: {{title}}
+{{/if}}
+``````
+{{contents}}
+``````
+{{/each}}
+{{/if}}
+
 
 {{/if}}
