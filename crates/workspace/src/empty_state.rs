@@ -35,7 +35,7 @@ impl RenderOnce for EmptyState {
             .child(
                 div()
                     .opacity(0.1)
-                    .child(Vector::square(VectorName::VoidLogo, rems_from_px(100.)))
+                    .child(Vector::square(VectorName::NirLogo, rems_from_px(100.)))
             )
             .child(
                 v_flex()

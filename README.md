@@ -1,4 +1,4 @@
-# <img src="./assets/images/void_logo.svg" alt="/nir Logo" width="60" style="vertical-align: middle; margin-right: 12px;" /> <span style="font-size: 1.5em; vertical-align: middle;">/nir</span>
+# <img src="./assets/images/nir_logo.svg" alt="/nir Logo" width="60" style="vertical-align: middle; margin-right: 12px;" /> <span style="font-size: 1.5em; vertical-align: middle;">/nir</span>
 
 ### *The space between thought and execution.*
 

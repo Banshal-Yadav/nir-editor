@@ -2417,7 +2417,7 @@ impl MultiWorkspace {
                             .w_full()
                             .items_center()
                             .child(
-                                Vector::square(VectorName::VoidLogo, rems_from_px(24.))
+                                Vector::square(VectorName::NirLogo, rems_from_px(24.))
                             )
                             .child(
                                 div()

@@ -30,12 +30,12 @@ actions!(
 
 /// Custom /nir logo component with SVG and blinking cursor
 #[derive(IntoElement)]
-struct VoidLogo {
+struct NirLogo {
     #[allow(dead_code)]
     phantom: std::marker::PhantomData<()>,
 }
 
-impl VoidLogo {
+impl NirLogo {
     fn new(_cx: &App) -> Self {
         Self {
             phantom: std::marker::PhantomData,
@@ -43,7 +43,7 @@ impl VoidLogo {
     }
 }
 
-impl RenderOnce for VoidLogo {
+impl RenderOnce for NirLogo {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let cursor_animation = Animation::new(std::time::Duration::from_secs(1))
             .repeat()
@@ -148,7 +148,7 @@ impl Render for WelcomePage {
                             .border_color(border_color)
                             .items_center()
                             .justify_between()
-                            .child(VoidLogo::new(cx))
+                            .child(NirLogo::new(cx))
                             .child(
                                 Label::new("THINK. BUILD. SHIP.")
                                     .weight(FontWeight::BOLD)

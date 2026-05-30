@@ -1417,7 +1417,7 @@ fn open_about_window(cx: &mut App) {
                             .gap_2()
                             .items_center()
                             .child(
-                                Vector::square(VectorName::VoidLogo, rems_from_px(64.))
+                                Vector::square(VectorName::NirLogo, rems_from_px(64.))
                                     .color(Color::Default),
                             )
                             .child(Headline::new(self.message.clone()))
