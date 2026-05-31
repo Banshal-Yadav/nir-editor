@@ -7,8 +7,6 @@ use candle_nn::VarBuilder;
 use candle_transformers::models::whisper::{self as m, Config};
 use tokenizers::Tokenizer;
 
-const MODEL_REPO: &str = "openai/whisper-base.en";
-
 pub struct WhisperModel {
     pub is_loaded: bool,
     model: Option<m::model::Whisper>,
@@ -35,12 +33,11 @@ impl WhisperModel {
         let models_dir = home_dir.join(".nir").join("models").join("whisper");
         fs::create_dir_all(&models_dir)?;
 
-        let hf_base = format!("https://huggingface.co/{MODEL_REPO}/resolve/main");
-        let files: [(&str, String); 4] = [
-            ("model.safetensors", format!("{hf_base}/model.safetensors")),
-            ("config.json", format!("{hf_base}/config.json")),
-            ("tokenizer.json", format!("{hf_base}/tokenizer.json")),
-            ("melfilters.bytes", "https://github.com/huggingface/candle/raw/main/candle-examples/examples/whisper/melfilters.bytes".to_string()),
+        let files = [
+            ("model.safetensors", "https://huggingface.co/openai/whisper-base.en/resolve/main/model.safetensors"),
+            ("config.json", "https://huggingface.co/openai/whisper-base.en/resolve/main/config.json"),
+            ("tokenizer.json", "https://huggingface.co/openai/whisper-base.en/resolve/main/tokenizer.json"),
+            ("melfilters.bytes", "https://github.com/huggingface/candle/raw/main/candle-examples/examples/whisper/melfilters.bytes"),
         ];
 
         // Clean up any corrupted/empty/failed files (e.g. containing "Entry not found")
@@ -62,7 +59,7 @@ impl WhisperModel {
             return Ok(models_dir);
         }
 
-        log::info!("Downloading {MODEL_REPO} model...");
+        log::info!("Downloading Whisper base.en model...");
         
         let models_dir_clone = models_dir.clone();
         let handle = std::thread::spawn(move || -> Result<()> {
@@ -86,7 +83,7 @@ impl WhisperModel {
 
         handle.join().map_err(|_| anyhow!("Download thread panicked"))??;
 
-        log::info!("{MODEL_REPO} download complete!");
+        log::info!("Whisper model download complete!");
         Ok(models_dir)
     }
 
@@ -140,11 +137,12 @@ impl WhisperModel {
         log::info!("Preprocessing audio: {} samples at {}Hz, {} channels...", audio_buffer.len(), from_hz, channels);
         
         // 1. Resample and convert to mono (16kHz)
-        let processed_audio = resample_to_16k(audio_buffer, from_hz, channels);
-        log::info!("Processed audio has {} samples at 16kHz mono", processed_audio.len());
+        // 1. Resample and convert to mono (16kHz)
+        let mut processed_audio = resample_to_16k(audio_buffer, from_hz, channels);
+        let actual_audio_duration_secs = processed_audio.len() as f32 / 16000.0;
+        log::info!("Processed audio has {} samples at 16kHz mono ({:.2}s)", processed_audio.len(), actual_audio_duration_secs);
 
         // 2. Compute Mel spectrogram
-        // pcm_to_mel returns a Vec<f32> directly
         let mel = m::audio::pcm_to_mel(config, &processed_audio, mel_filters);
         let mel_len = mel.len();
         let mel = Tensor::from_vec(
@@ -160,22 +158,33 @@ impl WhisperModel {
         // 4. Token generation loop
         log::info!("Decoding tokens...");
         let sot_token = token_id(tokenizer, m::SOT_TOKEN)?;
-        let transcribe_token = token_id(tokenizer, m::TRANSCRIBE_TOKEN)?;
         let notimestamps_token = token_id(tokenizer, m::NO_TIMESTAMPS_TOKEN)?;
-        
-        let mut tokens = vec![sot_token, transcribe_token, notimestamps_token];
         let eot_token = token_id(tokenizer, m::EOT_TOKEN)?;
         
+        let mut tokens = vec![sot_token];
+        
+        // English-only models omit the task token from their vocabulary.
+        // Conditionally push it only if it's available in the tokenizer.
+        if let Some(transcribe_id) = tokenizer.token_to_id(m::TRANSCRIBE_TOKEN) {
+            tokens.push(transcribe_id);
+        }
+        
+        tokens.push(notimestamps_token);
+        
         let mut token_ids = Vec::new();
-        let audio_duration_secs = processed_audio.len() as f32 / 16000.0;
-        let max_steps = ((audio_duration_secs * 8.0) as usize).clamp(5, 100);
+        // Base limits on the *actual* audio duration, not the 30s padded length
+        let max_steps = ((actual_audio_duration_secs * 15.0) as usize).clamp(10, 400);
+        
+        let mut token_tensor = Tensor::new(tokens.as_slice(), &self.device)?.unsqueeze(0)?;
+        let mut flush_kv = true;
+        
         for step in 0..max_steps {
-            let token_tensor = Tensor::new(tokens.as_slice(), &self.device)?.unsqueeze(0)?;
-            let decoder_output = model.decoder.forward(&token_tensor, &audio_features, true)?;
+            let decoder_output = model.decoder.forward(&token_tensor, &audio_features, flush_kv)?;
             let logits = model.decoder.final_linear(&decoder_output)?;
             
-            // Get logits at last sequence step: shape [1, seq_len, vocab_size] -> narrow it
-            let logits = logits.narrow(1, tokens.len() - 1, 1)?.squeeze(0)?.squeeze(0)?;
+            // Get logits at last sequence step
+            let seq_len = decoder_output.dim(1)?;
+            let logits = logits.narrow(1, seq_len - 1, 1)?.squeeze(0)?.squeeze(0)?;
             
             // Greedy sampling: argmax
             let next_token = logits
@@ -192,6 +201,10 @@ impl WhisperModel {
             
             token_ids.push(next_token);
             tokens.push(next_token);
+            
+            // For subsequent steps, only pass the newly generated token and use the KV cache
+            token_tensor = Tensor::new(&[next_token], &self.device)?.unsqueeze(0)?;
+            flush_kv = false;
         }
 
         // 5. Decode token IDs into string
