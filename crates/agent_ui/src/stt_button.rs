@@ -67,7 +67,7 @@ impl SttButton {
                 };
 
                 if needs_download {
-                    log::info!("First run - Downloading STT models (39MB)... Please wait.");
+                    log::info!("First run - Downloading speech-to-text model... Please wait.");
                 }
 
                 let mut service = service_arc.lock().await;

@@ -7,6 +7,8 @@ use candle_nn::VarBuilder;
 use candle_transformers::models::whisper::{self as m, Config};
 use tokenizers::Tokenizer;
 
+const MODEL_REPO: &str = "openai/whisper-base.en";
+
 pub struct WhisperModel {
     pub is_loaded: bool,
     model: Option<m::model::Whisper>,
@@ -33,15 +35,16 @@ impl WhisperModel {
         let models_dir = home_dir.join(".nir").join("models").join("whisper");
         fs::create_dir_all(&models_dir)?;
 
-        let files = [
-            ("model.safetensors", "https://huggingface.co/openai/whisper-tiny.en/resolve/main/model.safetensors"),
-            ("config.json", "https://huggingface.co/openai/whisper-tiny.en/resolve/main/config.json"),
-            ("tokenizer.json", "https://huggingface.co/openai/whisper-tiny.en/resolve/main/tokenizer.json"),
-            ("melfilters.bytes", "https://github.com/huggingface/candle/raw/main/candle-examples/examples/whisper/melfilters.bytes"),
+        let hf_base = format!("https://huggingface.co/{MODEL_REPO}/resolve/main");
+        let files: [(&str, String); 4] = [
+            ("model.safetensors", format!("{hf_base}/model.safetensors")),
+            ("config.json", format!("{hf_base}/config.json")),
+            ("tokenizer.json", format!("{hf_base}/tokenizer.json")),
+            ("melfilters.bytes", "https://github.com/huggingface/candle/raw/main/candle-examples/examples/whisper/melfilters.bytes".to_string()),
         ];
 
         // Clean up any corrupted/empty/failed files (e.g. containing "Entry not found")
-        for (name, _) in files {
+        for (name, _) in &files {
             let path = models_dir.join(name);
             if path.exists() {
                 if let Ok(metadata) = fs::metadata(&path) {
@@ -59,7 +62,7 @@ impl WhisperModel {
             return Ok(models_dir);
         }
 
-        log::info!("Downloading Whisper tiny.en model (39MB)...");
+        log::info!("Downloading {MODEL_REPO} model...");
         
         let models_dir_clone = models_dir.clone();
         let handle = std::thread::spawn(move || -> Result<()> {
@@ -83,7 +86,7 @@ impl WhisperModel {
 
         handle.join().map_err(|_| anyhow!("Download thread panicked"))??;
 
-        log::info!("Whisper model download complete!");
+        log::info!("{MODEL_REPO} download complete!");
         Ok(models_dir)
     }
 
