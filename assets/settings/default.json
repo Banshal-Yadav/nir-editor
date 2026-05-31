@@ -1140,6 +1140,7 @@
           "brain_memory": true,
           "brain_backup": true,
           "scratchpad": true,
+          "recall_past_context": true,
         },
       },
       "ask": {
@@ -1164,6 +1165,7 @@
           "brain_memory": true,
           "brain_backup": true,
           "scratchpad": true,
+          "recall_past_context": true,
         },
       },
       "minimal": {

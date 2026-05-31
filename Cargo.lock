@@ -266,6 +266,7 @@ dependencies = [
  "language_models",
  "log",
  "lsp",
+ "nir_analytics",
  "parking_lot",
  "paths",
  "pretty_assertions",
@@ -292,6 +293,7 @@ dependencies = [
  "theme",
  "theme_settings",
  "thiserror 2.0.17",
+ "tokio",
  "ui",
  "unindent",
  "url",
@@ -12338,6 +12340,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "nir_analytics"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "rand 0.8.6",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "nix"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -17831,6 +17844,7 @@ dependencies = [
  "language",
  "log",
  "menu",
+ "nir_analytics",
  "paths",
  "picker",
  "platform_title_bar",

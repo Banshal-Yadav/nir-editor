@@ -39,6 +39,7 @@ itertools.workspace = true
 language.workspace = true
 log.workspace = true
 menu.workspace = true
+nir_analytics.workspace = true
 paths.workspace = true
 picker.workspace = true
 regex.workspace = true

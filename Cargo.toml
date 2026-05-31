@@ -139,6 +139,7 @@ members = [
     "crates/mistral",
     "crates/multi_buffer",
     "crates/net",
+    "crates/nir_analytics",
     "crates/node_runtime",
     "crates/notifications",
     "crates/oauth_callback_server",
@@ -400,6 +401,7 @@ mistral = { path = "crates/mistral" }
 multi_buffer = { path = "crates/multi_buffer" }
 miniprofiler_ui = { path = "crates/miniprofiler_ui" }
 net = { path = "crates/net" }
+nir_analytics = { path = "crates/nir_analytics" }
 node_runtime = { path = "crates/node_runtime" }
 notifications = { path = "crates/notifications" }
 oauth_callback_server = { path = "crates/oauth_callback_server" }

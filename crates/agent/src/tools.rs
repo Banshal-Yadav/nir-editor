@@ -15,6 +15,7 @@ mod get_code_actions_tool;
 mod go_to_definition_tool;
 mod grep_tool;
 mod list_directory_tool;
+mod recall_past_context_tool;
 mod brain_memory_tool;
 mod backup_tool;
 mod scratchpad_tool;
@@ -80,6 +81,7 @@ pub use brain_memory_tool::*;
 pub use backup_tool::*;
 pub use scratchpad_tool::*;
 pub use move_path_tool::*;
+pub use recall_past_context_tool::*;
 pub use read_file_tool::*;
 pub use rename_tool::*;
 pub use skill_tool::*;
@@ -187,4 +189,5 @@ tools! {
     UpdateTitleTool,
     WebSearchTool,
     WriteFileTool,
+    RecallPastContextTool,
 }

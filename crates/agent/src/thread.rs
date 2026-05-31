@@ -1,11 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use nir_analytics::{
+    should_execute_analysis, 
+    collect_unprocessed_log_lines, 
+    generate_analysis_prompt, 
+    process_analysis_response,
+    mark_analysis_failure
+};
+
 use crate::{
     ApplyCodeActionTool, CodeActionStore, ContextServerRegistry, CopyPathTool, CreateDirectoryTool,
     DbLanguageModel, DbThread, DeletePathTool, DiagnosticsTool, EditFileTool,
     FetchTool, FindPathTool, FindReferencesTool, GetCodeActionsTool, GoToDefinitionTool, GrepTool,
     ListDirectoryTool, MovePathTool, ProjectSnapshot, ReadFileTool, RenameTool,
-    BrainMemoryTool, BackupTool, ScratchpadTool, SpawnAgentTool, SystemPromptTemplate, Template, Templates, TerminalTool,
+    BrainMemoryTool, BackupTool, ScratchpadTool, RecallPastContextTool, SpawnAgentTool, SystemPromptTemplate, Template, Templates, TerminalTool,
     ToolPermissionDecision, UpdatePlanTool, UpdateTitleTool, WebSearchTool,
     WriteFileTool, decide_permission_from_settings,
 };
@@ -43,7 +51,7 @@ use language_model::{
     LanguageModelId, LanguageModelImage, LanguageModelProviderId, LanguageModelRegistry,
     LanguageModelRequest, LanguageModelRequestMessage, LanguageModelRequestTool,
     LanguageModelToolResult, LanguageModelToolResultContent, LanguageModelToolSchemaFormat,
-    LanguageModelToolUse, LanguageModelToolUseId, Role, SelectedModel, Speed, StopReason,
+    LanguageModelToolUse, LanguageModelToolUseId, MessageContent, Role, SelectedModel, Speed, StopReason,
     TokenUsage, ZED_CLOUD_PROVIDER_ID,
 };
 use project::Project;
@@ -61,7 +69,7 @@ use std::{
     ops::RangeInclusive,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::Arc,
+    sync::{Arc, Once},
     time::{Duration, Instant},
 };
 use util::{ResultExt, debug_panic, markdown::MarkdownCodeBlock, paths::PathStyle};
@@ -1002,6 +1010,8 @@ pub struct Thread {
     sandboxed_terminal_temp_dir: Option<PathBuf>,
 }
 
+static ANALYTICS_INIT: Once = Once::new();
+
 impl Thread {
     fn prompt_capabilities(model: Option<&dyn LanguageModel>) -> acp::PromptCapabilities {
         let image = model.map_or(true, |model| model.supports_images());
@@ -1724,7 +1734,7 @@ impl Thread {
         self.add_tool(BrainMemoryTool::new(self.project.clone()));
         self.add_tool(BackupTool::new(self.project.clone()));
         self.add_tool(ScratchpadTool::new(self.project.clone()));
-
+        self.add_tool(RecallPastContextTool);
         self.add_tool(DiagnosticsTool::new(self.project.clone()));
 
         let code_action_store: CodeActionStore = cx.new(|_cx| None);
@@ -1944,6 +1954,68 @@ impl Thread {
     where
         T: Into<UserMessageContent>,
     {
+        if let Some(active_model) = self.model() {
+            let model = active_model.clone();
+
+            ANALYTICS_INIT.call_once(|| {
+                log::info!("Nir Analytics: First active thread event detected. Initializing background worker loop.");
+                
+                let (tx, mut rx) = mpsc::unbounded::<(String, oneshot::Sender<Result<String>>)>();
+
+                cx.spawn(move |_, cx: &mut AsyncApp| {
+                    let cx = cx.clone();
+                    async move {
+                        use futures::StreamExt;
+                        while let Some((prompt, response_tx)) = rx.next().await {
+                            let model = model.clone();
+                            let messages = vec![LanguageModelRequestMessage {
+                                role: Role::User,
+                                content: vec![MessageContent::Text(prompt)],
+                                cache: false,
+                                reasoning_details: None,
+                            }];
+                            let request = LanguageModelRequest {
+                                thread_id: None,
+                                prompt_id: None,
+                                intent: None,
+                                messages,
+                                tools: Default::default(),
+                                tool_choice: None,
+                                stop: Vec::new(),
+                                temperature: Some(0.1),
+                                thinking_allowed: false,
+                                thinking_effort: None,
+                                speed: None,
+                            };
+                            let cx = cx.clone();
+                            let res = async move {
+                                let mut text_stream = model.stream_completion_text(request, &cx).await?;
+                                let mut response_text = String::new();
+                                while let Some(chunk) = text_stream.stream.next().await {
+                                    response_text.push_str(&chunk?);
+                                }
+                                anyhow::Ok(response_text)
+                            }.await;
+                            let _ = response_tx.send(res);
+                        }
+                    }
+                }).detach();
+
+                let tx = tx.clone();
+                let model_client_closure = move |prompt: String| {
+                    let tx = tx.clone();
+                    Box::pin(async move {
+                        let (response_tx, response_rx) = oneshot::channel::<Result<String>>();
+                        tx.unbounded_send((prompt, response_tx))
+                            .map_err(|_| anyhow::anyhow!("Main thread analytics listener dropped"))?;
+                        response_rx.await.map_err(|_| anyhow::anyhow!("Main thread response channel dropped"))?
+                    }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<String>> + Send>>
+                };
+
+                spawn_background_analytics_worker(model_client_closure);
+            });
+        }
+
         let content = content.into_iter().map(Into::into).collect::<Arc<_>>();
         log::debug!("Thread::send content: {:?}", content);
 
@@ -2047,6 +2119,63 @@ impl Thread {
                     Ok(()) => {
                         log::debug!("Turn execution completed");
                         event_stream.send_stop(acp::StopReason::EndTurn);
+
+                        _ = this.update(cx, |this, _| {
+                            let mut user_prompt_excerpt = String::new();
+                            let mut response_summary = String::new();
+
+                            let last_user_msg = this.messages.iter().rfind(|m| match ***m {
+                                Message::User(_) => true,
+                                _ => false,
+                            });
+                            if let Some(msg) = last_user_msg {
+                                if let Message::User(user_msg) = &**msg {
+                                    for content in &*user_msg.content {
+                                        if let UserMessageContent::Text(text) = content {
+                                            user_prompt_excerpt.push_str(text);
+                                            user_prompt_excerpt.push(' ');
+                                        }
+                                    }
+                                }
+                            }
+
+                            let last_agent_msg = this.messages.iter().rfind(|m| match ***m {
+                                Message::Agent(_) => true,
+                                _ => false,
+                            });
+                            if let Some(msg) = last_agent_msg {
+                                if let Message::Agent(agent_msg) = &**msg {
+                                    for content in &agent_msg.content {
+                                        if let AgentMessageContent::Text(text) = content {
+                                            response_summary.push_str(text);
+                                            response_summary.push(' ');
+                                        }
+                                    }
+                                }
+                            }
+
+                            let user_prompt_excerpt = if user_prompt_excerpt.is_empty() {
+                                "Unknown".to_string()
+                            } else {
+                                user_prompt_excerpt.chars().take(100).collect::<String>()
+                            };
+
+                            let response_summary = if response_summary.is_empty() {
+                                "Unknown".to_string()
+                            } else {
+                                response_summary.chars().take(100).collect::<String>()
+                            };
+
+                            let log_payload = format!(
+                                "Task Completed. Prompt: {} | Strategy: {}",
+                                user_prompt_excerpt.trim(),
+                                response_summary.trim()
+                            );
+
+                            if let Err(err) = nir_analytics::write_daily_log(&log_payload) {
+                                log::error!("Failed to append session telemetry log entry: {:?}", err);
+                            }
+                        });
                     }
                     Err(error) => {
                         log::error!("Turn execution failed: {:?}", error);
@@ -5100,4 +5229,65 @@ mod tests {
             assert!(last_message.tool_results.contains_key(&tool_use_id));
         })
     }
+}
+
+/// Spawns a background task to analyze workspace patterns and suggest tools.
+pub fn spawn_background_analytics_worker<C>(model_client: C) 
+where 
+    C: Send + Sync + 'static + Fn(String) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String>> + Send>>
+{
+    std::thread::spawn(move || {
+        let runtime = match tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build() 
+        {
+            Ok(rt) => rt,
+            Err(err) => {
+                log::error!("Failed to instantiate background analytics tokio runtime: {:?}", err);
+                return;
+            }
+        };
+
+        runtime.block_on(async move {
+            let last_foreground_success = Some(Utc::now()); 
+
+            match should_execute_analysis(last_foreground_success) {
+                Ok(true) => log::info!("Nir Analytics: Pre-flight cleared. Launching pattern analysis pass."),
+                Ok(false) => {
+                    log::info!("Nir Analytics: Pre-flight deferred (insufficient entry density or active backoff cooldown).");
+                    return;
+                },
+                Err(err) => {
+                    log::error!("Analytics state file access error during pre-flight evaluation: {:?}", err);
+                    return;
+                }
+            }
+
+            let unread_logs = match collect_unprocessed_log_lines(100) {
+                Ok(lines) if !lines.is_empty() => lines,
+                Ok(_) => return,
+                Err(err) => {
+                    log::error!("Failed to extract log segments from physical daily files: {:?}", err);
+                    return;
+                }
+            };
+
+            let analysis_prompt = generate_analysis_prompt(&unread_logs);
+
+            log::info!("Nir Analytics: Submitting logs to active model for background pattern evaluation.");
+            match model_client(analysis_prompt).await {
+                Ok(raw_json_response) => {
+                    match process_analysis_response(&raw_json_response) {
+                        Ok(Some(new_skill)) => log::info!("Nir Analytics Success: Synthesized new specialized tool: {}", new_skill),
+                        Ok(None) => log::info!("Nir Analytics: Processing completed cleanly. No recurrent workflow clusters detected."),
+                        Err(err) => log::error!("Analytics compilation engine rejected model response structure: {:?}", err),
+                    }
+                }
+                Err(err) => {
+                    log::error!("Network transaction failure during background model execution: {:?}", err);
+                    let _ = mark_analysis_failure();
+                }
+            }
+        });
+    });
 }

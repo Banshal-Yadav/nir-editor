@@ -1,6 +1,7 @@
 use agent_skills::{Skill, SkillIndex, encode_skill_share_link};
 use fs::RemoveOptions;
 use gpui::{Action as _, ClipboardItem, ScrollHandle, SharedString, prelude::*};
+use nir_analytics::{list_staged_proposals, approve_staged_skill, reject_staged_skill};
 
 use ui::{Divider, Tooltip, prelude::*};
 use util::ResultExt as _;
@@ -44,6 +45,12 @@ pub(crate) fn render_skills_setup_page(
     })
     .collect();
 
+    let pending_proposals = if matches!(settings_window.current_file, SettingsUiFile::User) {
+        list_staged_proposals().unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+
     v_flex()
         .id("skills-page")
         .size_full()
@@ -51,7 +58,7 @@ pub(crate) fn render_skills_setup_page(
         .px_8()
         .pb_16()
         .map(|this| {
-            if skills.is_empty() {
+            if skills.is_empty() && pending_proposals.is_empty() {
                 let message = match &settings_window.current_file {
                     SettingsUiFile::User => "No global skills installed.",
                     SettingsUiFile::Project(_) => "No project skills found.",
@@ -90,16 +97,35 @@ pub(crate) fn render_skills_setup_page(
                         ),
                 )
             } else {
+                let mut elements = Vec::new();
+                if !pending_proposals.is_empty() {
+                    elements.push(
+                        v_flex()
+                            .gap_3()
+                            .mb_6()
+                            .child(
+                                Label::new("✨ Discovered Skills (Pending Review)")
+                                    .size(LabelSize::Small),
+                            )
+                            .children(pending_proposals.iter().map(|proposal| {
+                                render_proposal_row(proposal, cx)
+                            }))
+                            .child(Divider::horizontal())
+                            .into_any_element()
+                    );
+                }
+                elements.extend(skills.iter().enumerate().flat_map(|(i, skill)| {
+                    let mut rows: Vec<AnyElement> =
+                        vec![render_skill_row(skill, settings_window, cx)];
+                    if i + 1 < skills.len() {
+                        rows.push(Divider::horizontal().into_any_element());
+                    }
+                    rows
+                }));
+
                 this.track_scroll(scroll_handle)
                     .overflow_y_scroll()
-                    .children(skills.iter().enumerate().flat_map(|(i, skill)| {
-                        let mut elements: Vec<AnyElement> =
-                            vec![render_skill_row(skill, settings_window, cx)];
-                        if i + 1 < skills.len() {
-                            elements.push(Divider::horizontal().into_any_element());
-                        }
-                        elements
-                    }))
+                    .children(elements)
             }
         })
         .into_any_element()
@@ -268,6 +294,59 @@ fn render_skill_row(
                             window.remove_window();
                         })),
                 ),
+        )
+        .into_any_element()
+}
+
+fn render_proposal_row(
+    proposal: &nir_analytics::StagedProposal,
+    cx: &mut Context<SettingsWindow>,
+) -> AnyElement {
+    let slug = proposal.slug.clone();
+    let slug_reject = proposal.slug.clone();
+
+    h_flex()
+        .w_full()
+        .justify_between()
+        .py_2p5()
+        .gap_4()
+        .child(
+            v_flex()
+                .gap_0p5()
+                .min_w_0()
+                .flex_1()
+                .child(Label::new(proposal.name.clone()))
+                .child(
+                    Label::new(proposal.description.clone())
+                        .size(LabelSize::Small)
+                        .color(Color::Muted),
+                ),
+        )
+        .child(
+            h_flex()
+                .gap_2()
+                .child(
+                    Button::new(SharedString::from(format!("approve-{}", slug)), "Approve & Enable")
+                        .tab_index(0_isize)
+                        .style(ButtonStyle::Filled)
+                        .size(ButtonSize::Medium)
+                        .on_click(cx.listener(move |_, _, _, cx| {
+                            if let Ok(()) = approve_staged_skill(&slug) {
+                                cx.notify();
+                            }
+                        }))
+                )
+                .child(
+                    Button::new(SharedString::from(format!("reject-{}", slug_reject)), "Reject")
+                        .tab_index(0_isize)
+                        .style(ButtonStyle::Outlined)
+                        .size(ButtonSize::Medium)
+                        .on_click(cx.listener(move |_, _, _, cx| {
+                            if let Ok(()) = reject_staged_skill(&slug_reject) {
+                                cx.notify();
+                            }
+                        }))
+                )
         )
         .into_any_element()
 }
