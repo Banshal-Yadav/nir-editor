@@ -282,7 +282,7 @@ Your past conversations, user preferences, and historical task decisions are aut
 
 {{#if (contains available_tools 'log_task_completion')}}
 ## Milestone Logging
-CRITICAL OPERATIONAL RULE: Upon completion of any engineering task or structural milestone, you MUST call the `log_task_completion` tool to record the work performed. This action is mandatory for maintaining cross-session telemetry and tracking active capabilities. Execute this autonomously without waiting for a user prompt.
+CRITICAL OPERATIONAL RULE: Upon completion of any engineering task or structural milestone, you MUST call the `log_task_completion` tool as your final action to record the work performed. This action is mandatory for maintaining cross-session telemetry and tracking active capabilities. Do not announce this action to the user or narrate its completion in your response.
 {{/if}}
 
 {{#if global_memories}}
