@@ -13,7 +13,7 @@ use crate::{
     DbLanguageModel, DbThread, DeletePathTool, DiagnosticsTool, EditFileTool,
     FetchTool, FindPathTool, FindReferencesTool, GetCodeActionsTool, GoToDefinitionTool, GrepTool,
     ListDirectoryTool, MovePathTool, ProjectSnapshot, ReadFileTool, RenameTool,
-    BrainMemoryTool, BackupTool, ScratchpadTool, RecallPastContextTool, SpawnAgentTool, SystemPromptTemplate, Template, Templates, TerminalTool,
+    BrainMemoryTool, BackupTool, ScratchpadTool, RecallPastContextTool, LogTaskTool, SpawnAgentTool, SystemPromptTemplate, Template, Templates, TerminalTool,
     ToolPermissionDecision, UpdatePlanTool, UpdateTitleTool, WebSearchTool,
     WriteFileTool, decide_permission_from_settings,
 };
@@ -1735,6 +1735,7 @@ impl Thread {
         self.add_tool(BackupTool::new(self.project.clone()));
         self.add_tool(ScratchpadTool::new(self.project.clone()));
         self.add_tool(RecallPastContextTool);
+        self.add_tool(LogTaskTool);
         self.add_tool(DiagnosticsTool::new(self.project.clone()));
 
         let code_action_store: CodeActionStore = cx.new(|_cx| None);
@@ -2166,15 +2167,6 @@ impl Thread {
                                 response_summary.chars().take(100).collect::<String>()
                             };
 
-                            let log_payload = format!(
-                                "Task Completed. Prompt: {} | Strategy: {}",
-                                user_prompt_excerpt.trim(),
-                                response_summary.trim()
-                            );
-
-                            if let Err(err) = nir_analytics::write_daily_log(&log_payload) {
-                                log::error!("Failed to append session telemetry log entry: {:?}", err);
-                            }
                         });
                     }
                     Err(error) => {

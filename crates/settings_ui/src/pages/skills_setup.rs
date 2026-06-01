@@ -1,9 +1,9 @@
+use agent::analytics::{approve_discovered_skill, reject_discovered_skill, SkillIndexEntry, SkillsIndex};
 use agent_skills::{Skill, SkillIndex, encode_skill_share_link};
-use fs::RemoveOptions;
 use gpui::{Action as _, ClipboardItem, ScrollHandle, SharedString, prelude::*};
-use nir_analytics::{list_staged_proposals, approve_staged_skill, reject_staged_skill};
+use std::fs;
 
-use ui::{Divider, Tooltip, prelude::*};
+use ui::{Divider, TintColor, Tooltip, prelude::*};
 use util::ResultExt as _;
 
 use crate::{SettingsUiFile, SettingsWindow};
@@ -45,8 +45,8 @@ pub(crate) fn render_skills_setup_page(
     })
     .collect();
 
-    let pending_proposals = if matches!(settings_window.current_file, SettingsUiFile::User) {
-        list_staged_proposals().unwrap_or_default()
+    let discovered_skills = if matches!(settings_window.current_file, SettingsUiFile::User) {
+        load_discovered_skills()
     } else {
         Vec::new()
     };
@@ -58,7 +58,7 @@ pub(crate) fn render_skills_setup_page(
         .px_8()
         .pb_16()
         .map(|this| {
-            if skills.is_empty() && pending_proposals.is_empty() {
+            if skills.is_empty() && discovered_skills.is_empty() {
                 let message = match &settings_window.current_file {
                     SettingsUiFile::User => "No global skills installed.",
                     SettingsUiFile::Project(_) => "No project skills found.",
@@ -97,31 +97,37 @@ pub(crate) fn render_skills_setup_page(
                         ),
                 )
             } else {
-                let mut elements = Vec::new();
-                if !pending_proposals.is_empty() {
+                let mut elements: Vec<AnyElement> = skills
+                    .iter()
+                    .enumerate()
+                    .flat_map(|(i, skill)| {
+                        let mut rows: Vec<AnyElement> =
+                            vec![render_skill_row(skill, settings_window, cx)];
+                        if i + 1 < skills.len() {
+                            rows.push(Divider::horizontal().into_any_element());
+                        }
+                        rows
+                    })
+                    .collect();
+
+                if matches!(settings_window.current_file, SettingsUiFile::User) {
                     elements.push(
                         v_flex()
+                            .mt_6()
                             .gap_3()
-                            .mb_6()
+                            .child(Divider::horizontal())
                             .child(
-                                Label::new("✨ Discovered Skills (Pending Review)")
+                                Label::new("Discovered Skills (Pending Review)")
                                     .size(LabelSize::Small),
                             )
-                            .children(pending_proposals.iter().map(|proposal| {
-                                render_proposal_row(proposal, cx)
-                            }))
-                            .child(Divider::horizontal())
-                            .into_any_element()
+                            .children(
+                                discovered_skills
+                                    .iter()
+                                    .map(|skill| render_discovered_skill_row(skill, cx)),
+                            )
+                            .into_any_element(),
                     );
                 }
-                elements.extend(skills.iter().enumerate().flat_map(|(i, skill)| {
-                    let mut rows: Vec<AnyElement> =
-                        vec![render_skill_row(skill, settings_window, cx)];
-                    if i + 1 < skills.len() {
-                        rows.push(Divider::horizontal().into_any_element());
-                    }
-                    rows
-                }));
 
                 this.track_scroll(scroll_handle)
                     .overflow_y_scroll()
@@ -129,6 +135,33 @@ pub(crate) fn render_skills_setup_page(
             }
         })
         .into_any_element()
+}
+
+fn load_discovered_skills() -> Vec<SkillIndexEntry> {
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .ok();
+
+    let Some(home_path) = home.map(std::path::PathBuf::from) else {
+        return Vec::new();
+    };
+
+    let index_path = home_path.join(".nir/brain/skills_index.json");
+    if !index_path.exists() {
+        return Vec::new();
+    }
+
+    let content = match fs::read_to_string(&index_path) {
+        Ok(content) => content,
+        Err(_) => return Vec::new(),
+    };
+
+    let index: SkillsIndex = match serde_json::from_str(&content) {
+        Ok(index) => index,
+        Err(_) => return Vec::new(),
+    };
+
+    index.discovered_skills
 }
 
 fn render_skill_row(
@@ -182,10 +215,8 @@ fn render_skill_row(
                         move |_settings_window, _event, _window, cx| {
                             let skill_file_path = share_skill_file_path.clone();
                             let directory_path = share_directory_path.clone();
-                            let app_state = workspace::AppState::global(cx);
-                            let fs = app_state.fs.clone();
                             cx.spawn(async move |settings_window, cx| {
-                                match fs.load(&skill_file_path).await {
+                                match std::fs::read_to_string(&skill_file_path) {
                                     Ok(content) => {
                                         let link = encode_skill_share_link(&content);
                                         settings_window
@@ -230,18 +261,12 @@ fn render_skill_row(
                             }
                             cx.notify();
 
-                            let app_state = workspace::AppState::global(cx);
-                            let fs = app_state.fs.clone();
                             cx.spawn(async move |settings_window, cx| {
-                                let remove_result = fs
-                                    .remove_dir(
-                                        &directory_path,
-                                        RemoveOptions {
-                                            recursive: true,
-                                            ignore_if_not_exists: true,
-                                        },
-                                    )
-                                    .await;
+                                let remove_result = if directory_path.exists() {
+                                    fs::remove_dir_all(&directory_path)
+                                } else {
+                                    Ok(())
+                                };
                                 if let Err(error) = remove_result {
                                     log::error!(
                                         "failed to delete skill directory {}: {error:#}",
@@ -298,55 +323,69 @@ fn render_skill_row(
         .into_any_element()
 }
 
-fn render_proposal_row(
-    proposal: &nir_analytics::StagedProposal,
+fn render_discovered_skill_row(
+    skill: &SkillIndexEntry,
     cx: &mut Context<SettingsWindow>,
 ) -> AnyElement {
-    let slug = proposal.slug.clone();
-    let slug_reject = proposal.slug.clone();
+    let slug = skill.name.clone();
+    let slug_reject = skill.name.clone();
+    let colors = cx.theme().colors();
 
-    h_flex()
+    v_flex()
         .w_full()
-        .justify_between()
-        .py_2p5()
-        .gap_4()
-        .child(
-            v_flex()
-                .gap_0p5()
-                .min_w_0()
-                .flex_1()
-                .child(Label::new(proposal.name.clone()))
-                .child(
-                    Label::new(proposal.description.clone())
-                        .size(LabelSize::Small)
-                        .color(Color::Muted),
-                ),
-        )
+        .p_2p5()
+        .gap_2()
+        .bg(colors.surface_background.opacity(0.15))
+        .border_1()
+        .border_color(colors.border)
+        .rounded_sm()
         .child(
             h_flex()
-                .gap_2()
+                .w_full()
+                .justify_between()
+                .gap_4()
                 .child(
-                    Button::new(SharedString::from(format!("approve-{}", slug)), "Approve & Enable")
-                        .tab_index(0_isize)
-                        .style(ButtonStyle::Filled)
-                        .size(ButtonSize::Medium)
-                        .on_click(cx.listener(move |_, _, _, cx| {
-                            if let Ok(()) = approve_staged_skill(&slug) {
-                                cx.notify();
-                            }
-                        }))
+                    v_flex()
+                        .gap_0p5()
+                        .min_w_0()
+                        .flex_1()
+                        .child(Label::new(skill.name.clone()))
+                        .child(
+                            Label::new(skill.description.clone())
+                                .size(LabelSize::Small)
+                                .color(Color::Muted),
+                        ),
                 )
                 .child(
-                    Button::new(SharedString::from(format!("reject-{}", slug_reject)), "Reject")
-                        .tab_index(0_isize)
-                        .style(ButtonStyle::Outlined)
-                        .size(ButtonSize::Medium)
-                        .on_click(cx.listener(move |_, _, _, cx| {
-                            if let Ok(()) = reject_staged_skill(&slug_reject) {
+                    h_flex()
+                        .gap_2()
+                        .child(
+                            Button::new(
+                                SharedString::from(format!("approve-{}", slug)),
+                                "Approve & Enable",
+                            )
+                            .tab_index(0_isize)
+                            .style(ButtonStyle::Tinted(TintColor::Success))
+                            .size(ButtonSize::Medium)
+                            .on_click(cx.listener(move |_, _, _, cx| {
+                                approve_discovered_skill(&slug).log_err();
                                 cx.notify();
-                            }
-                        }))
-                )
+                            })),
+                        )
+                        .child(
+                            Button::new(
+                                SharedString::from(format!("reject-{}", slug_reject)),
+                                "Reject",
+                            )
+                            .tab_index(0_isize)
+                            .style(ButtonStyle::Tinted(TintColor::Error))
+                            .size(ButtonSize::Medium)
+                            .on_click(cx.listener(move |_, _, _, cx| {
+                                reject_discovered_skill(&slug_reject).log_err();
+                                cx.notify();
+                            })),
+                        ),
+                ),
         )
         .into_any_element()
 }

@@ -1141,6 +1141,7 @@
           "brain_backup": true,
           "scratchpad": true,
           "recall_past_context": true,
+          "log_task_completion": true,
         },
       },
       "ask": {
@@ -1166,6 +1167,7 @@
           "brain_backup": true,
           "scratchpad": true,
           "recall_past_context": true,
+          "log_task_completion": true,
         },
       },
       "minimal": {
