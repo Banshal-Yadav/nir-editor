@@ -157,6 +157,7 @@ mod tests {
             model_name: Some("test-model".to_string()),
             date: "2026-01-01".to_string(),
             user_agents_md: None,
+            global_memories: None,
             sandboxing: false,
         };
         let templates = Templates::new();
@@ -188,6 +189,7 @@ mod tests {
             model_name: Some("test-model".to_string()),
             date: "2026-01-01".to_string(),
             user_agents_md: None,
+            global_memories: None,
             sandboxing: true,
         };
         let templates = Templates::new();
@@ -211,6 +213,7 @@ mod tests {
             model_name: Some("test-model".to_string()),
             date: "2026-01-01".to_string(),
             user_agents_md: None,
+            global_memories: None,
             sandboxing: true,
         };
         let templates = Templates::new();
@@ -246,6 +249,7 @@ mod tests {
             model_name: Some("test-model".to_string()),
             date: "2026-01-01".to_string(),
             user_agents_md: None,
+            global_memories: None,
             sandboxing: false,
         };
         let templates = Templates::new();

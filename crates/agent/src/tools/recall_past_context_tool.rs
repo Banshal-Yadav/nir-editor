@@ -1,6 +1,6 @@
 use std::fs;
 use std::sync::Arc;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use gpui::{App, SharedString, Task};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -55,49 +55,67 @@ impl AgentTool for RecallPastContextTool {
 }
 
 async fn execute_recall_past_context(input: RecallPastContextInput) -> Result<String> {
-    let home_str = std::env::var("USERPROFILE")
-        .or_else(|_| std::env::var("HOME"))
-        .context("Could not determine home directory from environment variables")?;
-    let log_dir = std::path::PathBuf::from(home_str).join(".nir").join("brain").join("logs");
+    // Strict ordering: USERPROFILE → HOME → `.` last resort; prevents shell-dependent isolation.
+    let home_dir = if let Ok(path) = std::env::var("USERPROFILE") {
+        std::path::PathBuf::from(path)
+    } else if let Ok(path) = std::env::var("HOME") {
+        std::path::PathBuf::from(path)
+    } else {
+        std::path::PathBuf::from(".")
+    };
+    let log_dir = home_dir.join(".nir").join("brain").join("logs");
     
     if !log_dir.exists() {
         return Ok("No historical logs found. Memory is currently empty.".to_string());
     }
 
     if input.last_session_fallback.unwrap_or(false) {
+        const MAX_FALLBACK_ENTRIES: usize = 15;
         let mut entries = fs::read_dir(&log_dir)?
             .filter_map(|e| e.ok())
             .filter(|e| e.path().extension().map_or(false, |ext| ext == "md"))
             .collect::<Vec<_>>();
-        
+
         entries.sort_by_key(|e| e.file_name());
         entries.reverse();
 
+        // Walk backward through historical daily files; keep walking on empty days
+        // and stop only when the cross-day cap of 15 entries is reached, so a sparse
+        // "today" never hides the rich history of previous days.
+        let mut collected: Vec<String> = Vec::new();
+
         for entry in entries {
+            if collected.len() >= MAX_FALLBACK_ENTRIES {
+                break;
+            }
             let path = entry.path();
-            if let Ok(content) = fs::read_to_string(&path) {
-                let log_lines: Vec<&str> = content.lines()
-                    .filter(|l| {
-                        let trimmed = l.trim();
-                        !trimmed.is_empty() && !trimmed.starts_with('#')
-                    })
-                    .collect();
+            let Ok(content) = fs::read_to_string(&path) else {
+                continue;
+            };
+            let date_str = path.file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("Unknown Date");
 
-                if !log_lines.is_empty() {
-                    let date_str = path.file_stem()
-                        .and_then(|s| s.to_str())
-                        .unwrap_or("Unknown Date");
+            let log_lines: Vec<&str> = content.lines()
+                .filter(|l| {
+                    let trimmed = l.trim();
+                    !trimmed.is_empty() && !trimmed.starts_with('#')
+                })
+                .collect();
 
-                    let start_idx = log_lines.len().saturating_sub(15);
-                    let selected = &log_lines[start_idx..];
-                    let formatted: Vec<String> = selected.iter()
-                        .map(|line| format!("[{}] {}", date_str, line))
-                        .collect();
-                    return Ok(formatted.join("\n"));
+            // Within a file, append order is reverse-chronological (newest line at EOF).
+            for line in log_lines.iter().rev() {
+                if collected.len() >= MAX_FALLBACK_ENTRIES {
+                    break;
                 }
+                collected.push(format!("[{}] {}", date_str, line));
             }
         }
-        return Ok("No historical logs found. Memory is currently empty.".to_string());
+
+        if collected.is_empty() {
+            return Ok("No historical logs found. Memory is currently empty.".to_string());
+        }
+        return Ok(collected.join("\n"));
     }
 
     let query = input.query.unwrap_or_default();

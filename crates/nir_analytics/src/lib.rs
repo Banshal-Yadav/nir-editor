@@ -13,14 +13,21 @@ pub struct LogEntry {
     pub content: String,
 }
 
+// Windows shells can isolate USERPROFILE vs HOME inconsistently across PowerShell/WSL/MSYS;
+// strict ordering + `.` fallback prevents telemetry from fragmenting to silent directories.
+fn resolve_home_dir() -> PathBuf {
+    if let Ok(path) = std::env::var("USERPROFILE") {
+        return PathBuf::from(path);
+    }
+    if let Ok(path) = std::env::var("HOME") {
+        return PathBuf::from(path);
+    }
+    PathBuf::from(".")
+}
+
 /// Resolves the logs directory path.
 fn get_logs_dir() -> Result<PathBuf> {
-    let mut home = match std::env::var("HOME") {
-        Ok(path) => PathBuf::from(path),
-        Err(_) => std::env::var("USERPROFILE")
-            .map(PathBuf::from)
-            .context("Failed to resolve home directory")?,
-    };
+    let mut home = resolve_home_dir();
     home.push(".nir");
     home.push("brain");
     home.push("logs");
@@ -224,16 +231,14 @@ pub fn count_unprocessed_entries(state: &AnalyticsState) -> Result<usize> {
     for entry in fs::read_dir(logs_dir)? {
         let entry = entry?;
         let path = entry.path();
-        
+
         if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
             if let Some(filename) = path.file_name().and_then(|f| f.to_str()) {
                 let processed_lines = state.processed_files.get(filename).cloned().unwrap_or(0);
-                let total_lines = count_file_lines(&path).unwrap_or(0);
-                
-                let actual_total_entries = if total_lines >= 2 { total_lines - 2 } else { 0 };
-                
-                if actual_total_entries > processed_lines {
-                    unprocessed_count += actual_total_entries - processed_lines;
+                let total_entries = count_file_lines(&path).unwrap_or(0);
+
+                if total_entries > processed_lines {
+                    unprocessed_count += total_entries - processed_lines;
                 }
             }
         }
@@ -242,46 +247,20 @@ pub fn count_unprocessed_entries(state: &AnalyticsState) -> Result<usize> {
     Ok(unprocessed_count)
 }
 
-/// Helper to count newlines in a file.
+/// Counts valid log entries: lines whose first non-whitespace character is `[`.
+/// Blank lines, trailing whitespace, headers, and malformed rows are excluded so
+/// the processed watermark tracks real entries instead of raw newline count.
 fn count_file_lines(path: &std::path::Path) -> Result<usize> {
-    let file = std::fs::File::open(path)?;
-    let mut reader = std::io::BufReader::new(file);
-    let mut count = 0;
-    let mut buffer = [0; 8192];
-
-    while let Ok(bytes_read) = reader.read(&mut buffer) {
-        if bytes_read == 0 {
-            break;
-        }
-        count += buffer[..bytes_read].iter().filter(|&&byte| byte == b'\n').count();
-    }
-
+    let content = std::fs::read_to_string(path)?;
+    let count = content
+        .lines()
+        .filter(|line| line.trim_start().starts_with('['))
+        .count();
     Ok(count)
 }
 
 /// Returns true if a background scan should be initiated.
-pub fn should_execute_analysis(last_foreground_success: Option<DateTime<Utc>>) -> Result<bool> {
-    let state = load_analytics_state()?;
-    
-    let unprocessed = count_unprocessed_entries(&state)?;
-    if unprocessed < 15 {
-        return Ok(false);
-    }
-
-    if let Some(failed_time) = state.failed_at_timestamp {
-        let api_is_actively_working = match last_foreground_success {
-            Some(last_success) => last_success > failed_time,
-            None => false,
-        };
-
-        if !api_is_actively_working {
-            let duration_since_failure = Utc::now().signed_duration_since(failed_time);
-            if duration_since_failure.num_hours() < 2 {
-                return Ok(false);
-            }
-        }
-    }
-
+pub fn should_execute_analysis(_last_foreground_success: Option<DateTime<Utc>>) -> Result<bool> {
     Ok(true)
 }
 
@@ -293,11 +272,10 @@ pub fn update_state_watermarks() -> Result<()> {
     for entry in fs::read_dir(logs_dir)? {
         let entry = entry?;
         let path = entry.path();
-        
+
         if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
             if let Some(filename) = path.file_name().and_then(|f| f.to_str()) {
-                let total_lines = count_file_lines(&path).unwrap_or(0);
-                let actual_entries = if total_lines >= 2 { total_lines - 2 } else { 0 };
+                let actual_entries = count_file_lines(&path).unwrap_or(0);
                 state.processed_files.insert(filename.to_string(), actual_entries);
             }
         }
@@ -305,7 +283,7 @@ pub fn update_state_watermarks() -> Result<()> {
 
     state.retry_count = 0;
     state.failed_at_timestamp = None;
-    
+
     save_analytics_state(&state)?;
     Ok(())
 }
@@ -391,12 +369,7 @@ struct AnalysisResponse {
 
 /// Resolves the staging directory for proposed skills.
 fn get_skills_dir() -> Result<PathBuf> {
-    let mut home = match std::env::var("HOME") {
-        Ok(path) => PathBuf::from(path),
-        Err(_) => std::env::var("USERPROFILE")
-            .map(PathBuf::from)
-            .context("Failed to resolve home directory")?,
-    };
+    let mut home = resolve_home_dir();
     home.push(".agents");
     home.push("proposals");
     fs::create_dir_all(&home).context("Failed to create skills staging directory")?;
@@ -405,7 +378,23 @@ fn get_skills_dir() -> Result<PathBuf> {
 
 /// Processes the model's pattern analysis response.
 pub fn process_analysis_response(raw_json: &str) -> Result<Option<String>> {
-    let parsed: AnalysisResponse = match serde_json::from_str(raw_json.trim()) {
+    let trimmed = raw_json.trim();
+    
+    let start = trimmed.find('{');
+    let end = trimmed.rfind('}');
+    
+    let clean_json = match (start, end) {
+        (Some(s), Some(e)) if e > s => &trimmed[s..=e],
+        _ => trimmed,
+    };
+
+    let normalized = clean_json.replace(" ", "").replace("\n", "").replace("\r", "");
+    if normalized == "{}" {
+        update_state_watermarks()?;
+        return Ok(None);
+    }
+
+    let parsed: AnalysisResponse = match serde_json::from_str(clean_json) {
         Ok(res) => res,
         Err(_) => {
             mark_analysis_failure()?;
@@ -455,6 +444,70 @@ status: proposal
     file.write_all(structured_payload.as_bytes()).context("Failed to commit formatted tool contents to storage disk")?;
 
     update_state_watermarks()?;
+
+    let home = resolve_home_dir();
+    let index_path = home.join(".nir/brain/skills_index.json");
+
+    if !index_path.exists() {
+        return Ok(Some(sanitized_name));
+    }
+
+    let index_content = fs::read_to_string(&index_path)
+        .context("Failed to read skills_index.json")?;
+    let mut json_val: serde_json::Value = serde_json::from_str(&index_content)
+        .context("Failed to parse skills_index.json")?;
+
+    let is_similar = |existing: &str, new_slug: &str| -> bool {
+        if existing == new_slug {
+            return true;
+        }
+        let existing_stems: std::collections::HashSet<String> = existing
+            .split('-')
+            .map(|w| w.chars().take(4).collect::<String>())
+            .collect();
+        let new_stems: std::collections::HashSet<String> = new_slug
+            .split('-')
+            .map(|w| w.chars().take(4).collect::<String>())
+            .collect();
+        existing_stems.intersection(&new_stems).count() >= 2
+    };
+
+    let already_indexed = json_val
+        .get("active_skills")
+        .and_then(|v| v.as_array())
+        .into_iter()
+        .flatten()
+        .chain(
+            json_val
+                .get("discovered_skills")
+                .and_then(|v| v.as_array())
+                .into_iter()
+                .flatten(),
+        )
+        .any(|s| {
+            s.get("name")
+                .and_then(|n| n.as_str())
+                .map_or(false, |name| is_similar(name, &sanitized_name))
+        });
+
+    if !already_indexed {
+        let discovered = json_val
+            .get_mut("discovered_skills")
+            .and_then(|v| v.as_array_mut())
+            .context("discovered_skills array missing from skills_index.json")?;
+
+        discovered.push(serde_json::json!({
+            "name": sanitized_name,
+            "description": description,
+            "last_used_timestamp": Utc::now().timestamp(),
+        }));
+
+        let updated_json = serde_json::to_string_pretty(&json_val)
+            .context("Failed to serialize skills_index.json")?;
+        fs::write(&index_path, updated_json)
+            .context("Failed to write skills_index.json")?;
+    }
+
     Ok(Some(sanitized_name))
 }
 
@@ -522,10 +575,7 @@ pub fn approve_staged_skill(slug: &str) -> Result<()> {
         return Err(anyhow::anyhow!("Target proposal folder does not exist"));
     }
 
-    let mut destination_dir = match std::env::var("HOME") {
-        Ok(path) => PathBuf::from(path),
-        Err(_) => std::env::var("USERPROFILE").map(PathBuf::from)?
-    };
+    let mut destination_dir = resolve_home_dir();
     destination_dir.push(".agents");
     destination_dir.push("skills");
     fs::create_dir_all(&destination_dir)?;
