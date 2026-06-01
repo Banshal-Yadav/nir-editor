@@ -3,7 +3,7 @@ use agent_skills::{Skill, SkillIndex, encode_skill_share_link};
 use gpui::{Action as _, ClipboardItem, ScrollHandle, SharedString, prelude::*};
 use std::fs;
 
-use ui::{Divider, TintColor, Tooltip, prelude::*};
+use ui::{Divider, IconButtonShape, TintColor, Tooltip, prelude::*};
 use util::ResultExt as _;
 
 use crate::{SettingsUiFile, SettingsWindow};
@@ -16,9 +16,6 @@ pub(crate) fn render_skills_setup_page(
 ) -> AnyElement {
     let skill_index = cx.try_global::<SkillIndex>();
 
-    // Pick skills that match the current settings file tab:
-    // - User tab → global skills only
-    // - Project tab → project-local skills for that worktree only
     let skills: Vec<Skill> = match &settings_window.current_file {
         SettingsUiFile::User => skill_index
             .map(|idx| idx.global_skills.clone())
@@ -97,37 +94,69 @@ pub(crate) fn render_skills_setup_page(
                         ),
                 )
             } else {
-                let mut elements: Vec<AnyElement> = skills
-                    .iter()
-                    .enumerate()
-                    .flat_map(|(i, skill)| {
-                        let mut rows: Vec<AnyElement> =
-                            vec![render_skill_row(skill, settings_window, cx)];
-                        if i + 1 < skills.len() {
-                            rows.push(Divider::horizontal().into_any_element());
-                        }
-                        rows
-                    })
-                    .collect();
+                let mut elements: Vec<AnyElement> = Vec::new();
 
                 if matches!(settings_window.current_file, SettingsUiFile::User) {
-                    elements.push(
-                        v_flex()
-                            .mt_6()
-                            .gap_3()
-                            .child(Divider::horizontal())
+                    let mut discovered_section = v_flex().gap_3().child(
+                        h_flex()
+                            .gap_1()
+                            .items_center()
                             .child(
                                 Label::new("Discovered Skills (Pending Review)")
                                     .size(LabelSize::Small),
                             )
-                            .children(
-                                discovered_skills
-                                    .iter()
-                                    .map(|skill| render_discovered_skill_row(skill, cx)),
-                            )
-                            .into_any_element(),
+                            .child(
+                                IconButton::new(
+                                    "discovered-skills-info",
+                                    IconName::Info,
+                                )
+                                .icon_size(IconSize::XSmall)
+                                .icon_color(Color::Muted)
+                                .shape(IconButtonShape::Square)
+                                .style(ButtonStyle::Transparent)
+                                .tooltip(Tooltip::text(
+                                    "Skills the engine learned from your past work. They appear when a task repeats often or runs into trouble.",
+                                ))
+                                .on_click(|_, _, _| {}),
+                            ),
                     );
+
+                    if discovered_skills.is_empty() {
+                        discovered_section = discovered_section.child(
+                            div().pb_2().child(
+                                Label::new("None.")
+                                    .size(LabelSize::Small)
+                                    .color(Color::Muted),
+                            ),
+                        );
+                    } else {
+                        discovered_section = discovered_section.children(
+                            discovered_skills
+                                .iter()
+                                .map(|skill| render_discovered_skill_row(skill, cx)),
+                        );
+                    }
+
+                    elements.push(discovered_section.into_any_element());
+
+                    if !skills.is_empty() {
+                        elements.push(Divider::horizontal().into_any_element());
+                    }
                 }
+
+                elements.extend(
+                    skills
+                        .iter()
+                        .enumerate()
+                        .flat_map(|(i, skill)| {
+                            let mut rows: Vec<AnyElement> =
+                                vec![render_skill_row(skill, settings_window, cx)];
+                            if i + 1 < skills.len() {
+                                rows.push(Divider::horizontal().into_any_element());
+                            }
+                            rows
+                        }),
+                );
 
                 this.track_scroll(scroll_handle)
                     .overflow_y_scroll()
