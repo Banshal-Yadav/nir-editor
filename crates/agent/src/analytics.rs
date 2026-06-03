@@ -727,6 +727,9 @@ fn extract_category(summary: &str) -> String {
         || s.contains("philosophical") || s.contains("zen") || s.contains("vipassana")
         || s.contains("dharma") || s.contains("taoism") || s.contains("introspection")
         || s.contains("reflection") || s.contains("wisdom") || s.contains("happiness")
+        || s.contains("camus") || s.contains("sartre") || s.contains("kierkegaard")
+        || s.contains("schopenhauer") || s.contains("existentialism") || s.contains("absurdism")
+        || s.contains("nihilism") || s.contains("stoicism") || s.contains("spirituality")
     {
         return "philosophy".to_string();
     }
@@ -747,8 +750,41 @@ fn extract_category(summary: &str) -> String {
         || s.contains("sql") || s.contains("database") || s.contains("docker")
         || s.contains("kubernetes") || s.contains("frontend") || s.contains("backend")
         || s.contains("bug") || s.contains("feature") || s.contains("test")
+        || s.contains("java") || s.contains("csharp") || s.contains("c#")
+        || s.contains("ruby") || s.contains("swift") || s.contains("kotlin")
+        || s.contains("haskell") || s.contains("scala") || s.contains("golang")
+        || s.contains("php") || s.contains("elixir") || s.contains("bash")
+        || s.contains("powershell") || s.contains("sh ") || s.contains("zsh")
+        || s.contains("postgres") || s.contains("mysql") || s.contains("sqlite")
+        || s.contains("redis") || s.contains("mongodb") || s.contains("graphql")
+        || s.contains("grpc") || s.contains("webhook") || s.contains("websocket")
+        || s.contains("debugging") || s.contains("refactored") || s.contains("implemented")
+        || s.contains("compiler") || s.contains("ast") || s.contains("parser")
+        || s.contains("regex") || s.contains("formatter") || s.contains("linter")
+        || s.contains("dependency") || s.contains("package") || s.contains("framework")
+        || s.contains("library") || s.contains("endpoint") || s.contains("server")
+        || s.contains("client") || s.contains("ci/cd") || s.contains("pipeline")
+        || s.contains("concurrency") || s.contains("asynchronous") || s.contains("thread")
+        || s.contains("testing") || s.contains("integration test") || s.contains("regression")
     {
         return "coding".to_string();
+    }
+
+    // Academics, studying & learning
+    if s.contains("study") || s.contains("studying") || s.contains("learn")
+        || s.contains("learning") || s.contains("read ") || s.contains("reading")
+        || s.contains("exam ") || s.contains("exams") || s.contains("syllabus")
+        || s.contains("semester") || s.contains("lecture") || s.contains("course")
+        || s.contains("subject") || s.contains("academic") || s.contains("university")
+        || s.contains("college") || s.contains("school") || s.contains("homework")
+        || s.contains("assignment") || s.contains("revision") || s.contains("revise")
+        || s.contains("tutorial") || s.contains("math") || s.contains("science")
+        || s.contains("physics") || s.contains("chemistry") || s.contains("biology")
+        || s.contains("cse") || s.contains("computer science") || s.contains("curriculum")
+        || s.contains("preparation") || s.contains("prepare") || s.contains("textbook")
+        || s.contains("education") || s.contains("tutorial") || s.contains("concept")
+    {
+        return "study".to_string();
     }
 
     // Nir / agent tooling
@@ -758,6 +794,7 @@ fn extract_category(summary: &str) -> String {
         || s.contains("prompt") || s.contains("llm") || s.contains("assistant")
         || s.contains("copilot") || s.contains("telemetry") || s.contains("ide")
         || s.contains("editor") || s.contains("zed") || s.contains("workspace")
+        || s.contains("mcp") || s.contains("agentic") || s.contains("rag")
     {
         return "dev-tools".to_string();
     }
@@ -769,6 +806,9 @@ fn extract_category(summary: &str) -> String {
         || s.contains("meds") || s.contains("medicine") || s.contains("doctor")
         || s.contains("therapy") || s.contains("anxiety") || s.contains("depression")
         || s.contains("mental") || s.contains("symptom") || s.contains("yoga")
+        || s.contains("sagnik") || s.contains("pantocid") || s.contains("nexito")
+        || s.contains("lonazep") || s.contains("oleanz") || s.contains("psychiatrist")
+        || s.contains("cardio") || s.contains("calm") || s.contains("stress")
     {
         return "health".to_string();
     }
@@ -779,7 +819,9 @@ fn extract_category(summary: &str) -> String {
         || s.contains("essay") || s.contains("draft") || s.contains("blog")
         || s.contains("readme") || s.contains("docs") || s.contains("documentation")
         || s.contains("slack") || s.contains("discord") || s.contains("meeting")
-        || s.contains("presentation") || s.contains("feedback")
+        || s.contains("presentation") || s.contains("feedback") || s.contains("journal")
+        || s.contains("notes") || s.contains("diary") || s.contains("summary")
+        || s.contains("summarize") || s.contains("comment") || s.contains("chat")
     {
         return "writing".to_string();
     }
