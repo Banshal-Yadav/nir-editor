@@ -730,6 +730,14 @@ fn extract_category(summary: &str) -> String {
         || s.contains("camus") || s.contains("sartre") || s.contains("kierkegaard")
         || s.contains("schopenhauer") || s.contains("existentialism") || s.contains("absurdism")
         || s.contains("nihilism") || s.contains("stoicism") || s.contains("spirituality")
+        || s.contains("stoics") || s.contains("buddhism") || s.contains("mindful")
+        || s.contains("enlighten") || s.contains("meditative") || s.contains("morals")
+        || s.contains("morality") || s.contains("foucault") || s.contains("derrida")
+        || s.contains("hegel") || s.contains("subjective") || s.contains("objective")
+        || s.contains("determinism") || s.contains("free will") || s.contains("utilitarianism")
+        || s.contains("deontology") || s.contains("rationalism") || s.contains("empiricism")
+        || s.contains("idealism") || s.contains("realism") || s.contains("phenomenology")
+        || s.contains("ontology") || s.contains("metaphysical")
     {
         return "philosophy".to_string();
     }
@@ -766,6 +774,30 @@ fn extract_category(summary: &str) -> String {
         || s.contains("client") || s.contains("ci/cd") || s.contains("pipeline")
         || s.contains("concurrency") || s.contains("asynchronous") || s.contains("thread")
         || s.contains("testing") || s.contains("integration test") || s.contains("regression")
+        || s.contains("clippy") || s.contains("rustfmt") || s.contains("rustc")
+        || s.contains("poetry") || s.contains("conda") || s.contains("pip ")
+        || s.contains("npm") || s.contains("yarn") || s.contains("pnpm")
+        || s.contains("deno") || s.contains("bun") || s.contains("react")
+        || s.contains("vue") || s.contains("svelte") || s.contains("nextjs")
+        || s.contains("tailwind") || s.contains("bootstrap") || s.contains("cmake")
+        || s.contains("makefile") || s.contains("gradle") || s.contains("maven")
+        || s.contains("k8s") || s.contains("helm") || s.contains("aws")
+        || s.contains("lambda") || s.contains("gcp") || s.contains("firebase")
+        || s.contains("nginx") || s.contains("redis") || s.contains("protobuf")
+        || s.contains("jsonl") || s.contains("toml") || s.contains("yml")
+        || s.contains("xml") || s.contains("csv") || s.contains("mutex")
+        || s.contains("lock") || s.contains("algorithm") || s.contains("data structure")
+        || s.contains("hashmap") || s.contains("pointer") || s.contains("memory allocation")
+        || s.contains("rebase") || s.contains("stash") || s.contains("cherry-pick")
+        || s.contains("deploy") || s.contains("production") || s.contains("staging")
+        || s.contains("env ") || s.contains("config") || s.contains("decorator")
+        || s.contains("macro") || s.contains("design pattern") || s.contains("routing")
+        || s.contains("middleware") || s.contains("authentication") || s.contains("authorization")
+        || s.contains("oauth") || s.contains("jwt") || s.contains("serialize")
+        || s.contains("deserialize") || s.contains("migration") || s.contains("transaction")
+        || s.contains("orm") || s.contains("logging") || s.contains("panic")
+        || s.contains("exception") || s.contains("error handling") || s.contains("deadlock")
+        || s.contains("race condition") || s.contains("segfault") || s.contains("memory leak")
     {
         return "coding".to_string();
     }
@@ -783,6 +815,15 @@ fn extract_category(summary: &str) -> String {
         || s.contains("cse") || s.contains("computer science") || s.contains("curriculum")
         || s.contains("preparation") || s.contains("prepare") || s.contains("textbook")
         || s.contains("education") || s.contains("tutorial") || s.contains("concept")
+        || s.contains("notetaking") || s.contains("flashcard") || s.contains("anki")
+        || s.contains("memorize") || s.contains("understanding") || s.contains("summarize")
+        || s.contains("explaining") || s.contains("teaching") || s.contains("professor")
+        || s.contains("teacher") || s.contains("grades") || s.contains("marks")
+        || s.contains("degree") || s.contains("thesis") || s.contains("research")
+        || s.contains("quiz") || s.contains("midterm") || s.contains("final exam")
+        || s.contains("gpa") || s.contains("classwork") || s.contains("formula")
+        || s.contains("equation") || s.contains("theorem") || s.contains("proof")
+        || s.contains("calculation") || s.contains("calculus") || s.contains("algebra")
     {
         return "study".to_string();
     }
@@ -795,6 +836,7 @@ fn extract_category(summary: &str) -> String {
         || s.contains("copilot") || s.contains("telemetry") || s.contains("ide")
         || s.contains("editor") || s.contains("zed") || s.contains("workspace")
         || s.contains("mcp") || s.contains("agentic") || s.contains("rag")
+        || s.contains("context server") || s.contains("recollections")
     {
         return "dev-tools".to_string();
     }
@@ -809,6 +851,12 @@ fn extract_category(summary: &str) -> String {
         || s.contains("sagnik") || s.contains("pantocid") || s.contains("nexito")
         || s.contains("lonazep") || s.contains("oleanz") || s.contains("psychiatrist")
         || s.contains("cardio") || s.contains("calm") || s.contains("stress")
+        || s.contains("hydration") || s.contains("stretch") || s.contains("lifting")
+        || s.contains("weights") || s.contains("running") || s.contains("jogging")
+        || s.contains("walking") || s.contains("steps") || s.contains("heart rate")
+        || s.contains("bpm") || s.contains("headache") || s.contains("fatigue")
+        || s.contains("energy") || s.contains("supplement") || s.contains("protein")
+        || s.contains("carbs") || s.contains("fat ") || s.contains("recovery")
     {
         return "health".to_string();
     }
@@ -822,6 +870,11 @@ fn extract_category(summary: &str) -> String {
         || s.contains("presentation") || s.contains("feedback") || s.contains("journal")
         || s.contains("notes") || s.contains("diary") || s.contains("summary")
         || s.contains("summarize") || s.contains("comment") || s.contains("chat")
+        || s.contains("changelog") || s.contains("markdown") || s.contains("text")
+        || s.contains("paragraph") || s.contains("sentence") || s.contains("spellcheck")
+        || s.contains("grammar") || s.contains("proofread") || s.contains("newsletter")
+        || s.contains("tweet") || s.contains("discussion") || s.contains("conversation")
+        || s.contains("brainstorm") || s.contains("memo") || s.contains("proposal")
     {
         return "writing".to_string();
     }
