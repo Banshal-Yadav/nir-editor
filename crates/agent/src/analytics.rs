@@ -148,9 +148,9 @@ impl RecollectionsRegistry {
         self.staged_recollections.push(new_staged);
     }
 
-    /// Surfaces staged clusters as discover-skill candidates. 1+ summary, or
-    /// error-recovery with 2+ corrections. 1 (not 3) so fresh candidates show
-    /// up in the UI immediately instead of waiting for a proven pattern.
+    /// Surfaces staged clusters as discover-skill candidates. Requires 3+
+    /// summaries (proves it's a real pattern) OR error-recovery with 2+
+    /// corrections (high-friction workflow worth capturing).
     pub fn check_promotion_targets(&self) -> Vec<StagedRecollection> {
         self.staged_recollections
             .iter()
@@ -159,11 +159,11 @@ impl RecollectionsRegistry {
                     return false;
                 }
 
-                let has_summary = !staged.associated_summaries.is_empty();
+                let has_enough_summaries = staged.associated_summaries.len() >= 3;
                 let high_friction_met = staged.metrics.had_error_recovery
                     && staged.metrics.user_corrections_count >= 2;
 
-                has_summary || high_friction_met
+                has_enough_summaries || high_friction_met
             })
             .cloned()
             .collect()
@@ -175,7 +175,7 @@ impl RecollectionsRegistry {
 // =============================================================================
 
 /// Asynchronous reflective gate for `MatchResult::RequiresReflection`.
-/// Returns `Ok(false)` until the local model call is wired in.
+/// Asks the LLM whether two tasks are semantically equivalent.
 pub async fn run_reflective_gate(
     new_task: &str,
     existing_cluster_summary: &str,
