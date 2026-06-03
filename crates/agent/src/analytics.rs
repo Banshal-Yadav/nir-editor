@@ -798,6 +798,15 @@ fn extract_category(summary: &str) -> String {
         || s.contains("orm") || s.contains("logging") || s.contains("panic")
         || s.contains("exception") || s.contains("error handling") || s.contains("deadlock")
         || s.contains("race condition") || s.contains("segfault") || s.contains("memory leak")
+        || s.contains("angular") || s.contains("laravel") || s.contains("django")
+        || s.contains("flask") || s.contains("express") || s.contains("rails")
+        || s.contains("spring boot") || s.contains("fastapi") || s.contains("playwright")
+        || s.contains("cypress") || s.contains("jest") || s.contains("vitest")
+        || s.contains("mocha") || s.contains("testing framework") || s.contains("conventional commits")
+        || s.contains("version control") || s.contains("eslint") || s.contains("prettier")
+        || s.contains("tsconfig") || s.contains("style guide") || s.contains("conventions")
+        || s.contains("directory structure") || s.contains("file structure") || s.contains("components")
+        || s.contains("hooks") || s.contains("zod") || s.contains("validation")
     {
         return "coding".to_string();
     }
@@ -837,6 +846,10 @@ fn extract_category(summary: &str) -> String {
         || s.contains("editor") || s.contains("zed") || s.contains("workspace")
         || s.contains("mcp") || s.contains("agentic") || s.contains("rag")
         || s.contains("context server") || s.contains("recollections")
+        || s.contains("cursorrules") || s.contains(".cursorrules") || s.contains("claude.md")
+        || s.contains("custom instructions") || s.contains("instructions") || s.contains("rules")
+        || s.contains("system prompt") || s.contains("gotchas") || s.contains("house rules")
+        || s.contains("plan-act-reflect")
     {
         return "dev-tools".to_string();
     }
