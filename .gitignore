@@ -59,3 +59,6 @@ crates/docs_preprocessor/actions.json
 /docs/december-2025-documentation-gaps.md
 
 agent_launcher_debug.log
+
+# Nir Analytics state
+reset_state.json

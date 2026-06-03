@@ -2905,7 +2905,7 @@ impl Thread {
 
     pub fn can_generate_title(&self, cx: &App) -> bool {
         self.pending_title_generation.is_none()
-            && self.summarization_model.is_some()
+            && (self.summarization_model.is_some() || self.model().is_some())
             && !self.update_title_tool_available(cx)
     }
 
@@ -2924,8 +2924,12 @@ impl Thread {
         if let Some(task) = self.pending_summary_generation.clone() {
             return task;
         }
-        let Some(model) = self.summarization_model.clone() else {
-            log::error!("No summarization model available");
+        let model = self
+            .model()
+            .cloned()
+            .or_else(|| self.summarization_model.clone());
+        let Some(model) = model else {
+            log::error!("No model available for summarization");
             return Task::ready(None).shared();
         };
         let mut request = LanguageModelRequest {
@@ -2983,14 +2987,15 @@ impl Thread {
         }
 
         self.title_generation_failed = false;
-        let Some(model) = self.summarization_model.clone() else {
+        let model = self
+            .model()
+            .cloned()
+            .or_else(|| self.summarization_model.clone());
+        let Some(model) = model else {
             return;
         };
 
-        log::debug!(
-            "Generating title with model: {:?}",
-            self.summarization_model.as_ref().map(|model| model.name())
-        );
+        log::debug!("Generating title with model: {:?}", model.name());
         let mut request = LanguageModelRequest {
             intent: Some(CompletionIntent::ThreadSummarization),
             temperature: AgentSettings::temperature_for_model(&model, cx),
@@ -3008,42 +3013,52 @@ impl Thread {
             reasoning_details: None,
         });
         self.pending_title_generation = Some(cx.spawn(async move |this, cx| {
-            let mut title = String::new();
+            let model = model.clone();
+            let request = request.clone();
 
-            let generate = async {
-                let mut messages = model.stream_completion(request, cx).await?;
-                while let Some(event) = messages.next().await {
-                    let event = event?;
-                    let text = match event {
-                        LanguageModelCompletionEvent::Text(text) => text,
-                        _ => continue,
-                    };
+            let mut succeeded = false;
+            for attempt in 0..2 {
+                let mut title = String::new();
+                let generate = async {
+                    let mut messages = model.stream_completion(request.clone(), cx).await?;
+                    while let Some(event) = messages.next().await {
+                        let event = event?;
+                        let text = match event {
+                            LanguageModelCompletionEvent::Text(text) => text,
+                            _ => continue,
+                        };
 
-                    let mut lines = text.lines();
-                    title.extend(lines.next());
+                        let mut lines = text.lines();
+                        title.extend(lines.next());
 
-                    // Stop if the LLM generated multiple lines.
-                    if lines.next().is_some() {
-                        break;
+                        // Stop if the LLM generated multiple lines.
+                        if lines.next().is_some() {
+                            break;
+                        }
                     }
-                }
-                anyhow::Ok(())
-            };
+                    anyhow::Ok(())
+                };
 
-            let succeeded = generate
-                .await
-                .context("failed to generate thread title")
-                .log_err()
-                .is_some();
+                succeeded = generate
+                    .await
+                    .context("failed to generate thread title")
+                    .log_err()
+                    .is_some();
+                if succeeded && !title.trim().is_empty() {
+                    _ = this.update(cx, |this, cx| {
+                        this.pending_title_generation = None;
+                        this.set_title(title.into(), cx);
+                    });
+                    return;
+                }
+                // Brief delay before retry — model might need a moment
+                cx.background_executor().timer(Duration::from_millis(500)).await;
+            }
             _ = this.update(cx, |this, cx| {
                 this.pending_title_generation = None;
-                if succeeded {
-                    this.set_title(title.into(), cx);
-                } else {
-                    this.title_generation_failed = true;
-                    cx.emit(TitleUpdated);
-                    cx.notify();
-                }
+                this.title_generation_failed = true;
+                cx.emit(TitleUpdated);
+                cx.notify();
             });
         }));
     }
@@ -5361,17 +5376,21 @@ where
                 if target.associated_summaries.is_empty() {
                     continue;
                 }
-                let mut instruction_override = format!(
-                    "When working within the '{}' domain, adhere to these established patterns gathered across past sessions:\n",
-                    target.category
-                );
-                for summary in &target.associated_summaries {
-                    instruction_override.push_str(&format!("- {}\n", summary));
-                }
+
+                let synthesized_body = crate::analytics::synthesize_skill_content(
+                    &target.category,
+                    &target.associated_summaries,
+                    |prompt| {
+                        let client = model_client.clone();
+                        Box::pin(async move { client(prompt).await })
+                    },
+                )
+                .await;
+
                 match crate::analytics::write_promoted_skill(
                     &target.category,
                     &target.associated_summaries[0],
-                    &instruction_override,
+                    &synthesized_body,
                 )
                 .await
                 {

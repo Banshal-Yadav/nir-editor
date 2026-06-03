@@ -292,6 +292,81 @@ fn build_reflection_prompt(new_task: &str, existing_cluster_summary: &str) -> St
     )
 }
 
+/// Synthesizes raw summaries into structured skill instructions via LLM.
+/// Falls back to raw summary dump if the LLM call fails.
+pub async fn synthesize_skill_content<C>(
+    category: &str,
+    summaries: &[String],
+    model_client: C,
+) -> String
+where
+    C: FnOnce(String) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String>> + Send>>,
+{
+    let summaries_text = summaries
+        .iter()
+        .enumerate()
+        .map(|(i, s)| format!("{}. {}", i + 1, s))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let prompt = format!(
+        "Synthesize these task completion summaries into a reusable skill instruction.\n\
+         \n\
+         CATEGORY: {category}\n\
+         \n\
+         SUMMARIES:\n{summaries}\n\
+         \n\
+         Output a concise skill body with these sections:\n\
+         \n\
+         ## When to use\n\
+         One line describing when this skill activates.\n\
+         \n\
+         ## Key patterns\n\
+         Bullet list of the 2-4 most important patterns across these summaries.\n\
+         \n\
+         ## Procedure\n\
+         Numbered steps the model should follow when this skill fires.\n\
+         \n\
+         ## Pitfalls\n\
+         1-2 things to watch for based on what these summaries reveal.\n\
+         \n\
+         RULES:\n\
+         - Be concise. Max 300 words total.\n\
+         - No filler, no preamble, no hedging.\n\
+         - Each section must be present but can be 1-2 lines.\n\
+         - Output raw markdown only. No code fences around the whole thing.",
+        category = category,
+        summaries = summaries_text,
+    );
+
+    let raw_response = match model_client(prompt).await {
+        Ok(r) => r,
+        Err(err) => {
+            log::warn!("Skill synthesis LLM call failed, using raw summaries: {:?}", err);
+            return build_fallback_body(category, summaries);
+        }
+    };
+
+    let trimmed = raw_response.trim();
+    if trimmed.len() < 50 || !trimmed.contains("##") {
+        log::warn!("Skill synthesis response too short or malformed, using raw summaries");
+        return build_fallback_body(category, summaries);
+    }
+
+    trimmed.to_string()
+}
+
+fn build_fallback_body(category: &str, summaries: &[String]) -> String {
+    let mut body = format!(
+        "When working within the '{}' domain, follow these patterns:\n\n",
+        category
+    );
+    for summary in summaries {
+        body.push_str(&format!("- {}\n", summary));
+    }
+    body
+}
+
 /// Runs the per-line two-tiered hybrid gate over a batch of log lines.
 /// Takes a `model_client` closure for non-gpui contexts.
 /// `model_client` must be `Clone` — reflection evaluates against multiple clusters.
