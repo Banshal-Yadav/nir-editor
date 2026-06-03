@@ -11,6 +11,7 @@ use language_model::{
     LanguageModel, LanguageModelRequest, LanguageModelRequestMessage,
     MessageContent, Role, CompletionIntent, LanguageModelCompletionEvent,
 };
+use nir_analytics::{AnalyticsState, load_analytics_state, save_analytics_state};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Metrics {
@@ -54,6 +55,131 @@ pub struct SkillPayload {
     pub system_instruction_override: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AnalyticsConfig {
+    pub enabled: bool,
+}
+
+impl Default for AnalyticsConfig {
+    fn default() -> Self {
+        Self { enabled: true }
+    }
+}
+
+impl AnalyticsConfig {
+    pub fn load() -> Self {
+        let path = home_dir_path()
+            .join(".nir")
+            .join("brain")
+            .join("analytics_config.json");
+        if !path.exists() {
+            return Self::default();
+        }
+        fs::read_to_string(&path)
+            .ok()
+            .and_then(|content| serde_json::from_str(&content).ok())
+            .unwrap_or_default()
+    }
+
+    pub fn save(&self) -> Result<()> {
+        let dir = home_dir_path().join(".nir").join("brain");
+        fs::create_dir_all(&dir).context("Failed to create .nir/brain directory")?;
+        let path = dir.join("analytics_config.json");
+        let content = serde_json::to_string_pretty(self)
+            .context("Failed to serialize analytics config")?;
+        fs::write(&path, content).context("Failed to write analytics config")?;
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManualAnalysisStats {
+    pub total_logs: usize,
+    pub parsed_checkpoints: usize,
+    pub staged_recollections: usize,
+    pub eligible_for_promotion: usize,
+    pub discovered_skills: usize,
+}
+
+/// Get stats for manual analysis display (no model needed).
+pub fn get_manual_analysis_stats() -> ManualAnalysisStats {
+    let brain_dir = home_dir_path().join(".nir").join("brain");
+    let recollections_path = brain_dir.join("recollections.json");
+    let index_path = brain_dir.join("skills_index.json");
+    let logs_dir = brain_dir.join("logs");
+
+    // Parse all log lines to count actual checkpoints
+    let mut total_logs = 0;
+    let mut parsed_checkpoints = 0;
+    if logs_dir.exists() {
+        if let Ok(entries) = fs::read_dir(&logs_dir) {
+            for entry in entries.flatten() {
+                if entry.path().extension().map_or(false, |e| e == "md") {
+                    if let Ok(content) = fs::read_to_string(entry.path()) {
+                        for line in content.lines() {
+                            if line.starts_with('[') {
+                                total_logs += 1;
+                                if process_log_line(line).is_some() {
+                                    parsed_checkpoints += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Load registry
+    let registry: RecollectionsRegistry = if recollections_path.exists() {
+        fs::read_to_string(&recollections_path)
+            .ok()
+            .and_then(|c| serde_json::from_str(&c).ok())
+            .unwrap_or_default()
+    } else {
+        RecollectionsRegistry::default()
+    };
+
+    let staged_recollections = registry.staged_recollections.len();
+    let eligible_for_promotion = registry.check_promotion_targets().len();
+
+    // Count discovered skills
+    let discovered_skills = if index_path.exists() {
+        fs::read_to_string(&index_path)
+            .ok()
+            .and_then(|c| serde_json::from_str::<SkillsIndex>(&c).ok())
+            .map(|idx| idx.discovered_skills.len())
+            .unwrap_or(0)
+    } else {
+        0
+    };
+
+    ManualAnalysisStats {
+        total_logs,
+        parsed_checkpoints,
+        staged_recollections,
+        eligible_for_promotion,
+        discovered_skills,
+    }
+}
+
+/// Clean up analytics state: remove recollections registry and reset config.
+pub fn cleanup_analytics() -> Result<()> {
+    let brain_dir = home_dir_path().join(".nir").join("brain");
+    let recollections_path = brain_dir.join("recollections.json");
+    
+    if recollections_path.exists() {
+        fs::remove_file(&recollections_path)
+            .context("Failed to remove recollections registry")?;
+    }
+    
+    // Reset config to disabled after cleanup
+    let config = AnalyticsConfig { enabled: false };
+    config.save()?;
+    
+    Ok(())
+}
+
 // Windows shells can isolate USERPROFILE vs HOME inconsistently across PowerShell/WSL/MSYS;
 // strict ordering + `.` fallback prevents telemetry from fragmenting to silent directories.
 pub(crate) fn home_dir_path() -> PathBuf {
@@ -69,11 +195,16 @@ pub(crate) fn home_dir_path() -> PathBuf {
 impl RecollectionsRegistry {
     /// Process a newly ingested checkpoint into the current registry state.
     /// Uses the two-tiered hybrid similarity gate from `nir_analytics`.
+    /// `reflections_used` is a shared counter — pass it across calls to cap
+    /// total LLM reflective gate calls per analysis cycle (avoids runaway
+    /// costs with large log histories on slow local models).
     pub async fn merge_checkpoint(
         &mut self,
         checkpoint: ParsedCheckpoint,
         model: Arc<dyn LanguageModel>,
         cx: &AsyncApp,
+        reflections_used: &mut usize,
+        max_reflections: usize,
     ) {
         let mut matched_index: Option<usize> = None;
 
@@ -89,6 +220,11 @@ impl RecollectionsRegistry {
                         break;
                     }
                     nir_analytics::MatchResult::RequiresReflection(_) => {
+                        if *reflections_used >= max_reflections {
+                            log::debug!("Skill Discovery: reflective gate cap ({}) reached, skipping LLM call", max_reflections);
+                            continue;
+                        }
+                        *reflections_used += 1;
                         let is_match =
                             run_reflective_gate(&checkpoint.summary, existing_summary, model.clone(), cx)
                                 .await
@@ -148,9 +284,10 @@ impl RecollectionsRegistry {
         self.staged_recollections.push(new_staged);
     }
 
-    /// Surfaces staged clusters as discover-skill candidates. Requires 3+
-    /// summaries (proves it's a real pattern) OR error-recovery with 2+
-    /// corrections (high-friction workflow worth capturing).
+    /// Surfaces staged clusters as discover-skill candidates.
+    /// Promotion criteria (any one sufficient):
+    ///   - 2+ associated summaries (seen the pattern at least twice)
+    ///   - error-recovery with 1+ user correction (high-friction, worth capturing immediately)
     pub fn check_promotion_targets(&self) -> Vec<StagedRecollection> {
         self.staged_recollections
             .iter()
@@ -159,9 +296,9 @@ impl RecollectionsRegistry {
                     return false;
                 }
 
-                let has_enough_summaries = staged.associated_summaries.len() >= 3;
+                let has_enough_summaries = staged.associated_summaries.len() >= 2;
                 let high_friction_met = staged.metrics.had_error_recovery
-                    && staged.metrics.user_corrections_count >= 2;
+                    && staged.metrics.user_corrections_count >= 1;
 
                 has_enough_summaries || high_friction_met
             })
@@ -563,11 +700,91 @@ fn parse_id_tagged_log_line(line: &str) -> Option<ParsedCheckpoint> {
         return None;
     }
 
+    let category = extract_category(&summary);
+
     Some(ParsedCheckpoint {
-        category: "task_completion".to_string(),
+        category,
         summary,
         tags: Vec::new(),
     })
+}
+
+/// Keyword-based category extraction to scope cluster comparisons.
+fn extract_category(summary: &str) -> String {
+    let s = summary.to_lowercase();
+
+    // Philosophy & mindfulness
+    if s.contains("philosophy") || s.contains("stoic") || s.contains("nietzsch")
+        || s.contains("epicurean") || s.contains("existential") || s.contains("buddhist")
+        || s.contains("meditation") || s.contains("mindfulness") || s.contains("consciousness")
+        || s.contains("gratitude") || s.contains("resilience") || s.contains("meaning")
+        || s.contains("marcus aurelius") || s.contains("amor fati") || s.contains("absurd")
+        || s.contains("impermanence") || s.contains("suffering") || s.contains("virtue")
+        || s.contains("epistemology") || s.contains("metaphysics") || s.contains("ethics")
+        || s.contains("determinism") || s.contains("nihilis") || s.contains("socrates")
+        || s.contains("plato") || s.contains("aristotle") || s.contains("kant")
+        || s.contains("spinoza") || s.contains("seneca") || s.contains("epictetus")
+        || s.contains("philosophical") || s.contains("zen") || s.contains("vipassana")
+        || s.contains("dharma") || s.contains("taoism") || s.contains("introspection")
+        || s.contains("reflection") || s.contains("wisdom") || s.contains("happiness")
+    {
+        return "philosophy".to_string();
+    }
+
+    // Software development & coding
+    if s.contains("rust") || s.contains("cargo") || s.contains("compile")
+        || s.contains("refactor") || s.contains("debug") || s.contains("implement")
+        || s.contains("crate") || s.contains("function") || s.contains("struct")
+        || s.contains("trait") || s.contains("async") || s.contains("lifetime")
+        || s.contains("build error") || s.contains("unit test") || s.contains("api")
+        || s.contains("code") || s.contains("coding") || s.contains("programming")
+        || s.contains("git") || s.contains("commit") || s.contains("pull request")
+        || s.contains("merge") || s.contains("github") || s.contains("repository")
+        || s.contains("repo") || s.contains("dependency") || s.contains("json")
+        || s.contains("yaml") || s.contains("script") || s.contains("python")
+        || s.contains("javascript") || s.contains("typescript") || s.contains("html")
+        || s.contains("css") || s.contains("c++") || s.contains("golang")
+        || s.contains("sql") || s.contains("database") || s.contains("docker")
+        || s.contains("kubernetes") || s.contains("frontend") || s.contains("backend")
+        || s.contains("bug") || s.contains("feature") || s.contains("test")
+    {
+        return "coding".to_string();
+    }
+
+    // Nir / agent tooling
+    if s.contains("skill") || s.contains("analytics") || s.contains("nir ide")
+        || s.contains("nir") || s.contains("agent") || s.contains("tool")
+        || s.contains("checkpoint") || s.contains("recollection") || s.contains("subagent")
+        || s.contains("prompt") || s.contains("llm") || s.contains("assistant")
+        || s.contains("copilot") || s.contains("telemetry") || s.contains("ide")
+        || s.contains("editor") || s.contains("zed") || s.contains("workspace")
+    {
+        return "dev-tools".to_string();
+    }
+
+    // Health & fitness
+    if s.contains("health") || s.contains("exercise") || s.contains("fitness")
+        || s.contains("nutrition") || s.contains("sleep") || s.contains("workout")
+        || s.contains("gym") || s.contains("diet") || s.contains("run")
+        || s.contains("meds") || s.contains("medicine") || s.contains("doctor")
+        || s.contains("therapy") || s.contains("anxiety") || s.contains("depression")
+        || s.contains("mental") || s.contains("symptom") || s.contains("yoga")
+    {
+        return "health".to_string();
+    }
+
+    // Writing & communication
+    if s.contains("wrote") || s.contains("writing") || s.contains("document")
+        || s.contains("email") || s.contains("report") || s.contains("article")
+        || s.contains("essay") || s.contains("draft") || s.contains("blog")
+        || s.contains("readme") || s.contains("docs") || s.contains("documentation")
+        || s.contains("slack") || s.contains("discord") || s.contains("meeting")
+        || s.contains("presentation") || s.contains("feedback")
+    {
+        return "writing".to_string();
+    }
+
+    "general".to_string()
 }
 
 fn parse_legacy_log_line(line: &str) -> Option<ParsedCheckpoint> {
@@ -607,50 +824,154 @@ pub async fn run_analytics_cycle(
     let skills_dir = brain_dir.join("skills");
     let index_path = brain_dir.join("skills_index.json");
 
-    let mut registry = if recollections_path.exists() {
+    // Load existing registry.
+    let mut registry: RecollectionsRegistry = if recollections_path.exists() {
         let content = fs::read_to_string(&recollections_path)?;
         serde_json::from_str(&content).unwrap_or_default()
     } else {
         RecollectionsRegistry::default()
     };
 
-    let current_date = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let target_log = logs_dir.join(format!("{}.md", current_date));
+    // Load watermark state to only process new log lines.
+    let mut watermark_state: AnalyticsState = load_analytics_state().unwrap_or_default();
 
-    if target_log.exists() {
-        let log_data = fs::read_to_string(&target_log)?;
-        for line in log_data.lines() {
-            if let Some(checkpoint) = process_log_line(line) {
-                registry.merge_checkpoint(checkpoint, model.clone(), cx).await;
+    // Cap LLM reflection calls per cycle to prevent runaway costs on local models.
+    const MAX_REFLECTIONS_PER_CYCLE: usize = 30;
+    let mut reflections_used: usize = 0;
+
+    if logs_dir.exists() {
+        let mut log_files: Vec<_> = fs::read_dir(&logs_dir)?
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().extension().map_or(false, |ext| ext == "md"))
+            .collect();
+        // Sort chronologically.
+        log_files.sort_by_key(|e| e.file_name());
+
+        for entry in log_files {
+            let filename = entry.file_name();
+            let filename_str = filename.to_string_lossy();
+
+            // Count how many log lines we've already processed for this file.
+            let already_processed = watermark_state
+                .processed_files
+                .get(filename_str.as_ref())
+                .copied()
+                .unwrap_or(0);
+
+            let log_data = fs::read_to_string(entry.path())?;
+
+            // Collect only the valid log lines (lines starting with '[').
+            let log_lines: Vec<&str> = log_data
+                .lines()
+                .filter(|l| l.trim_start().starts_with('['))
+                .collect();
+
+            let new_lines = log_lines.get(already_processed..).unwrap_or(&[]);
+
+            if new_lines.is_empty() {
+                log::debug!("Skill Discovery: {} fully processed (watermark={}), skipping", filename_str, already_processed);
+                continue;
             }
+
+            log::info!(
+                "Skill Discovery: {} — processing {} new line(s) (watermark={})",
+                filename_str,
+                new_lines.len(),
+                already_processed
+            );
+
+            for line in new_lines {
+                if let Some(checkpoint) = process_log_line(line) {
+                    registry.merge_checkpoint(checkpoint, model.clone(), cx, &mut reflections_used, MAX_REFLECTIONS_PER_CYCLE).await;
+                }
+            }
+
+            // Advance the watermark for this file.
+            watermark_state
+                .processed_files
+                .insert(filename_str.into_owned(), log_lines.len());
         }
     }
 
     let eligible_targets = registry.check_promotion_targets();
     let mut promoted_skill_names = Vec::new();
 
-    for target in eligible_targets {
-        let mut instruction_override = format!(
-            "When working within the '{}' domain, adhere to these established patterns gathered across past sessions:\n",
-            target.category
-        );
-        for summary in &target.associated_summaries {
-            instruction_override.push_str(&format!("- {}\n", summary));
-        }
+    if !eligible_targets.is_empty() {
+        let (prompt_tx, mut prompt_rx) = futures::channel::mpsc::unbounded::<(String, futures::channel::oneshot::Sender<Result<String>>)>();
+        let model_clone = model.clone();
+        let cx_clone = cx.clone();
 
-        let clean_name = write_promoted_skill(
-            &target.category,
-            &target.associated_summaries[0],
-            &instruction_override,
-        ).await?;
+        cx_clone.spawn(async move |cx| {
+            while let Some((prompt, response_tx)) = prompt_rx.next().await {
+                let request = LanguageModelRequest {
+                    intent: Some(CompletionIntent::UserPrompt),
+                    messages: vec![LanguageModelRequestMessage {
+                        role: Role::User,
+                        content: vec![MessageContent::Text(prompt)],
+                        cache: false,
+                        reasoning_details: None,
+                    }],
+                    ..Default::default()
+                };
 
-        promoted_skill_names.push(clean_name);
+                let res = async {
+                    let mut stream = model_clone
+                        .stream_completion(request, cx)
+                        .await
+                        .context("Failed to call language model for skill synthesis")?;
 
-        if let Some(registry_item) = registry.staged_recollections.iter_mut().find(|s| s.id == target.id) {
-            registry_item.status = "PROMOTED".to_string();
+                    let mut response_text = String::new();
+                    while let Some(event) = stream.next().await {
+                        match event.context("Stream error from skill synthesis LLM call")? {
+                            LanguageModelCompletionEvent::Text(text) => response_text.push_str(&text),
+                            _ => continue,
+                        }
+                    }
+                    Ok(response_text)
+                }.await;
+
+                let _ = response_tx.send(res);
+            }
+        }).detach();
+
+        for target in eligible_targets {
+            let prompt_tx = prompt_tx.clone();
+            let instruction_override = synthesize_skill_content(
+                &target.category,
+                &target.associated_summaries,
+                move |prompt| {
+                    let prompt_tx = prompt_tx.clone();
+                    Box::pin(async move {
+                        let (tx, rx) = futures::channel::oneshot::channel::<Result<String>>();
+                        prompt_tx.unbounded_send((prompt, tx))
+                            .map_err(|_| anyhow::anyhow!("Analytics spawn channel closed"))?;
+                        rx.await.map_err(|_| anyhow::anyhow!("Analytics response channel dropped"))?
+                    })
+                },
+            )
+            .await;
+
+            match write_promoted_skill(
+                &target.category,
+                &target.associated_summaries[0],
+                &instruction_override,
+            ).await {
+                Ok(clean_name) => {
+                    // Only mark PROMOTED after the file is confirmed written.
+                    if let Some(item) = registry.staged_recollections.iter_mut().find(|s| s.id == target.id) {
+                        item.status = "PROMOTED".to_string();
+                    }
+                    promoted_skill_names.push(clean_name);
+                }
+                Err(err) => {
+                    // Log but don't abort — other clusters should still be promoted.
+                    log::error!("Skill Discovery: failed to write skill for cluster '{}': {:?}", target.id, err);
+                }
+            }
         }
     }
 
+    // Expire stale active skills (unused for >30 days).
     if index_path.exists() {
         let content = fs::read_to_string(&index_path)?;
         let mut index: SkillsIndex = serde_json::from_str(&content).unwrap_or_default();
@@ -666,7 +987,6 @@ pub async fn run_analytics_cycle(
                 let filename = to_slug(&skill.name);
                 let src_path = skills_dir.join(format!("{}.json", filename));
                 let dest_path = archive_dir.join(format!("{}.json", filename));
-                
                 if src_path.exists() {
                     fs::rename(&src_path, &dest_path)?;
                 }
@@ -674,24 +994,26 @@ pub async fn run_analytics_cycle(
                 active_skills.push(skill);
             }
         }
-        
+
         index.active_skills = active_skills;
         let serialized_index = serde_json::to_string_pretty(&index)?;
         let mut idx_file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
+            .create(true).write(true).truncate(true)
             .open(&index_path)?;
         idx_file.write_all(serialized_index.as_bytes())?;
     }
 
+    // Persist the updated registry.
     let serialized = serde_json::to_string_pretty(&registry)?;
     let mut file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
+        .create(true).write(true).truncate(true)
         .open(&recollections_path)?;
     file.write_all(serialized.as_bytes())?;
+
+    // Persist the updated watermarks so the next run is incremental.
+    if let Err(err) = save_analytics_state(&watermark_state) {
+        log::warn!("Skill Discovery: failed to save watermark state: {:?}", err);
+    }
 
     Ok(promoted_skill_names)
 }
@@ -809,23 +1131,35 @@ fn to_slug(s: &str) -> String {
         .join("-")
 }
 
-fn clean_title(category: &str, summary: &str) -> String {
-    let raw_title = format!("{}: {}", category, summary.trim());
-    let mut clean = raw_title.replace('\n', " ").replace('\r', " ");
-    if clean.len() > 64 {
-        clean.truncate(61);
-        clean.push_str("...");
+fn clean_title(_category: &str, summary: &str) -> String {
+    // Build a slug from the first 6 non-filler words of the summary.
+    let filler: std::collections::HashSet<&str> = [
+        "a", "an", "the", "on", "in", "of", "to", "and", "for", "how",
+        "with", "that", "this", "was", "were", "is", "are", "as",
+        "reflected", "explored", "analyzed", "examined", "discussed",
+        "practiced", "applied", "reviewed", "used",
+    ].iter().copied().collect();
+
+    let words: Vec<&str> = summary
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| w.len() > 2 && !filler.contains(&w.to_lowercase().as_str()))
+        .take(6)
+        .collect();
+
+    if words.is_empty() {
+        // Fallback to first 6 raw words.
+        summary
+            .split_whitespace()
+            .take(6)
+            .collect::<Vec<_>>()
+            .join("-")
+    } else {
+        words.join("-").to_lowercase()
     }
-    clean
 }
 
-fn clean_description(category: &str, summary: &str) -> String {
-    let raw_desc = format!(
-        "Synthesized guidelines for {} tasks based on: {}.",
-        category,
-        summary.trim()
-    );
-    let mut clean = raw_desc.replace('\n', " ").replace('\r', " ");
+fn clean_description(_category: &str, summary: &str) -> String {
+    let mut clean = summary.trim().replace('\n', " ").replace('\r', " ");
     if clean.len() > 1024 {
         clean.truncate(1021);
         clean.push_str("...");
@@ -878,7 +1212,7 @@ pub async fn write_promoted_skill(
     if !index.active_skills.iter().any(|s| is_similar(&s.name, &filename))
         && !index.discovered_skills.iter().any(|s| is_similar(&s.name, &filename))
     {
-        log::info!("Nir Analytics: promoting cluster to skill '{}'", filename);
+        log::info!("Skill Discovery: promoting cluster to skill '{}'", filename);
 
         index.discovered_skills.push(SkillIndexEntry {
             name: filename.clone(),
@@ -895,7 +1229,7 @@ pub async fn write_promoted_skill(
             .with_context(|| format!("Failed to write index tmp at {}", index_tmp.display()))?;
         fs::rename(&index_tmp, &index_path)
             .with_context(|| format!("Failed to rename {} -> {}", index_tmp.display(), index_path.display()))?;
-        log::info!("Nir Analytics: wrote skills index to {}", index_path.display());
+        log::info!("Skill Discovery: wrote skills index to {}", index_path.display());
 
         let payload = SkillPayload {
             name: filename.clone(),
@@ -912,12 +1246,12 @@ pub async fn write_promoted_skill(
         fs::rename(&payload_tmp, &payload_path)
             .with_context(|| format!("Failed to rename {} -> {}", payload_tmp.display(), payload_path.display()))?;
         log::info!(
-            "Nir Analytics: wrote skill payload to {}",
+            "Skill Discovery: wrote skill payload to {}",
             payload_path.display()
         );
     } else {
         log::info!(
-            "Nir Analytics: skipping promotion of '{}' — similar to existing skill",
+            "Skill Discovery: skipping promotion of '{}' — similar to existing skill",
             filename
         );
     }

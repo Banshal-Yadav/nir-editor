@@ -1,6 +1,7 @@
-use agent::analytics::{approve_discovered_skill, reject_discovered_skill, SkillIndexEntry, SkillsIndex};
+use agent::analytics::{approve_discovered_skill, reject_discovered_skill, AnalyticsConfig, SkillIndexEntry, SkillsIndex, get_manual_analysis_stats};
 use agent_skills::{Skill, SkillIndex, encode_skill_share_link};
 use gpui::{Action as _, ClipboardItem, ScrollHandle, SharedString, prelude::*};
+use language_model::LanguageModelRegistry;
 use std::fs;
 
 use ui::{Divider, IconButtonShape, TintColor, Tooltip, prelude::*};
@@ -97,27 +98,147 @@ pub(crate) fn render_skills_setup_page(
                 let mut elements: Vec<AnyElement> = Vec::new();
 
                 if matches!(settings_window.current_file, SettingsUiFile::User) {
-                    let mut discovered_section = v_flex().gap_3().child(
+                    let analytics_config = AnalyticsConfig::load();
+                    let is_enabled = analytics_config.enabled;
+
+                    // Always load fresh stats on render
+                    let stats = get_manual_analysis_stats();
+
+                    // Analytics engine section
+                    let analytics_section = v_flex()
+                        .gap_3()
+                        .p_3()
+                        .rounded_md()
+                        .child(
+                            h_flex()
+                                .justify_between()
+                                .items_center()
+                                .child(
+                                    h_flex()
+                                        .gap_3()
+                                        .items_center()
+                                        .child(
+                                            Label::new("Skill Discovery")
+                                                .size(LabelSize::Small)
+                                                .color(Color::Muted),
+                                        )
+                                        .child(
+                                            IconButton::new(
+                                                "skill-discovery-info",
+                                                IconName::Info,
+                                            )
+                                            .icon_size(IconSize::XSmall)
+                                            .icon_color(Color::Muted)
+                                            .shape(IconButtonShape::Square)
+                                            .style(ButtonStyle::Transparent)
+                                            .tooltip(Tooltip::text(
+                                                "Learns patterns from your task history and generates reusable skills. Toggle on/off, or refresh to check for changes.",
+                                            ))
+                                            .on_click(|_, _, _| {}),
+                                        )
+                                        .child(
+                                            Button::new(
+                                                "analytics-toggle",
+                                                if is_enabled { "On" } else { "Off" },
+                                            )
+                                            .style(if is_enabled {
+                                                ButtonStyle::Tinted(TintColor::Success)
+                                            } else {
+                                                ButtonStyle::Outlined
+                                            })
+                                            .size(ButtonSize::Compact)
+                                            .tooltip(Tooltip::text(if is_enabled {
+                                                "Click to disable automatic skill discovery"
+                                            } else {
+                                                "Click to enable automatic skill discovery"
+                                            }))
+                                            .on_click(cx.listener(move |_, _, _, cx| {
+                                                let mut config = AnalyticsConfig::load();
+                                                config.enabled = !config.enabled;
+                                                let _ = config.save();
+                                                cx.notify();
+                                            })),
+                                        ),
+                                )
+                                .child(
+                                    h_flex()
+                                        .gap_3()
+                                        .items_center()
+                                        .child(
+                                            Button::new("refresh-stats", "Refresh")
+                                                .style(ButtonStyle::Outlined)
+                                                .size(ButtonSize::Compact)
+                                                .tooltip(Tooltip::text("Re-read logs and registry to update stats"))
+                                                .on_click(cx.listener(move |_, _, _, cx| {
+                                                    cx.notify();
+                                                })),
+                                        )
+                                        .child(
+                                            Button::new("analyze-now", "Analyze Now")
+                                                .style(ButtonStyle::Outlined)
+                                                .size(ButtonSize::Compact)
+                                                .tooltip(Tooltip::text("Run full analysis — parses logs, clusters patterns, promotes eligible skills"))
+                                                .on_click(cx.listener(move |_, _, _window, cx| {
+                                                    cx.spawn(async move |this, cx| {
+                                                        let model = cx.update(|cx| {
+                                                            LanguageModelRegistry::read_global(cx).default_model().map(|m| m.model)
+                                                        });
+
+                                                        let Some(model) = model else {
+                                                            log::warn!("Skill Discovery: No model available for manual analysis");
+                                                            return;
+                                                        };
+
+                                                        log::info!("Skill Discovery: Manual analysis starting with model: {}", model.name().0);
+                                                        let result = agent::analytics::run_analytics_cycle(model, &cx).await;
+                                                        match result {
+                                                            Ok(skills) => {
+                                                                log::info!("Skill Discovery: Manual analysis complete — {} skill(s) promoted", skills.len());
+                                                                this.update(cx, |_, cx| cx.notify()).ok();
+                                                            }
+                                                            Err(err) => {
+                                                                log::error!("Skill Discovery: Manual analysis failed: {:?}", err);
+                                                            }
+                                                        }
+                                                    }).detach();
+                                                })),
+                                        )
+                                        .child(
+                                            Button::new("reset-analytics", "Reset")
+                                                .style(ButtonStyle::OutlinedGhost)
+                                                .size(ButtonSize::Compact)
+                                                .tooltip(Tooltip::text("Clear all staged patterns and disable discovery. Logs and approved skills are preserved."))
+                                                .on_click(cx.listener(move |_settings_window, _, _window, cx| {
+                                                    if let Err(err) = agent::analytics::cleanup_analytics() {
+                                                        log::error!("Skill Discovery cleanup failed: {:?}", err);
+                                                    }
+                                                    log::info!("Skill Discovery: Cleaned up state");
+                                                    cx.notify();
+                                                })),
+                                        ),
+                                ),
+                        )
+                        .child(
+                            h_flex()
+                                .gap_4()
+                                .child(Label::new(format!("Logs: {}", stats.total_logs)))
+                                .child(Label::new(format!("Checkpoints: {}", stats.parsed_checkpoints)))
+                                .child(Label::new(format!("Staged: {}", stats.staged_recollections)))
+                                .child(Label::new(format!("Eligible: {}", stats.eligible_for_promotion)))
+                                .child(Label::new(format!("Discovered: {}", stats.discovered_skills))),
+                        );
+
+                    elements.push(analytics_section.into_any_element());
+                    elements.push(Divider::horizontal().into_any_element());
+
+                    // Discovered skills section
+                    let mut discovered_section = v_flex().gap_3().pt_4().child(
                         h_flex()
                             .gap_1()
                             .items_center()
                             .child(
                                 Label::new("Discovered Skills (Pending Review)")
                                     .size(LabelSize::Small),
-                            )
-                            .child(
-                                IconButton::new(
-                                    "discovered-skills-info",
-                                    IconName::Info,
-                                )
-                                .icon_size(IconSize::XSmall)
-                                .icon_color(Color::Muted)
-                                .shape(IconButtonShape::Square)
-                                .style(ButtonStyle::Transparent)
-                                .tooltip(Tooltip::text(
-                                    "Skills the engine learned from your past work. They appear when a task repeats often or runs into trouble.",
-                                ))
-                                .on_click(|_, _, _| {}),
                             ),
                     );
 

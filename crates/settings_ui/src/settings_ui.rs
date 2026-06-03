@@ -4714,6 +4714,7 @@ pub mod test {
             regex_validation_error: None,
             last_copied_link_path: None,
             last_copied_skill_directory_path: None,
+            last_analysis_stats: None,
         };
 
         settings_window.build_filter_table();
