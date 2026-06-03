@@ -1,6 +1,5 @@
-use std::fs;
 use std::sync::Arc;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use gpui::{App, SharedString, Task};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -55,67 +54,21 @@ impl AgentTool for RecallPastContextTool {
 }
 
 async fn execute_recall_past_context(input: RecallPastContextInput) -> Result<String> {
-    // Strict ordering: USERPROFILE → HOME → `.` last resort; prevents shell-dependent isolation.
-    let home_dir = if let Ok(path) = std::env::var("USERPROFILE") {
-        std::path::PathBuf::from(path)
-    } else if let Ok(path) = std::env::var("HOME") {
-        std::path::PathBuf::from(path)
-    } else {
-        std::path::PathBuf::from(".")
-    };
-    let log_dir = home_dir.join(".nir").join("brain").join("logs");
-    
-    if !log_dir.exists() {
-        return Ok("No historical logs found. Memory is currently empty.".to_string());
-    }
+    let database_path = nir_analytics::get_state_db_path()
+        .context("Failed to resolve state database path")?;
 
     if input.last_session_fallback.unwrap_or(false) {
-        const MAX_FALLBACK_ENTRIES: usize = 15;
-        let mut entries = fs::read_dir(&log_dir)?
-            .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map_or(false, |ext| ext == "md"))
-            .collect::<Vec<_>>();
+        let records = nir_analytics::recent_checkpoints(&database_path)
+            .context("Failed to load recent checkpoints from state database")?;
 
-        entries.sort_by_key(|e| e.file_name());
-        entries.reverse();
-
-        // Walk backward through historical daily files; keep walking on empty days
-        // and stop only when the cross-day cap of 15 entries is reached, so a sparse
-        // "today" never hides the rich history of previous days.
-        let mut collected: Vec<String> = Vec::new();
-
-        for entry in entries {
-            if collected.len() >= MAX_FALLBACK_ENTRIES {
-                break;
-            }
-            let path = entry.path();
-            let Ok(content) = fs::read_to_string(&path) else {
-                continue;
-            };
-            let date_str = path.file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("Unknown Date");
-
-            let log_lines: Vec<&str> = content.lines()
-                .filter(|l| {
-                    let trimmed = l.trim();
-                    !trimmed.is_empty() && !trimmed.starts_with('#')
-                })
-                .collect();
-
-            // Within a file, append order is reverse-chronological (newest line at EOF).
-            for line in log_lines.iter().rev() {
-                if collected.len() >= MAX_FALLBACK_ENTRIES {
-                    break;
-                }
-                collected.push(format!("[{}] {}", date_str, line));
-            }
-        }
-
-        if collected.is_empty() {
+        if records.is_empty() {
             return Ok("No historical logs found. Memory is currently empty.".to_string());
         }
-        return Ok(collected.join("\n"));
+        return Ok(records
+            .iter()
+            .map(format_record_line)
+            .collect::<Vec<_>>()
+            .join("\n"));
     }
 
     let query = input.query.unwrap_or_default();
@@ -123,47 +76,25 @@ async fn execute_recall_past_context(input: RecallPastContextInput) -> Result<St
         return Ok("Please provide a search query or enable last session fallback.".to_string());
     }
 
-    let mut matches = Vec::new();
-    let lower_query = query.to_lowercase();
+    let records = nir_analytics::search_checkpoints_by_text(&database_path, &query)
+        .context("Failed to execute FTS5 search against state database")?;
 
-    let mut entries = fs::read_dir(log_dir)?
-        .filter_map(|e| e.ok())
-        .collect::<Vec<_>>();
-    
-    // Search recent files first
-    entries.sort_by_key(|e| e.file_name());
-    entries.reverse();
-
-    for entry in entries {
-        let path = entry.path();
-        if path.extension().map_or(false, |ext| ext == "md") {
-            let content = fs::read_to_string(&path)?;
-            for line in content.lines() {
-                let keywords: Vec<&str> = lower_query.split_whitespace().collect();
-                if !keywords.is_empty() && keywords.iter().all(|&kw| line.to_lowercase().contains(kw)) {
-                    let date_str = path.file_stem()
-                        .and_then(|s| s.to_str())
-                        .unwrap_or("Unknown Date");
-                        
-                    let formatted_line = format!("[{}] {}", date_str, line);
-                    if !matches.contains(&formatted_line) {
-                        matches.push(formatted_line);
-                    }
-                }
-                
-                if matches.len() >= 40 {
-                    break;
-                }
-            }
-        }
-        if matches.len() >= 40 {
-            break;
-        }
-    }
-
-    if matches.is_empty() {
+    if records.is_empty() {
         return Ok(format!("No historical log matches found for query: '{}'", query));
     }
 
-    Ok(matches.join("\n"))
+    Ok(records
+        .iter()
+        .map(format_record_line)
+        .collect::<Vec<_>>()
+        .join("\n"))
+}
+
+/// Formats a checkpoint record as `[YYYY-MM-DD] <summary>` for human-readable recall output.
+fn format_record_line(record: &nir_analytics::CheckPointRecord) -> String {
+    let date = record
+        .id
+        .get(..10)
+        .unwrap_or("Unknown Date");
+    format!("[{}] {}", date, record.summary)
 }

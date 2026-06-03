@@ -4,6 +4,7 @@ use gpui::{App, SharedString, Task};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use anyhow::Context;
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct LogTaskInput {
@@ -48,10 +49,28 @@ impl AgentTool for LogTaskTool {
         cx.spawn(async move |_cx| {
             let input = input.recv().await.map_err(|e| format!("Failed to receive input: {e}"))?;
             let log_line = format!("Completed Task: {}", input.task_completed);
-            match nir_analytics::write_daily_log(&log_line) {
-                Ok(_) => Ok("Milestone logged successfully.".to_string()),
-                Err(e) => Err(e.to_string()),
-            }
+            let entry_id = nir_analytics::write_daily_log(&log_line)
+                .map_err(|e| e.to_string())?;
+
+            let database_path = nir_analytics::get_state_db_path()
+                .context("Failed to resolve state database path for FTS5 insert")
+                .map_err(|e| e.to_string())?;
+            let connection = nir_analytics::init_storage_engine(&database_path)
+                .context("Failed to open state database for FTS5 insert")
+                .map_err(|e| e.to_string())?;
+            let checkpoint = nir_analytics::CheckPointRecord {
+                id: entry_id,
+                timestamp: chrono::Utc::now().timestamp(),
+                category: "task_completion".to_string(),
+                summary: input.task_completed,
+                tags: String::new(),
+                error_recovery: false,
+            };
+            nir_analytics::insert_checkpoint(&connection, &checkpoint)
+                .context("Failed to write checkpoint to FTS5 index")
+                .map_err(|e| e.to_string())?;
+
+            Ok("Milestone logged successfully.".to_string())
         })
     }
 }

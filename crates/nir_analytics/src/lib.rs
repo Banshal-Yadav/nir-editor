@@ -1,9 +1,12 @@
+use std::collections::HashSet;
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Local, Utc};
+use log;
 use rand::{distributions::Alphanumeric, Rng};
+use sqlez::connection::Connection;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -297,7 +300,10 @@ pub fn mark_analysis_failure() -> Result<()> {
     Ok(())
 }
 
-/// Collects unread log lines across all daily logs.
+/// Collects unread log lines across all daily logs. Returns entries in
+/// `LogEntry` form so callers get the timestamp/id/content split for free.
+/// Warns (once per file) when a non-empty line doesn't match the expected
+/// `[HH:MM:SS] | ID:...` format so silent log-format drift is visible.
 pub fn collect_unprocessed_log_lines(limit: usize) -> Result<Vec<String>> {
     let state = load_analytics_state()?;
     let logs_dir = get_logs_dir()?;
@@ -317,15 +323,33 @@ pub fn collect_unprocessed_log_lines(limit: usize) -> Result<Vec<String>> {
         let mut content = String::new();
         file.read_to_string(&mut content)?;
         
-        let lines_to_scan = content.lines().skip(2 + processed_lines);
-        for line in lines_to_scan {
+        // Skip past header lines: a header is anything before the first `[`
+        // line. This handles files with/without the 2-line `# Daily Log` header
+        // uniformly.
+        let lines: Vec<&str> = content.lines().collect();
+        let first_data_index = lines
+            .iter()
+            .position(|line| line.trim_start().starts_with('['))
+            .unwrap_or(lines.len());
+        let start_index = first_data_index + processed_lines;
+        
+        let mut malformed_warned = false;
+        for line in lines.iter().skip(start_index) {
             if collected.len() >= limit {
                 break;
             }
             let trimmed = line.trim();
-            if !trimmed.is_empty() {
-                collected.push(trimmed.to_string());
+            if trimmed.is_empty() {
+                continue;
             }
+            if parse_line_entry(trimmed).is_none() && !malformed_warned {
+                log::warn!(
+                    "{}: skipping non-canonical log line: {:?}",
+                    filename, trimmed
+                );
+                malformed_warned = true;
+            }
+            collected.push(trimmed.to_string());
         }
     }
     
@@ -599,4 +623,402 @@ pub fn reject_staged_skill(slug: &str) -> Result<()> {
         fs::remove_dir_all(target_path).context("Failed to scrub rejected proposal folder from filesystem")?;
     }
     Ok(())
+}
+
+// =============================================================================
+// SQLite storage layer (state.db at ~/.nir/brain/state.db)
+// =============================================================================
+
+/// Resolves the brain directory, creating it if missing.
+fn get_brain_dir() -> Result<PathBuf> {
+    let mut path = resolve_home_dir();
+    path.push(".nir");
+    path.push("brain");
+    fs::create_dir_all(&path).context("Failed to create brain directory")?;
+    Ok(path)
+}
+
+/// Resolves the path of the SQLite state database.
+pub fn get_state_db_path() -> Result<PathBuf> {
+    let mut path = get_brain_dir()?;
+    path.push("state.db");
+    Ok(path)
+}
+
+/// Persistable representation of a single checkpoint row.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CheckPointRecord {
+    pub id: String,
+    pub timestamp: i64,
+    pub category: String,
+    pub summary: String,
+    pub tags: String,
+    pub error_recovery: bool,
+}
+
+/// Opens (or creates) the SQLite state database and ensures the schema is present.
+///
+/// `checkpoints.id` is TEXT (matching the daily-log entry id format), so the
+/// Current schema version. Bump and add a migration when columns/tables change.
+const CURRENT_SCHEMA_VERSION: i32 = 1;
+
+/// Initializes the SQLite database. Sets WAL journal mode and a 5s busy timeout.
+/// Returns Err if sqlez's silent in-memory fallback kicked in.
+pub fn init_storage_engine(database_path: &Path) -> Result<Connection> {
+    if let Some(parent) = database_path.parent() {
+        fs::create_dir_all(parent).context("Failed to create parent directory for state database")?;
+    }
+    let connection = Connection::open_file(
+        &database_path.to_string_lossy()
+    );
+
+    // Bail if sqlez silently swapped to in-memory — writes would vanish on exit.
+    if !connection.persistent() {
+        log::error!(
+            "State database at {} fell back to in-memory storage. Data will not persist.",
+            database_path.display()
+        );
+        return Err(anyhow::anyhow!(
+            "State database at {} is ephemeral (in-memory fallback). Data will not persist.",
+            database_path.display()
+        ));
+    }
+
+    // WAL + busy_timeout so concurrent readers don't block writers.
+    // PRAGMA failures here are non-fatal (e.g. WAL may not be supported on
+    // some filesystems) so we log and continue.
+    for pragma in &["PRAGMA journal_mode = WAL", "PRAGMA busy_timeout = 5000", "PRAGMA synchronous = NORMAL"] {
+        if let Ok(mut exec) = connection.exec(pragma) {
+            if let Err(err) = exec() {
+                log::warn!("PRAGMA setup failed for '{}': {:?}", pragma, err);
+            }
+        }
+    }
+
+    // Forward-compatible schema: track version via user_version pragma.
+    let current_version: i32 = connection
+        .select::<i32>("PRAGMA user_version")
+        .context("Failed to read user_version pragma")?()
+        .context("PRAGMA user_version did not return a row")?
+        .first()
+        .copied()
+        .unwrap_or(0);
+
+    if current_version < 1 {
+        connection
+            .exec("CREATE TABLE IF NOT EXISTS checkpoints (\
+                id TEXT PRIMARY KEY,\
+                timestamp INTEGER,\
+                category TEXT,\
+                summary TEXT,\
+                tags TEXT,\
+                error_recovery INTEGER NOT NULL DEFAULT 0 CHECK (error_recovery IN (0, 1))\
+            )")
+            .context("Failed to prepare checkpoints schema statement")?()
+            .context("Failed to create checkpoints table")?;
+
+        connection
+            .exec("CREATE VIRTUAL TABLE IF NOT EXISTS checkpoints_fts USING fts5(summary)")
+            .context("Failed to prepare FTS5 schema statement")?()
+            .context("Failed to create checkpoints_fts virtual table")?;
+
+        if let Ok(mut set_version) =
+            connection.exec(&format!("PRAGMA user_version = {}", CURRENT_SCHEMA_VERSION))
+        {
+            if let Err(err) = set_version() {
+                log::warn!("Failed to set user_version: {:?}", err);
+            }
+        }
+    }
+
+    // Future migrations would go here:
+    // if current_version < 2 { ... migration v2 ... }
+
+    Ok(connection)
+}
+
+/// Atomically inserts a checkpoint into `checkpoints` and mirrors its summary
+/// into `checkpoints_fts` inside a single transaction. Deletes any stale FTS
+/// row first so REPLACE doesn't orphan the old entry.
+pub fn insert_checkpoint(connection: &Connection, record: &CheckPointRecord) -> Result<()> {
+    connection
+        .with_savepoint("insert_checkpoint", || {
+            // Self-heal: clear any existing FTS row for this id before the
+            // main INSERT OR REPLACE reassigns rowid. record.id is generated
+            // by random_id() (Alphanumeric only) so format!() is safe here.
+            let safe_id = record.id.replace('\'', "''");
+            connection
+                .exec(&format!(
+                    "DELETE FROM checkpoints_fts WHERE rowid IN \
+                     (SELECT rowid FROM checkpoints WHERE id = '{safe_id}')"
+                ))
+                .context("Failed to prepare FTS5 delete statement")?()
+                .context("Failed to clear stale FTS5 row")?;
+
+            connection
+                .exec_bound(
+                    "INSERT OR REPLACE INTO checkpoints (id, timestamp, category, summary, tags, error_recovery) \
+                     VALUES (?, ?, ?, ?, ?, ?)"
+                )
+                .context("Failed to prepare checkpoints insert statement")?(
+                    (
+                        record.id.as_str(),
+                        record.timestamp,
+                        record.category.as_str(),
+                        record.summary.as_str(),
+                        record.tags.as_str(),
+                        record.error_recovery,
+                    )
+                )
+                .context("Failed to insert into checkpoints table")?;
+
+            connection
+                .exec_bound(
+                    "INSERT INTO checkpoints_fts (rowid, summary) \
+                     VALUES ((SELECT rowid FROM checkpoints WHERE id = ?), ?)"
+                )
+                .context("Failed to prepare FTS5 insert statement")?(
+                    (record.id.as_str(), record.summary.as_str())
+                )
+                .context("Failed to insert into checkpoints_fts virtual table")?;
+
+            Ok(())
+        })
+        .context("Failed to commit checkpoint insert transaction")
+}
+
+/// Atomically updates a checkpoint in `checkpoints` and refreshes its mirror
+/// in `checkpoints_fts` inside a single transaction. Asserts exactly one FTS5
+/// row was updated so partial writes are caught.
+pub fn update_checkpoint(connection: &Connection, id: &str, record: &CheckPointRecord) -> Result<()> {
+    connection
+        .with_savepoint("update_checkpoint", || {
+            connection
+                .exec_bound(
+                    "UPDATE checkpoints \
+                     SET timestamp = ?, category = ?, summary = ?, tags = ?, error_recovery = ? \
+                     WHERE id = ?"
+                )
+                .context("Failed to prepare checkpoints update statement")?(
+                    (
+                        record.timestamp,
+                        record.category.as_str(),
+                        record.summary.as_str(),
+                        record.tags.as_str(),
+                        record.error_recovery,
+                        id,
+                    )
+                )
+                .context("Failed to update checkpoints table")?;
+
+            connection
+                .exec_bound(
+                    "UPDATE checkpoints_fts \
+                     SET summary = ? \
+                     WHERE rowid = (SELECT rowid FROM checkpoints WHERE id = ?)"
+                )
+                .context("Failed to prepare FTS5 update statement")?(
+                    (record.summary.as_str(), id)
+                )
+                .context("Failed to update checkpoints_fts virtual table")?;
+
+            Ok(())
+        })
+        .context("Failed to commit checkpoint update transaction")
+}
+
+// =============================================================================
+// FTS5-accelerated recall queries
+// =============================================================================
+
+/// FTS5 search over checkpoint summaries. Returns up to 15 matches ordered by
+/// FTS5 `rank`.
+pub fn search_checkpoints_by_text(database_path: &Path, query: &str) -> Result<Vec<CheckPointRecord>> {
+    let connection = init_storage_engine(database_path)
+        .context("Failed to open state database for FTS5 search")?;
+
+    let sanitized = sanitize_fts5_query(query);
+
+    let rows: Vec<(String, i64, String, String, String, bool)> = connection
+        .select_bound::<&str, (String, i64, String, String, String, bool)>(
+            "SELECT checkpoints.id, checkpoints.timestamp, checkpoints.category, \
+                    checkpoints.summary, checkpoints.tags, checkpoints.error_recovery \
+             FROM checkpoints_fts \
+             JOIN checkpoints ON checkpoints.rowid = checkpoints_fts.rowid \
+             WHERE checkpoints_fts MATCH ? \
+             ORDER BY rank \
+             LIMIT 15"
+        )
+        .context("Failed to prepare FTS5 search statement")?
+        (sanitized.as_str())
+        .context("Failed to execute FTS5 search query")?;
+
+    let records = rows
+        .into_iter()
+        .map(|(id, timestamp, category, summary, tags, error_recovery)| {
+            CheckPointRecord { id, timestamp, category, summary, tags, error_recovery }
+        })
+        .collect();
+
+    Ok(records)
+}
+
+/// Wraps the user query in double quotes (FTS5 phrase syntax) and escapes
+/// internal `"` as `""`.
+fn sanitize_fts5_query(query: &str) -> String {
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+    let escaped = trimmed.replace('"', "\"\"");
+    format!("\"{}\"", escaped)
+}
+
+/// Returns the 15 most recent checkpoints ordered by timestamp descending. The
+/// `LIMIT 15` cap is hard-coded in the SQL string.
+pub fn recent_checkpoints(database_path: &Path) -> Result<Vec<CheckPointRecord>> {
+    let connection = init_storage_engine(database_path)
+        .context("Failed to open state database for recent query")?;
+
+    let rows: Vec<(String, i64, String, String, String, bool)> = connection
+        .select::<(String, i64, String, String, String, bool)>(
+            "SELECT id, timestamp, category, summary, tags, error_recovery \
+             FROM checkpoints \
+             ORDER BY timestamp DESC \
+             LIMIT 15"
+        )
+        .context("Failed to prepare recent checkpoint query statement")?()
+        .context("Failed to execute recent checkpoint query")?;
+
+    let records = rows
+        .into_iter()
+        .map(|(id, timestamp, category, summary, tags, error_recovery)| {
+            CheckPointRecord { id, timestamp, category, summary, tags, error_recovery }
+        })
+        .collect();
+
+    Ok(records)
+}
+
+// =============================================================================
+// Two-tiered hybrid similarity gate
+// =============================================================================
+
+/// Routing decision returned by `evaluate_match`.
+pub enum MatchResult {
+    DirectMerge(String),
+    RequiresReflection(String),
+    NoMatch,
+}
+
+/// Routes a candidate summary against an existing cluster using two-tiered
+/// overlap thresholds.
+pub fn evaluate_match(candidate_summary: &str, existing_cluster_summary: &str) -> MatchResult {
+    let score = overlap_coefficient(candidate_summary, existing_cluster_summary);
+    if score >= 0.40 {
+        MatchResult::DirectMerge(existing_cluster_summary.to_string())
+    } else if score >= 0.10 {
+        MatchResult::RequiresReflection(existing_cluster_summary.to_string())
+    } else {
+        MatchResult::NoMatch
+    }
+}
+
+/// Overlap coefficient (Szymkiewicz-Simpson): intersection / min(|A|, |B|).
+/// Filters action verbs so scoring is driven by nouns/identifiers.
+pub fn overlap_coefficient(first: &str, second: &str) -> f32 {
+    let stop_words: &HashSet<&str> = &[
+        "the", "and", "for", "with", "from", "this", "that", "into", "were",
+        // Action verbs that appear in nearly every log line
+        "created", "updated", "fixed", "added", "removed", "implemented",
+        "refactored", "optimized", "deployed", "shipped", "completed",
+        "started", "finished", "working", "task", "work", "code", "setup",
+        "using", "based", "file", "also",
+    ].iter().copied().collect();
+
+    let clean_tokens = |source: &str| -> HashSet<String> {
+        source
+            .to_lowercase()
+            .split(|character: char| !character.is_alphanumeric())
+            .filter(|token| token.len() > 2 && !stop_words.contains(*token))
+            .map(|token| token.to_string())
+            .collect()
+    };
+
+    let first_tokens = clean_tokens(first);
+    let second_tokens = clean_tokens(second);
+
+    if first_tokens.is_empty() || second_tokens.is_empty() {
+        return 0.0;
+    }
+
+    let intersection_count = first_tokens.intersection(&second_tokens).count();
+    let minimum_size = std::cmp::min(first_tokens.len(), second_tokens.len());
+    intersection_count as f32 / minimum_size as f32
+}
+
+#[cfg(test)]
+mod fts_and_gate_tests {
+    use super::*;
+
+    #[test]
+    fn overlap_full_overlap() {
+        // Set A: { "apple", "banana", "cherry" } (size 3)
+        // Set B: { "apple", "banana" }         (size 2)
+        // intersection: 2, min: 2, score: 1.0
+        let score = overlap_coefficient("apple banana cherry", "apple banana");
+        assert!((score - 1.0).abs() < f32::EPSILON, "Expected 1.0, got {}", score);
+    }
+
+    #[test]
+    fn overlap_partial_overlap() {
+        // Set A: { "apple", "banana", "cherry", "date" }  (size 4)
+        // Set B: { "apple", "banana", "elderberry" }      (size 3)
+        // intersection: 2, min: 3, score: 0.6667
+        let score = overlap_coefficient("apple banana cherry date", "apple banana elderberry");
+        assert!((score - 0.6666667).abs() < 0.001, "Expected ~0.667, got {}", score);
+    }
+
+    #[test]
+    fn overlap_empty_input_returns_zero() {
+        assert_eq!(overlap_coefficient("", "apple"), 0.0);
+        assert_eq!(overlap_coefficient("apple", ""), 0.0);
+        assert_eq!(overlap_coefficient("", ""), 0.0);
+    }
+
+    #[test]
+    fn evaluate_match_direct_merge_at_high_overlap() {
+        // Set A: { alpha, beta, charlie, delta, echo }    (size 5)
+        // Set B: { alpha, beta, foxtrot, golf, hotel }    (size 5)
+        // intersection: 2, min: 5, score: 0.40 -> DirectMerge (>= 0.40)
+        match evaluate_match(
+            "alpha beta charlie delta echo",
+            "alpha beta foxtrot golf hotel",
+        ) {
+            MatchResult::DirectMerge(_) => (),
+            other => panic!("Expected DirectMerge at 0.40 boundary, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn evaluate_match_reflection_in_gray_zone() {
+        // Set A: 10 distinct tokens, 1 shared with cluster -> 1/10 = 0.10 -> RequiresReflection
+        let candidate =
+            "alpha bravo charlie delta echo foxtrot golf hotel india juliet";
+        let cluster =
+            "alpha mike november oscar papa quebec romeo sierra tango uniform";
+        match evaluate_match(candidate, cluster) {
+            MatchResult::RequiresReflection(_) => (),
+            other => panic!("Expected RequiresReflection, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn evaluate_match_no_match_below_threshold() {
+        // No shared tokens -> score 0.0 -> NoMatch
+        match evaluate_match("alpha beta charlie", "delta echo foxtrot") {
+            MatchResult::NoMatch => (),
+            other => panic!("Expected NoMatch, got {:?}", other),
+        }
+    }
 }

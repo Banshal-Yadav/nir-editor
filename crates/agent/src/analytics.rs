@@ -1,10 +1,16 @@
 use serde::{Deserialize, Serialize};
-use agent_skills::{SKILL_FILE_NAME, global_skills_dir};
-use std::collections::HashSet;
+use agent_skills::{SkillMetadata, SKILL_FILE_NAME, global_skills_dir};
 use anyhow::{Result, Context};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::Arc;
+use futures::StreamExt;
+use gpui::AsyncApp;
+use language_model::{
+    LanguageModel, LanguageModelRequest, LanguageModelRequestMessage,
+    MessageContent, Role, CompletionIntent, LanguageModelCompletionEvent,
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Metrics {
@@ -50,7 +56,7 @@ pub struct SkillPayload {
 
 // Windows shells can isolate USERPROFILE vs HOME inconsistently across PowerShell/WSL/MSYS;
 // strict ordering + `.` fallback prevents telemetry from fragmenting to silent directories.
-fn home_dir_path() -> PathBuf {
+pub(crate) fn home_dir_path() -> PathBuf {
     if let Ok(path) = std::env::var("USERPROFILE") {
         return PathBuf::from(path);
     }
@@ -61,53 +67,48 @@ fn home_dir_path() -> PathBuf {
 }
 
 impl RecollectionsRegistry {
-    /// Calculate basic token intersection similarity (0.0 to 1.0) to avoid heavy libraries
-    pub fn calculate_similarity(s1: &str, s2: &str) -> f32 {
-        let clean_tokens = |s: &str| -> HashSet<String> {
-            s.to_lowercase()
-                .split(|c: char| !c.is_alphanumeric())
-                .filter(|t| t.len() > 2) // Ignore short fluff tokens
-                .map(|t| t.to_string())
-                .collect()
-        };
-
-        let set1 = clean_tokens(s1);
-        let set2 = clean_tokens(s2);
-
-        if set1.is_empty() || set2.is_empty() {
-            return 0.0;
-        }
-
-        let intersection_count = set1.intersection(&set2).count();
-        let min_size = std::cmp::min(set1.len(), set2.len());
-        intersection_count as f32 / min_size as f32
-    }
-
-    /// Process a newly ingested checkpoint into the current registry state
-    pub fn merge_checkpoint(&mut self, checkpoint: ParsedCheckpoint) {
+    /// Process a newly ingested checkpoint into the current registry state.
+    /// Uses the two-tiered hybrid similarity gate from `nir_analytics`.
+    pub async fn merge_checkpoint(
+        &mut self,
+        checkpoint: ParsedCheckpoint,
+        model: Arc<dyn LanguageModel>,
+        cx: &AsyncApp,
+    ) {
         let mut matched_index: Option<usize> = None;
 
-        // Try to match against existing recollections in the same category
-        for (i, staged) in self.staged_recollections.iter().enumerate() {
+        for (index, staged) in self.staged_recollections.iter().enumerate() {
             if staged.category.to_uppercase() != checkpoint.category.to_uppercase() {
                 continue;
             }
 
-            // Check similarity against existing items in this cluster
             for existing_summary in &staged.associated_summaries {
-                if Self::calculate_similarity(existing_summary, &checkpoint.summary) >= 0.40 {
-                    matched_index = Some(i);
-                    break;
+                match nir_analytics::evaluate_match(&checkpoint.summary, existing_summary) {
+                    nir_analytics::MatchResult::DirectMerge(_) => {
+                        matched_index = Some(index);
+                        break;
+                    }
+                    nir_analytics::MatchResult::RequiresReflection(_) => {
+                        let is_match =
+                            run_reflective_gate(&checkpoint.summary, existing_summary, model.clone(), cx)
+                                .await
+                                .unwrap_or(false);
+                        if is_match {
+                            matched_index = Some(index);
+                            break;
+                        }
+                    }
+                    nir_analytics::MatchResult::NoMatch => continue,
                 }
             }
-            if matched_index.is_some() { 
-                break; 
+
+            if matched_index.is_some() {
+                break;
             }
         }
 
-        if let Some(idx) = matched_index {
-            // Update existing cluster metrics and append summary
-            let entry = &mut self.staged_recollections[idx];
+        if let Some(index) = matched_index {
+            let entry = &mut self.staged_recollections[index];
             if !entry.associated_summaries.contains(&checkpoint.summary) {
                 entry.associated_summaries.push(checkpoint.summary.clone());
             }
@@ -117,33 +118,39 @@ impl RecollectionsRegistry {
             if checkpoint.tags.contains(&"user_intervention".to_string()) {
                 entry.metrics.user_corrections_count += 1;
             }
-        } else {
-            // Initialize a completely new behavioral cluster using a short slug from the text
-            let slug = checkpoint.summary
-                .to_lowercase()
-                .split_whitespace()
-                .take(3)
-                .collect::<Vec<&str>>()
-                .join("-")
-                .replace(|c: char| !c.is_alphanumeric() && c != '-', "");
-
-            let new_staged = StagedRecollection {
-                id: format!("{}-{}", slug, chrono::Utc::now().timestamp_millis() % 1000),
-                category: checkpoint.category.clone(),
-                metrics: Metrics {
-                    complexity_score: 1,
-                    had_error_recovery: checkpoint.tags.contains(&"error_recovery".to_string()),
-                    user_corrections_count: if checkpoint.tags.contains(&"user_intervention".to_string()) { 1 } else { 0 },
-                },
-                associated_summaries: vec![checkpoint.summary],
-                status: "STAGED".to_string(),
-            };
-            self.staged_recollections.push(new_staged);
+            return;
         }
+
+        let slug = checkpoint
+            .summary
+            .to_lowercase()
+            .split_whitespace()
+            .take(3)
+            .collect::<Vec<&str>>()
+            .join("-")
+            .replace(|c: char| !c.is_alphanumeric() && c != '-', "");
+
+        let new_staged = StagedRecollection {
+            id: format!("{}-{}", slug, chrono::Utc::now().timestamp_millis() % 1000),
+            category: checkpoint.category.clone(),
+            metrics: Metrics {
+                complexity_score: 1,
+                had_error_recovery: checkpoint.tags.contains(&"error_recovery".to_string()),
+                user_corrections_count: if checkpoint.tags.contains(&"user_intervention".to_string()) {
+                    1
+                } else {
+                    0
+                },
+            },
+            associated_summaries: vec![checkpoint.summary],
+            status: "STAGED".to_string(),
+        };
+        self.staged_recollections.push(new_staged);
     }
 
-    /// Identifies staged items that have met the threshold for promotion to full skills.
-    /// Threshold: 3 or more associated summaries, OR an error recovery with multiple user corrections.
+    /// Surfaces staged clusters as discover-skill candidates. 1+ summary, or
+    /// error-recovery with 2+ corrections. 1 (not 3) so fresh candidates show
+    /// up in the UI immediately instead of waiting for a proven pattern.
     pub fn check_promotion_targets(&self) -> Vec<StagedRecollection> {
         self.staged_recollections
             .iter()
@@ -151,15 +158,297 @@ impl RecollectionsRegistry {
                 if staged.status != "STAGED" {
                     return false;
                 }
-                
-                let frequency_met = staged.associated_summaries.len() >= 3;
-                let high_friction_met = staged.metrics.had_error_recovery 
+
+                let has_summary = !staged.associated_summaries.is_empty();
+                let high_friction_met = staged.metrics.had_error_recovery
                     && staged.metrics.user_corrections_count >= 2;
 
-                frequency_met || high_friction_met
+                has_summary || high_friction_met
             })
             .cloned()
             .collect()
+    }
+}
+
+// =============================================================================
+// Two-tiered hybrid gate: reflective layer
+// =============================================================================
+
+/// Asynchronous reflective gate for `MatchResult::RequiresReflection`.
+/// Returns `Ok(false)` until the local model call is wired in.
+pub async fn run_reflective_gate(
+    new_task: &str,
+    existing_cluster_summary: &str,
+    model: Arc<dyn LanguageModel>,
+    cx: &AsyncApp,
+) -> Result<bool> {
+    let prompt = build_reflection_prompt(new_task, existing_cluster_summary);
+
+    let request = LanguageModelRequest {
+        intent: Some(CompletionIntent::UserPrompt),
+        messages: vec![LanguageModelRequestMessage {
+            role: Role::User,
+            content: vec![MessageContent::Text(prompt)],
+            cache: false,
+            reasoning_details: None,
+        }],
+        ..Default::default()
+    };
+
+    let mut stream = model
+        .stream_completion(request, cx)
+        .await
+        .context("Failed to call language model for reflective gate")?;
+
+    let mut response_text = String::new();
+    while let Some(event) = stream.next().await {
+        match event.context("Stream error from reflective gate LLM call")? {
+            LanguageModelCompletionEvent::Text(text) => response_text.push_str(&text),
+            _ => continue,
+        }
+    }
+
+    let trimmed = response_text.trim();
+    let start = trimmed.find('{');
+    let end = trimmed.rfind('}');
+    let clean_json = match (start, end) {
+        (Some(s), Some(e)) if e >= s => &trimmed[s..=e],
+        _ => {
+            log::warn!("Reflective gate response contained no JSON object: {:?}", trimmed);
+            return Ok(false);
+        }
+    };
+
+    #[derive(Deserialize)]
+    struct ReflectionResponse {
+        is_semantic_match: bool,
+    }
+
+    match serde_json::from_str::<ReflectionResponse>(clean_json) {
+        Ok(parsed) => Ok(parsed.is_semantic_match),
+        Err(error) => {
+            log::warn!("Failed to parse reflective gate JSON: {}", error);
+            Ok(false)
+        }
+    }
+}
+
+/// Closure-based variant of `run_reflective_gate` for non-gpui contexts.
+pub async fn run_reflective_gate_with_client<C>(
+    new_task: &str,
+    existing_cluster_summary: &str,
+    model_client: C,
+) -> Result<bool>
+where
+    C: FnOnce(String) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String>> + Send>>,
+{
+    let prompt = build_reflection_prompt(new_task, existing_cluster_summary);
+    let raw_response = model_client(prompt)
+        .await
+        .context("Model client call failed for reflective gate")?;
+
+    let trimmed = raw_response.trim();
+    let start = trimmed.find('{');
+    let end = trimmed.rfind('}');
+    let clean_json = match (start, end) {
+        (Some(s), Some(e)) if e >= s => &trimmed[s..=e],
+        _ => {
+            log::warn!("Reflective gate response contained no JSON object: {:?}", trimmed);
+            return Ok(false);
+        }
+    };
+
+    #[derive(Deserialize)]
+    struct ReflectionResponse {
+        is_semantic_match: bool,
+    }
+
+    match serde_json::from_str::<ReflectionResponse>(clean_json) {
+        Ok(parsed) => Ok(parsed.is_semantic_match),
+        Err(error) => {
+            log::warn!("Failed to parse reflective gate JSON: {}", error);
+            Ok(false)
+        }
+    }
+}
+
+fn build_reflection_prompt(new_task: &str, existing_cluster_summary: &str) -> String {
+    format!(
+        "You are a semantic equivalence classifier for a skill clustering system.\n\
+         \n\
+         EXISTING CLUSTER SUMMARY: \"{existing}\"\n\
+         NEW TASK: \"{new}\"\n\
+         \n\
+         Decide if the NEW TASK is semantically equivalent to (or a sub-task of)\n\
+         the EXISTING CLUSTER SUMMARY. Reply with a strict JSON object containing\n\
+         exactly one field:\n\
+         \n\
+         {{ \"is_semantic_match\": true }}    -- if they describe the same workflow\n\
+         {{ \"is_semantic_match\": false }}   -- otherwise\n\
+         \n\
+         CRITICAL: Output raw JSON only. No markdown fences, no prose, no commentary.",
+        existing = existing_cluster_summary,
+        new = new_task,
+    )
+}
+
+/// Runs the per-line two-tiered hybrid gate over a batch of log lines.
+/// Takes a `model_client` closure for non-gpui contexts.
+/// `model_client` must be `Clone` — reflection evaluates against multiple clusters.
+pub async fn process_log_lines_with_gate<C>(
+    registry: &mut RecollectionsRegistry,
+    log_lines: &[String],
+    model_client: C,
+) -> Result<GateRunStats>
+where
+    C: Fn(String) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String>> + Send>>
+        + Send
+        + Sync
+        + Clone
+        + 'static,
+{
+    let mut stats = GateRunStats::default();
+
+    for line in log_lines {
+        let Some(checkpoint) = process_log_line(line) else {
+            stats.skipped += 1;
+            continue;
+        };
+        stats.parsed += 1;
+
+        let category_upper = checkpoint.category.to_uppercase();
+        let mut matched_index: Option<usize> = None;
+
+        for (index, staged) in registry.staged_recollections.iter().enumerate() {
+            if staged.category.to_uppercase() != category_upper {
+                continue;
+            }
+
+            for existing_summary in &staged.associated_summaries {
+                let jaccard = nir_analytics::overlap_coefficient(
+                    &checkpoint.summary,
+                    existing_summary,
+                );
+                match nir_analytics::evaluate_match(&checkpoint.summary, existing_summary) {
+                    nir_analytics::MatchResult::DirectMerge(_) => {
+                        log::debug!(
+                            "Nir Gate: jaccard={:.3} >= 0.40 → DirectMerge into cluster [{}] (existing summary: \"{}\")",
+                            jaccard,
+                            index,
+                            truncate_for_log(existing_summary, 60)
+                        );
+                        matched_index = Some(index);
+                        break;
+                    }
+                    nir_analytics::MatchResult::RequiresReflection(_) => {
+                        log::debug!(
+                            "Nir Gate: jaccard={:.3} in gray zone [0.10, 0.40) → consulting LLM reflection (existing summary: \"{}\")",
+                            jaccard,
+                            truncate_for_log(existing_summary, 60)
+                        );
+                        let client = model_client.clone();
+                        let is_match = run_reflective_gate_with_client(
+                            &checkpoint.summary,
+                            existing_summary,
+                            client,
+                        )
+                        .await
+                        .unwrap_or(false);
+                        stats.reflections += 1;
+                        if is_match {
+                            stats.reflection_matches += 1;
+                            log::debug!(
+                                "Nir Gate: LLM reflection returned match=true → merging into cluster [{}]",
+                                index
+                            );
+                            matched_index = Some(index);
+                            break;
+                        } else {
+                            log::debug!("Nir Gate: LLM reflection returned match=false → continuing scan");
+                        }
+                    }
+                    nir_analytics::MatchResult::NoMatch => {
+                        log::debug!(
+                            "Nir Gate: jaccard={:.3} < 0.10 → NoMatch (existing summary: \"{}\")",
+                            jaccard,
+                            truncate_for_log(existing_summary, 60)
+                        );
+                        continue;
+                    }
+                }
+            }
+
+            if matched_index.is_some() {
+                break;
+            }
+        }
+
+        if let Some(index) = matched_index {
+            let entry = &mut registry.staged_recollections[index];
+            if !entry.associated_summaries.contains(&checkpoint.summary) {
+                entry.associated_summaries.push(checkpoint.summary.clone());
+            }
+            if checkpoint.tags.contains(&"error_recovery".to_string()) {
+                entry.metrics.had_error_recovery = true;
+            }
+            if checkpoint.tags.contains(&"user_intervention".to_string()) {
+                entry.metrics.user_corrections_count += 1;
+            }
+            stats.merged += 1;
+        } else {
+            let slug = checkpoint
+                .summary
+                .to_lowercase()
+                .split_whitespace()
+                .take(3)
+                .collect::<Vec<&str>>()
+                .join("-")
+                .replace(|c: char| !c.is_alphanumeric() && c != '-', "");
+            let new_staged = StagedRecollection {
+                id: format!("{}-{}", slug, chrono::Utc::now().timestamp_millis() % 1000),
+                category: checkpoint.category.clone(),
+                metrics: Metrics {
+                    complexity_score: 1,
+                    had_error_recovery: checkpoint.tags.contains(&"error_recovery".to_string()),
+                    user_corrections_count: if checkpoint
+                        .tags
+                        .contains(&"user_intervention".to_string())
+                    {
+                        1
+                    } else {
+                        0
+                    },
+                },
+                associated_summaries: vec![checkpoint.summary],
+                status: "STAGED".to_string(),
+            };
+            registry.staged_recollections.push(new_staged);
+            stats.created += 1;
+        }
+    }
+
+    Ok(stats)
+}
+
+/// Counters returned by `process_log_lines_with_gate` so the worker can log
+/// visibility into how many reflections actually fired.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct GateRunStats {
+    pub parsed: usize,
+    pub skipped: usize,
+    pub merged: usize,
+    pub created: usize,
+    pub reflections: usize,
+    pub reflection_matches: usize,
+}
+
+fn truncate_for_log(text: &str, max_chars: usize) -> String {
+    let single_line = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if single_line.chars().count() <= max_chars {
+        single_line
+    } else {
+        let truncated: String = single_line.chars().take(max_chars).collect();
+        format!("{}…", truncated)
     }
 }
 
@@ -232,7 +521,10 @@ fn parse_legacy_log_line(line: &str) -> Option<ParsedCheckpoint> {
     Some(ParsedCheckpoint { category, summary: main_content, tags })
 }
 
-pub async fn run_analytics_cycle() -> Result<Vec<String>> {
+pub async fn run_analytics_cycle(
+    model: Arc<dyn LanguageModel>,
+    cx: &AsyncApp,
+) -> Result<Vec<String>> {
     let home = home_dir_path();
     let brain_dir = home.join(".nir/brain");
     let recollections_path = brain_dir.join("recollections.json");
@@ -254,7 +546,7 @@ pub async fn run_analytics_cycle() -> Result<Vec<String>> {
         let log_data = fs::read_to_string(&target_log)?;
         for line in log_data.lines() {
             if let Some(checkpoint) = process_log_line(line) {
-                registry.merge_checkpoint(checkpoint);
+                registry.merge_checkpoint(checkpoint, model.clone(), cx).await;
             }
         }
     }
@@ -335,14 +627,23 @@ pub fn approve_discovered_skill(name: &str) -> Result<()> {
     let index_path = brain_dir.join("skills_index.json");
     let skills_dir = brain_dir.join("skills");
 
+    let slug = to_slug(name);
+
+    // Read the JSON payload BEFORE touching the index so a missing file
+    // doesn't silently nuke the discovered entry.
+    let payload_path = skills_dir.join(format!("{}.json", slug));
+    let payload_content = fs::read_to_string(&payload_path)
+        .with_context(|| format!("Skill payload missing at {}", payload_path.display()))?;
+    let payload: SkillPayload = serde_json::from_str(&payload_content)
+        .with_context(|| format!("Failed to parse skill payload at {}", payload_path.display()))?;
+
     let mut index = if index_path.exists() {
         let content = fs::read_to_string(&index_path)?;
-        serde_json::from_str(&content).unwrap_or_default()
+        serde_json::from_str(&content).context("Failed to parse skills_index.json")?
     } else {
         SkillsIndex::default()
     };
 
-    let slug = to_slug(name);
     if let Some(pos) = index
         .discovered_skills
         .iter()
@@ -354,48 +655,20 @@ pub fn approve_discovered_skill(name: &str) -> Result<()> {
         }
     }
 
-    let home_dir = home_dir_path();
-    let mut markdown_path = home_dir.join(".agents").join("proposals").join(&slug).join("SKILL.md");
-    if !markdown_path.exists() {
-        markdown_path = skills_dir.join(&slug).join("SKILL.md");
-    }
-    let content = fs::read_to_string(&markdown_path)?;
-    
-    let mut description = String::new();
-    let mut body = String::new();
-    let mut inside_frontmatter = false;
-    let mut frontmatter_ended = false;
-
-    for line in content.lines() {
-        if line.trim() == "---" {
-            if !inside_frontmatter && !frontmatter_ended {
-                inside_frontmatter = true;
-            } else if inside_frontmatter {
-                inside_frontmatter = false;
-                frontmatter_ended = true;
-            }
-            continue;
-        }
-        if inside_frontmatter {
-            if let Some(idx) = line.find(':') {
-                let key = line[..idx].trim();
-                let val = line[idx + 1..].trim();
-                if key == "description" {
-                    description = val.to_string();
-                }
-            }
-        } else if frontmatter_ended {
-            body.push_str(line);
-            body.push('\n');
-        }
-    }
-    let body = body.trim();
-
     let active_skill_dir = global_skills_dir().join(&slug);
     fs::create_dir_all(&active_skill_dir)?;
+
+    // Build SKILL.md via serde_yaml_ng — descriptions with `: ` or `..` need quoting.
+    let metadata = SkillMetadata {
+        name: slug.clone(),
+        description: payload.description.clone(),
+        disable_model_invocation: false,
+    };
+    let frontmatter = serde_yaml_ng::to_string(&metadata)
+        .context("failed to serialize skill frontmatter as YAML")?;
     let skill_content = format!(
-        "---\nid: {}\nname: {}\ndescription: {}\n---\n{}",
-        slug, name, description, body
+        "---\n{frontmatter}---\n{}",
+        payload.system_instruction_override.trim()
     );
 
     let skill_file_path = active_skill_dir.join(SKILL_FILE_NAME);
@@ -425,7 +698,7 @@ pub fn reject_discovered_skill(name: &str) -> Result<()> {
 
     let mut index = if index_path.exists() {
         let content = fs::read_to_string(&index_path)?;
-        serde_json::from_str(&content).unwrap_or_default()
+        serde_json::from_str(&content).context("Failed to parse skills_index.json")?
     } else {
         SkillsIndex::default()
     };
@@ -498,8 +771,10 @@ pub async fn write_promoted_skill(
     fs::create_dir_all(&skills_dir).context("Failed to create skills directory")?;
 
     let mut index = if index_path.exists() {
-        let content = fs::read_to_string(&index_path)?;
-        serde_json::from_str(&content).unwrap_or_default()
+        let content = fs::read_to_string(&index_path)
+            .with_context(|| format!("Failed to read skills index at {}", index_path.display()))?;
+        serde_json::from_str(&content)
+            .with_context(|| format!("Failed to parse skills index at {}", index_path.display()))?
     } else {
         SkillsIndex::default()
     };
@@ -519,47 +794,65 @@ pub async fn write_promoted_skill(
             .map(|w| w.chars().take(4).collect::<String>())
             .collect();
 
+        // 3+ stems so same-category candidates (e.g. "task-completion-*") don't
+        // falsely dedupe on the shared "task" + "comp" prefix alone.
         let intersection = existing_stems.intersection(&new_stems).count();
-        intersection >= 2
+        intersection >= 3
     };
 
     if !index.active_skills.iter().any(|s| is_similar(&s.name, &filename))
         && !index.discovered_skills.iter().any(|s| is_similar(&s.name, &filename))
     {
+        log::info!("Nir Analytics: promoting cluster to skill '{}'", filename);
+
         index.discovered_skills.push(SkillIndexEntry {
             name: filename.clone(),
             description: clean_desc.clone(),
             last_used_timestamp: chrono::Utc::now().timestamp(),
         });
 
-        let serialized_index = serde_json::to_string_pretty(&index)?;
-        let mut idx_file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(&index_path)?;
-        idx_file.write_all(serialized_index.as_bytes())?;
+        // Atomic write: serialize to .tmp then rename. Prevents the
+        // "truncate succeeded, write failed, file is 0 bytes" failure mode.
+        let serialized_index = serde_json::to_string_pretty(&index)
+            .context("Failed to serialize skills index")?;
+        let index_tmp = index_path.with_extension("json.tmp");
+        fs::write(&index_tmp, serialized_index.as_bytes())
+            .with_context(|| format!("Failed to write index tmp at {}", index_tmp.display()))?;
+        fs::rename(&index_tmp, &index_path)
+            .with_context(|| format!("Failed to rename {} -> {}", index_tmp.display(), index_path.display()))?;
+        log::info!("Nir Analytics: wrote skills index to {}", index_path.display());
+
+        let payload = SkillPayload {
+            name: filename.clone(),
+            description: clean_desc,
+            system_instruction_override: instruction_override.to_string(),
+        };
+
+        let payload_path = skills_dir.join(format!("{}.json", filename));
+        let serialized_payload = serde_json::to_string_pretty(&payload)
+            .context("Failed to serialize skill payload")?;
+        let payload_tmp = payload_path.with_extension("json.tmp");
+        fs::write(&payload_tmp, serialized_payload.as_bytes())
+            .with_context(|| format!("Failed to write payload tmp at {}", payload_tmp.display()))?;
+        fs::rename(&payload_tmp, &payload_path)
+            .with_context(|| format!("Failed to rename {} -> {}", payload_tmp.display(), payload_path.display()))?;
+        log::info!(
+            "Nir Analytics: wrote skill payload to {}",
+            payload_path.display()
+        );
+    } else {
+        log::info!(
+            "Nir Analytics: skipping promotion of '{}' — similar to existing skill",
+            filename
+        );
     }
-
-    let payload = SkillPayload {
-        name: filename.clone(),
-        description: clean_desc,
-        system_instruction_override: instruction_override.to_string(),
-    };
-
-    let payload_path = skills_dir.join(format!("{}.json", filename));
-    let serialized_payload = serde_json::to_string_pretty(&payload)?;
-    let mut payload_file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(&payload_path)?;
-    payload_file.write_all(serialized_payload.as_bytes())?;
 
     Ok(filename)
 }
 
-/// Simple category matching heuristic before triggering the LLM
+/// Matches active skills against the user message using full slug word overlap.
+/// Fires when 2+ tokens (>= 3 chars) from the slug appear in the message.
+/// Also refreshes `last_used_timestamp` for triggered skills.
 pub fn inject_relevant_payloads(user_message: &str, system_prompt: &mut String) {
     let home = home_dir_path();
     let brain_dir = home.join(".nir/brain");
@@ -571,20 +864,25 @@ pub fn inject_relevant_payloads(user_message: &str, system_prompt: &mut String) 
     let lowercase_message = user_message.to_lowercase();
     let words: std::collections::HashSet<&str> = lowercase_message
         .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| w.len() > 2)
         .collect();
 
     let mut triggered_skills = Vec::new();
 
-    // Check if the user message touches an active domain (e.g., "ui", "bug", "refactor")
+    // Tokenize each slug the same way Jaccard does: split on '-', keep >= 3 chars.
+    // Match when 2+ slug tokens appear in the user's message.
     if let Ok(entries) = std::fs::read_dir(&skills_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().map_or(false, |ext| ext == "json") {
                 let filename = path.file_stem().unwrap().to_string_lossy().to_string();
-                let category = filename.split('-').next().unwrap_or("");
-                
-                // If the current context matches the skill category, inject the heavy instructions
-                if !category.is_empty() && words.contains(category.to_lowercase().as_str()) {
+                let slug_tokens: std::collections::HashSet<&str> = filename
+                    .split('-')
+                    .filter(|t| t.len() > 2)
+                    .collect();
+
+                let overlap = slug_tokens.iter().filter(|t| words.contains(*t)).count();
+                if overlap >= 2 {
                     if let Ok(content) = std::fs::read_to_string(&path) {
                         if let Ok(payload) = serde_json::from_str::<SkillPayload>(&content) {
                             system_prompt.push_str(&format!(
@@ -599,7 +897,7 @@ pub fn inject_relevant_payloads(user_message: &str, system_prompt: &mut String) 
         }
     }
 
-    // Refresh last_used_timestamp for all triggered skills to reset their expiration clock
+    // Refresh last_used_timestamp for triggered skills
     if !triggered_skills.is_empty() && index_path.exists() {
         if let Ok(content) = std::fs::read_to_string(&index_path) {
             if let Ok(mut index) = serde_json::from_str::<SkillsIndex>(&content) {
@@ -614,7 +912,9 @@ pub fn inject_relevant_payloads(user_message: &str, system_prompt: &mut String) 
                 if updated {
                     if let Ok(serialized) = serde_json::to_string_pretty(&index) {
                         if let Ok(mut file) = OpenOptions::new().write(true).truncate(true).open(&index_path) {
-                            let _ = file.write_all(serialized.as_bytes());
+                            if let Err(err) = file.write_all(serialized.as_bytes()) {
+                                log::error!("Failed to refresh skill timestamps: {:?}", err);
+                            }
                         }
                     }
                 }
@@ -628,28 +928,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_calculate_similarity_overlap() {
-        // Set A: { "apple", "banana", "cherry" }
-        // Set B: { "apple", "banana" }
-        // Overlap similarity: intersection (2) / min_size (2) = 1.0
+    fn test_overlap_coefficient() {
         let s1 = "apple banana cherry";
         let s2 = "apple banana";
-        let score = RecollectionsRegistry::calculate_similarity(s1, s2);
+        let score = nir_analytics::overlap_coefficient(s1, s2);
         assert!((score - 1.0).abs() < f32::EPSILON, "Expected 1.0, got {}", score);
 
-        // A and B have different lengths, some overlap
-        // Set A: { "apple", "banana", "cherry", "date" } -> size 4
-        // Set B: { "apple", "banana", "elderberry" } -> size 3
-        // Intersection: { "apple", "banana" } -> size 2
-        // Min size: 3
-        // Overlap: 2 / 3 = 0.6666...
         let s3 = "apple banana cherry date";
         let s4 = "apple banana elderberry";
-        let score_partial = RecollectionsRegistry::calculate_similarity(s3, s4);
+        let score_partial = nir_analytics::overlap_coefficient(s3, s4);
         assert!((score_partial - 0.6666667).abs() < 1e-5, "Expected ~0.6667, got {}", score_partial);
 
-        // Empty cases
-        assert_eq!(RecollectionsRegistry::calculate_similarity("", "apple"), 0.0);
+        assert_eq!(nir_analytics::overlap_coefficient("", "apple"), 0.0);
     }
 
     #[test]

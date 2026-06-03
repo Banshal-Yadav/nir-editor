@@ -1908,11 +1908,11 @@ impl AgentPanel {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        log::info!(
+        log::debug!(
             "[agent-launcher] new_terminal_with_task called, supports_terminal={}",
             self.supports_terminal(cx)
         );
-        log::info!("[agent-launcher] new_terminal_with_task: entered");
+        log::debug!("[agent-launcher] new_terminal_with_task: entered");
         // Only require the project to support terminals (local or remote-server).
         // Do NOT gate on has_open_project() — agent CLI tools don't need a worktree;
         // they use the cwd from SpawnInTerminal (or HOME as fallback).
@@ -1984,7 +1984,7 @@ impl AgentPanel {
 
     pub fn supports_terminal(&self, cx: &App) -> bool {
         let result = self.has_open_project(cx) && self.project.read(cx).supports_terminal(cx);
-        log::info!("[agent-launcher] supports_terminal: {}", result);
+        log::debug!("[agent-launcher] supports_terminal: {}", result);
         result
     }
 

@@ -397,7 +397,9 @@ fn render_discovered_skill_row(
                             .style(ButtonStyle::Tinted(TintColor::Success))
                             .size(ButtonSize::Medium)
                             .on_click(cx.listener(move |_, _, _, cx| {
-                                approve_discovered_skill(&slug).log_err();
+                                if let Err(err) = approve_discovered_skill(&slug) {
+                                    log::error!("approve_discovered_skill({}) failed: {err:#}", slug);
+                                }
                                 cx.notify();
                             })),
                         )
@@ -410,7 +412,9 @@ fn render_discovered_skill_row(
                             .style(ButtonStyle::Tinted(TintColor::Error))
                             .size(ButtonSize::Medium)
                             .on_click(cx.listener(move |_, _, _, cx| {
-                                reject_discovered_skill(&slug_reject).log_err();
+                                if let Err(err) = reject_discovered_skill(&slug_reject) {
+                                    log::error!("reject_discovered_skill({}) failed: {err:#}", slug_reject);
+                                }
                                 cx.notify();
                             })),
                         ),

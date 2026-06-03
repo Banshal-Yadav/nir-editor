@@ -280,6 +280,7 @@ dependencies = [
  "schemars 1.0.4",
  "serde",
  "serde_json",
+ "serde_yaml_ng",
  "settings",
  "shell_command_parser",
  "smallvec",
@@ -12345,9 +12346,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "log",
  "rand 0.8.6",
  "serde",
  "serde_json",
+ "sqlez",
 ]
 
 [[package]]
