@@ -1,10 +1,8 @@
-use agent::analytics::{approve_discovered_skill, reject_discovered_skill, AnalyticsConfig, SkillIndexEntry, SkillsIndex, get_manual_analysis_stats};
 use agent_skills::{Skill, SkillIndex, encode_skill_share_link};
 use gpui::{Action as _, ClipboardItem, ScrollHandle, SharedString, prelude::*};
-use language_model::LanguageModelRegistry;
 use std::fs;
 
-use ui::{Divider, IconButtonShape, TintColor, Tooltip, prelude::*};
+use ui::{Divider, Switch, ToggleState, Tooltip, prelude::*};
 use util::ResultExt as _;
 
 use crate::{SettingsUiFile, SettingsWindow};
@@ -43,20 +41,103 @@ pub(crate) fn render_skills_setup_page(
     })
     .collect();
 
-    let discovered_skills = if matches!(settings_window.current_file, SettingsUiFile::User) {
-        load_discovered_skills()
-    } else {
-        Vec::new()
-    };
-
     v_flex()
         .id("skills-page")
         .size_full()
         .pt_2p5()
         .px_8()
         .pb_16()
+        .when(
+            matches!(settings_window.current_file, SettingsUiFile::User),
+            |this| {
+                let session_stats = get_session_stats();
+                let session_config = nir_analytics::load_session_config();
+
+                this.child(
+                    v_flex()
+                        .gap_2()
+                        .p_3()
+                        .rounded_md()
+                        .child(
+                            h_flex()
+                                .justify_between()
+                                .items_center()
+                                .child(
+                                    Label::new("Session History")
+                                        .size(LabelSize::Small)
+                                        .color(Color::Muted),
+                                )
+                                .child(
+                                    Switch::new(
+                                        "session-history-toggle",
+                                        if session_config.enabled {
+                                            ToggleState::Selected
+                                        } else {
+                                            ToggleState::Unselected
+                                        },
+                                    )
+                                    .tab_index(0_isize)
+                                    .on_click(cx.listener(|_view, state, _window, cx| {
+                                        let new_config = nir_analytics::SessionConfig {
+                                            enabled: *state == ToggleState::Selected,
+                                        };
+                                        if let Err(err) =
+                                            nir_analytics::save_session_config(&new_config)
+                                        {
+                                            log::error!(
+                                                "Failed to save session config: {err:#}"
+                                            );
+                                        }
+                                        cx.notify();
+                                    })),
+                                ),
+                        )
+                        .child(Label::new(format!(
+                            "Checkpoints: {} (recent)",
+                            session_stats.checkpoint_count
+                        )))
+                        .child(Label::new(format!(
+                            "Log files: {}",
+                            session_stats.log_file_count
+                        )))
+                        .child(
+                            h_flex()
+                                .gap_2()
+                                .child(
+                                    Button::new("open-logs-folder", "Open logs folder")
+                                        .style(ButtonStyle::Outlined)
+                                        .size(ButtonSize::Compact)
+                                        .on_click(|_, _, cx| {
+                                            if let Some(path) = logs_folder_path() {
+                                                if let Err(err) = std::fs::create_dir_all(&path) {
+                                                    log::warn!(
+                                                        "failed to ensure logs folder {}: {err:#}",
+                                                        path.display()
+                                                    );
+                                                    return;
+                                                }
+                                                cx.open_with_system(&path);
+                                            }
+                                        }),
+                                )
+                                .child(
+                                    Button::new("reset-history", "Reset history")
+                                        .style(ButtonStyle::OutlinedGhost)
+                                        .size(ButtonSize::Compact)
+                                        .tooltip(Tooltip::text(
+                                            "Remove ~/.nir/brain/state.db and all *.md log files in ~/.nir/brain/logs/.",
+                                        ))
+                                        .on_click(cx.listener(|_, _, _, cx| {
+                                            reset_session_history();
+                                            cx.notify();
+                                        })),
+                                ),
+                        ),
+                )
+            },
+        )
         .map(|this| {
-            if skills.is_empty() && discovered_skills.is_empty() {
+            if skills.is_empty() {
                 let message = match &settings_window.current_file {
                     SettingsUiFile::User => "No global skills installed.",
                     SettingsUiFile::Project(_) => "No project skills found.",
@@ -95,223 +176,25 @@ pub(crate) fn render_skills_setup_page(
                         ),
                 )
             } else {
-                let mut elements: Vec<AnyElement> = Vec::new();
-
-                if matches!(settings_window.current_file, SettingsUiFile::User) {
-                    let analytics_config = AnalyticsConfig::load();
-                    let is_enabled = analytics_config.enabled;
-
-                    // Always load fresh stats on render
-                    let stats = get_manual_analysis_stats();
-
-                    // Analytics engine section
-                    let analytics_section = v_flex()
-                        .gap_3()
-                        .p_3()
-                        .rounded_md()
-                        .child(
-                            h_flex()
-                                .justify_between()
-                                .items_center()
-                                .child(
-                                    h_flex()
-                                        .gap_3()
-                                        .items_center()
-                                        .child(
-                                            Label::new("Skill Discovery")
-                                                .size(LabelSize::Small)
-                                                .color(Color::Muted),
-                                        )
-                                        .child(
-                                            IconButton::new(
-                                                "skill-discovery-info",
-                                                IconName::Info,
-                                            )
-                                            .icon_size(IconSize::XSmall)
-                                            .icon_color(Color::Muted)
-                                            .shape(IconButtonShape::Square)
-                                            .style(ButtonStyle::Transparent)
-                                            .tooltip(Tooltip::text(
-                                                "Learns patterns from your task history and generates reusable skills. Toggle on/off, or refresh to check for changes.",
-                                            ))
-                                            .on_click(|_, _, _| {}),
-                                        )
-                                        .child(
-                                            Button::new(
-                                                "analytics-toggle",
-                                                if is_enabled { "On" } else { "Off" },
-                                            )
-                                            .style(if is_enabled {
-                                                ButtonStyle::Tinted(TintColor::Success)
-                                            } else {
-                                                ButtonStyle::Outlined
-                                            })
-                                            .size(ButtonSize::Compact)
-                                            .tooltip(Tooltip::text(if is_enabled {
-                                                "Click to disable automatic skill discovery"
-                                            } else {
-                                                "Click to enable automatic skill discovery"
-                                            }))
-                                            .on_click(cx.listener(move |_, _, _, cx| {
-                                                let mut config = AnalyticsConfig::load();
-                                                config.enabled = !config.enabled;
-                                                let _ = config.save();
-                                                cx.notify();
-                                            })),
-                                        ),
-                                )
-                                .child(
-                                    h_flex()
-                                        .gap_3()
-                                        .items_center()
-                                        .child(
-                                            Button::new("refresh-stats", "Refresh")
-                                                .style(ButtonStyle::Outlined)
-                                                .size(ButtonSize::Compact)
-                                                .tooltip(Tooltip::text("Re-read logs and registry to update stats"))
-                                                .on_click(cx.listener(move |_, _, _, cx| {
-                                                    cx.notify();
-                                                })),
-                                        )
-                                        .child(
-                                            Button::new("analyze-now", "Analyze Now")
-                                                .style(ButtonStyle::Outlined)
-                                                .size(ButtonSize::Compact)
-                                                .tooltip(Tooltip::text("Run full analysis — parses logs, clusters patterns, promotes eligible skills"))
-                                                .on_click(cx.listener(move |_, _, _window, cx| {
-                                                    cx.spawn(async move |this, cx| {
-                                                        let model = cx.update(|cx| {
-                                                            LanguageModelRegistry::read_global(cx).default_model().map(|m| m.model)
-                                                        });
-
-                                                        let Some(model) = model else {
-                                                            log::warn!("Skill Discovery: No model available for manual analysis");
-                                                            return;
-                                                        };
-
-                                                        log::info!("Skill Discovery: Manual analysis starting with model: {}", model.name().0);
-                                                        let result = agent::analytics::run_analytics_cycle(model, &cx).await;
-                                                        match result {
-                                                            Ok(skills) => {
-                                                                log::info!("Skill Discovery: Manual analysis complete — {} skill(s) promoted", skills.len());
-                                                                this.update(cx, |_, cx| cx.notify()).ok();
-                                                            }
-                                                            Err(err) => {
-                                                                log::error!("Skill Discovery: Manual analysis failed: {:?}", err);
-                                                            }
-                                                        }
-                                                    }).detach();
-                                                })),
-                                        )
-                                        .child(
-                                            Button::new("reset-analytics", "Reset")
-                                                .style(ButtonStyle::OutlinedGhost)
-                                                .size(ButtonSize::Compact)
-                                                .tooltip(Tooltip::text("Clear all staged patterns and disable discovery. Logs and approved skills are preserved."))
-                                                .on_click(cx.listener(move |_settings_window, _, _window, cx| {
-                                                    if let Err(err) = agent::analytics::cleanup_analytics() {
-                                                        log::error!("Skill Discovery cleanup failed: {:?}", err);
-                                                    }
-                                                    log::info!("Skill Discovery: Cleaned up state");
-                                                    cx.notify();
-                                                })),
-                                        ),
-                                ),
-                        )
-                        .child(
-                            h_flex()
-                                .gap_4()
-                                .child(Label::new(format!("Logs: {}", stats.total_logs)))
-                                .child(Label::new(format!("Checkpoints: {}", stats.parsed_checkpoints)))
-                                .child(Label::new(format!("Staged: {}", stats.staged_recollections)))
-                                .child(Label::new(format!("Eligible: {}", stats.eligible_for_promotion)))
-                                .child(Label::new(format!("Discovered: {}", stats.discovered_skills))),
-                        );
-
-                    elements.push(analytics_section.into_any_element());
-                    elements.push(Divider::horizontal().into_any_element());
-
-                    // Discovered skills section
-                    let mut discovered_section = v_flex().gap_3().pt_4().child(
-                        h_flex()
-                            .gap_1()
-                            .items_center()
-                            .child(
-                                Label::new("Discovered Skills (Pending Review)")
-                                    .size(LabelSize::Small),
-                            ),
-                    );
-
-                    if discovered_skills.is_empty() {
-                        discovered_section = discovered_section.child(
-                            div().pb_2().child(
-                                Label::new("None.")
-                                    .size(LabelSize::Small)
-                                    .color(Color::Muted),
-                            ),
-                        );
-                    } else {
-                        discovered_section = discovered_section.children(
-                            discovered_skills
-                                .iter()
-                                .map(|skill| render_discovered_skill_row(skill, cx)),
-                        );
-                    }
-
-                    elements.push(discovered_section.into_any_element());
-
-                    if !skills.is_empty() {
-                        elements.push(Divider::horizontal().into_any_element());
-                    }
-                }
-
-                elements.extend(
-                    skills
-                        .iter()
-                        .enumerate()
-                        .flat_map(|(i, skill)| {
-                            let mut rows: Vec<AnyElement> =
-                                vec![render_skill_row(skill, settings_window, cx)];
-                            if i + 1 < skills.len() {
-                                rows.push(Divider::horizontal().into_any_element());
-                            }
-                            rows
-                        }),
-                );
-
-                this.track_scroll(scroll_handle)
+                this.child(Divider::horizontal())
+                    .track_scroll(scroll_handle)
                     .overflow_y_scroll()
-                    .children(elements)
+                    .children(
+                        skills
+                            .iter()
+                            .enumerate()
+                            .flat_map(|(i, skill)| {
+                                let mut rows: Vec<AnyElement> =
+                                    vec![render_skill_row(skill, settings_window, cx)];
+                                if i + 1 < skills.len() {
+                                    rows.push(Divider::horizontal().into_any_element());
+                                }
+                                rows
+                            }),
+                    )
             }
         })
         .into_any_element()
-}
-
-fn load_discovered_skills() -> Vec<SkillIndexEntry> {
-    let home = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .ok();
-
-    let Some(home_path) = home.map(std::path::PathBuf::from) else {
-        return Vec::new();
-    };
-
-    let index_path = home_path.join(".nir/brain/skills_index.json");
-    if !index_path.exists() {
-        return Vec::new();
-    }
-
-    let content = match fs::read_to_string(&index_path) {
-        Ok(content) => content,
-        Err(_) => return Vec::new(),
-    };
-
-    let index: SkillsIndex = match serde_json::from_str(&content) {
-        Ok(index) => index,
-        Err(_) => return Vec::new(),
-    };
-
-    index.discovered_skills
 }
 
 fn render_skill_row(
@@ -473,73 +356,57 @@ fn render_skill_row(
         .into_any_element()
 }
 
-fn render_discovered_skill_row(
-    skill: &SkillIndexEntry,
-    cx: &mut Context<SettingsWindow>,
-) -> AnyElement {
-    let slug = skill.name.clone();
-    let slug_reject = skill.name.clone();
-    let colors = cx.theme().colors();
-
-    v_flex()
-        .w_full()
-        .p_2p5()
-        .gap_2()
-        .bg(colors.surface_background.opacity(0.15))
-        .border_1()
-        .border_color(colors.border)
-        .rounded_sm()
-        .child(
-            h_flex()
-                .w_full()
-                .justify_between()
-                .gap_4()
-                .child(
-                    v_flex()
-                        .gap_0p5()
-                        .min_w_0()
-                        .flex_1()
-                        .child(Label::new(skill.name.clone()))
-                        .child(
-                            Label::new(skill.description.clone())
-                                .size(LabelSize::Small)
-                                .color(Color::Muted),
-                        ),
-                )
-                .child(
-                    h_flex()
-                        .gap_2()
-                        .child(
-                            Button::new(
-                                SharedString::from(format!("approve-{}", slug)),
-                                "Approve & Enable",
-                            )
-                            .tab_index(0_isize)
-                            .style(ButtonStyle::Tinted(TintColor::Success))
-                            .size(ButtonSize::Medium)
-                            .on_click(cx.listener(move |_, _, _, cx| {
-                                if let Err(err) = approve_discovered_skill(&slug) {
-                                    log::error!("approve_discovered_skill({}) failed: {err:#}", slug);
-                                }
-                                cx.notify();
-                            })),
-                        )
-                        .child(
-                            Button::new(
-                                SharedString::from(format!("reject-{}", slug_reject)),
-                                "Reject",
-                            )
-                            .tab_index(0_isize)
-                            .style(ButtonStyle::Tinted(TintColor::Error))
-                            .size(ButtonSize::Medium)
-                            .on_click(cx.listener(move |_, _, _, cx| {
-                                if let Err(err) = reject_discovered_skill(&slug_reject) {
-                                    log::error!("reject_discovered_skill({}) failed: {err:#}", slug_reject);
-                                }
-                                cx.notify();
-                            })),
-                        ),
-                ),
-        )
-        .into_any_element()
+struct SessionStats {
+    checkpoint_count: usize,
+    log_file_count: usize,
 }
+
+fn get_session_stats() -> SessionStats {
+    let checkpoint_count = nir_analytics::get_state_db_path()
+        .ok()
+        .and_then(|path| nir_analytics::recent_checkpoints(&path).ok())
+        .map(|records| records.len())
+        .unwrap_or(0);
+    let log_file_count = nir_analytics::list_log_files()
+        .map(|files| files.len())
+        .unwrap_or(0);
+    SessionStats {
+        checkpoint_count,
+        log_file_count,
+    }
+}
+
+fn logs_folder_path() -> Option<std::path::PathBuf> {
+    let home = std::env::var("USERPROFILE")
+        .or_else(|_| std::env::var("HOME"))
+        .ok()?;
+    Some(std::path::PathBuf::from(home).join(".nir/brain/logs"))
+}
+
+fn reset_session_history() {
+    if let Ok(state_db) = nir_analytics::get_state_db_path() {
+        if let Err(err) = std::fs::remove_file(&state_db) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                log::error!("failed to remove {}: {err:#}", state_db.display());
+            }
+        }
+    }
+
+    if let Some(logs_dir) = logs_folder_path() {
+        if logs_dir.exists() {
+            if let Ok(entries) = std::fs::read_dir(&logs_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
+                        if let Err(err) = std::fs::remove_file(&path) {
+                            log::error!("failed to remove {}: {err:#}", path.display());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    log::info!("Session history reset");
+}
+

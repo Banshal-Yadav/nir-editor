@@ -48,6 +48,11 @@ impl AgentTool for LogTaskTool {
     ) -> Task<Result<Self::Output, Self::Output>> {
         cx.spawn(async move |_cx| {
             let input = input.recv().await.map_err(|e| format!("Failed to receive input: {e}"))?;
+
+            if !nir_analytics::load_session_config().enabled {
+                return Ok("Session history disabled — task not logged.".to_string());
+            }
+
             let log_line = format!("Completed Task: {}", input.task_completed);
             let entry_id = nir_analytics::write_daily_log(&log_line)
                 .map_err(|e| e.to_string())?;

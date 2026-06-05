@@ -1,13 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use nir_analytics::{
-    should_execute_analysis, 
-    collect_unprocessed_log_lines, 
-    generate_analysis_prompt, 
-    process_analysis_response,
-    mark_analysis_failure
-};
-
 use crate::{
     ApplyCodeActionTool, CodeActionStore, ContextServerRegistry, CopyPathTool, CreateDirectoryTool,
     DbLanguageModel, DbThread, DeletePathTool, DiagnosticsTool, EditFileTool,
@@ -51,7 +43,7 @@ use language_model::{
     LanguageModelId, LanguageModelImage, LanguageModelProviderId, LanguageModelRegistry,
     LanguageModelRequest, LanguageModelRequestMessage, LanguageModelRequestTool,
     LanguageModelToolResult, LanguageModelToolResultContent, LanguageModelToolSchemaFormat,
-    LanguageModelToolUse, LanguageModelToolUseId, MessageContent, Role, SelectedModel, Speed, StopReason,
+    LanguageModelToolUse, LanguageModelToolUseId, Role, SelectedModel, Speed, StopReason,
     TokenUsage, ZED_CLOUD_PROVIDER_ID,
 };
 use project::Project;
@@ -69,7 +61,7 @@ use std::{
     ops::RangeInclusive,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::{Arc, Once, OnceLock},
+    sync::Arc,
     time::{Duration, Instant},
 };
 use util::{ResultExt, debug_panic, markdown::MarkdownCodeBlock, paths::PathStyle};
@@ -1009,14 +1001,6 @@ pub struct Thread {
     inherits_parent_model_settings: bool,
     sandboxed_terminal_temp_dir: Option<PathBuf>,
 }
-
-static ANALYTICS_INIT: Once = Once::new();
-/// Stores the mpsc sender half for the background analytics LLM listener so
-/// subsequent `Thread::send` calls can re-spawn the worker without re-binding
-/// the channel. The listener is still call_once'd, only the worker re-fires.
-static ANALYTICS_TX: OnceLock<
-    mpsc::UnboundedSender<(String, oneshot::Sender<Result<String>>)>,
-> = OnceLock::new();
 
 impl Thread {
     fn prompt_capabilities(model: Option<&dyn LanguageModel>) -> acp::PromptCapabilities {
@@ -1961,83 +1945,6 @@ impl Thread {
     where
         T: Into<UserMessageContent>,
     {
-        if let Some(active_model) = self.model() {
-            let model = active_model.clone();
-
-            ANALYTICS_INIT.call_once(|| {
-                log::info!("Skill Discovery: First active thread event detected. Initializing background worker loop.");
-                
-                let (tx, mut rx) = mpsc::unbounded::<(String, oneshot::Sender<Result<String>>)>();
-                // Hand the sender to the static so subsequent Thread::send calls
-                // can re-spawn the worker without re-binding the channel.
-                // Multiple senders on the same mpsc is fine — only the listener
-                // is single-consumer.
-                let _ = ANALYTICS_TX.set(tx.clone());
-
-                cx.spawn(move |_, cx: &mut AsyncApp| {
-                    let cx = cx.clone();
-                    async move {
-                        use futures::StreamExt;
-                        while let Some((prompt, response_tx)) = rx.next().await {
-                            let model = model.clone();
-                            let messages = vec![LanguageModelRequestMessage {
-                                role: Role::User,
-                                content: vec![MessageContent::Text(prompt)],
-                                cache: false,
-                                reasoning_details: None,
-                            }];
-                            let request = LanguageModelRequest {
-                                thread_id: None,
-                                prompt_id: None,
-                                intent: None,
-                                messages,
-                                tools: Default::default(),
-                                tool_choice: None,
-                                stop: Vec::new(),
-                                temperature: Some(0.1),
-                                thinking_allowed: false,
-                                thinking_effort: None,
-                                speed: None,
-                            };
-                            let cx = cx.clone();
-                            let res = async move {
-                                let mut text_stream = model.stream_completion_text(request, &cx).await?;
-                                let mut response_text = String::new();
-                                while let Some(chunk) = text_stream.stream.next().await {
-                                    response_text.push_str(&chunk?);
-                                }
-                                anyhow::Ok(response_text)
-                            }.await;
-                            let _ = response_tx.send(res);
-                        }
-                    }
-                }).detach();
-            });
-
-            // Re-fire the worker on EVERY user message, not just the first.
-            // The original call_once wrapper meant that after a session-starting
-            // user prompt the worker ran exactly once. If the session then
-            // accumulated new logs (e.g. via log_task_completion) or had STAGED
-            // clusters in recollections.json, the worker never re-ran to drain
-            // them. The channel/listener are still call_once'd; only the
-            // worker re-spawns, and its work is idempotent (it checks
-            // processed_files watermarks and merge_checkpoint dedupes).
-            if let Some(tx) = ANALYTICS_TX.get() {
-                let tx = tx.clone();
-                let model_client_closure = move |prompt: String| {
-                    let tx = tx.clone();
-                    Box::pin(async move {
-                        let (response_tx, response_rx) = oneshot::channel::<Result<String>>();
-                        tx.unbounded_send((prompt, response_tx))
-                            .map_err(|_| anyhow::anyhow!("Main thread analytics listener dropped"))?;
-                        response_rx.await.map_err(|_| anyhow::anyhow!("Main thread response channel dropped"))?
-                    }) as std::pin::Pin<Box<dyn std::future::Future<Output = Result<String>> + Send>>
-                };
-
-                spawn_background_analytics_worker(model_client_closure);
-            }
-        }
-
         let content = content.into_iter().map(Into::into).collect::<Arc<_>>();
         log::debug!("Thread::send content: {:?}", content);
 
@@ -5259,174 +5166,3 @@ mod tests {
     }
 }
 
-/// Spawns a background task to analyze workspace patterns and suggest tools.
-pub fn spawn_background_analytics_worker<C>(model_client: C)
-where
-    C: Send
-        + Sync
-        + Clone
-        + 'static
-        + Fn(String) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String>> + Send>>,
-{
-    std::thread::spawn(move || {
-        let runtime = match tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build() 
-        {
-            Ok(rt) => rt,
-            Err(err) => {
-                log::error!("Failed to instantiate background analytics tokio runtime: {:?}", err);
-                return;
-            }
-        };
-
-        runtime.block_on(async move {
-            // Check if analytics is enabled in config
-            let config = crate::analytics::AnalyticsConfig::load();
-            if !config.enabled {
-                log::info!("Skill Discovery: disabled via config. Skipping analysis.");
-                return;
-            }
-
-            let last_foreground_success = Some(Utc::now()); 
-
-            match should_execute_analysis(last_foreground_success) {
-                Ok(true) =>                 log::info!("Skill Discovery: Pre-flight cleared. Launching pattern analysis pass."),
-                Ok(false) => {
-                    log::info!("Skill Discovery: Pre-flight deferred (backoff cooldown).");
-                    return;
-                },
-                Err(err) => {
-                    log::error!("Analytics pre-flight state error: {:?}", err);
-                    return;
-                }
-            }
-
-            let unread_logs: Vec<String> = match collect_unprocessed_log_lines(100) {
-                Ok(lines) => lines,
-                Err(err) => {
-                    log::error!("Failed to read log segments: {:?}", err);
-                    Vec::new()
-                }
-            };
-
-            if unread_logs.is_empty() {
-                log::info!("Skill Discovery: no new logs; promotion loop still runs.");
-            } else {
-                let analysis_prompt = generate_analysis_prompt(&unread_logs);
-
-                log::info!("Skill Discovery: Submitting logs to model for pattern evaluation.");
-                match model_client(analysis_prompt).await {
-                    Ok(raw_json_response) => {
-                        match process_analysis_response(&raw_json_response) {
-                            Ok(Some(new_skill)) => log::info!("Skill Discovery: Synthesized new skill: {}", new_skill),
-                            Ok(None) => log::info!("Skill Discovery: No recurrent workflow clusters detected."),
-                            Err(err) => log::error!("Analytics response parse failed: {:?}", err),
-                        }
-                    }
-                    Err(err) => {
-                        log::error!("Background model call failed: {:?}", err);
-                        let _ = mark_analysis_failure();
-                    }
-                }
-            }
-
-            let recollections_path = crate::analytics::home_dir_path()
-                .join(".nir")
-                .join("brain")
-                .join("recollections.json");
-            let mut registry: crate::analytics::RecollectionsRegistry =
-                if recollections_path.exists() {
-                    match std::fs::read_to_string(&recollections_path) {
-                        Ok(content) => serde_json::from_str(&content)
-                            .unwrap_or_default(),
-                        Err(_) => crate::analytics::RecollectionsRegistry::default(),
-                    }
-                } else {
-                    crate::analytics::RecollectionsRegistry::default()
-                };
-
-            log::info!(
-                "Skill Discovery: Running per-line two-tiered gate over {} log segments.",
-                unread_logs.len()
-            );
-            let client_for_gate = model_client.clone();
-            match crate::analytics::process_log_lines_with_gate(
-                &mut registry,
-                &unread_logs,
-                client_for_gate,
-            )
-            .await
-            {
-                Ok(stats) => {
-                    log::info!(
-                        "Skill Discovery Gate: parsed={}, skipped={}, merged={}, created={}, reflections={}, reflection_matches={}",
-                        stats.parsed,
-                        stats.skipped,
-                        stats.merged,
-                        stats.created,
-                        stats.reflections,
-                        stats.reflection_matches
-                    );
-                }
-                Err(err) => {
-                    log::error!("Per-line two-tiered gate run failed: {:?}", err);
-                }
-            }
-
-            let eligible_targets = registry.check_promotion_targets();
-            log::info!(
-                "Skill Discovery: {} candidate(s) for discovery.",
-                eligible_targets.len()
-            );
-            for target in eligible_targets {
-                if target.associated_summaries.is_empty() {
-                    continue;
-                }
-
-                let synthesized_body = crate::analytics::synthesize_skill_content(
-                    &target.category,
-                    &target.associated_summaries,
-                    |prompt| {
-                        let client = model_client.clone();
-                        Box::pin(async move { client(prompt).await })
-                    },
-                )
-                .await;
-
-                match crate::analytics::write_promoted_skill(
-                    &target.category,
-                    &target.associated_summaries[0],
-                    &synthesized_body,
-                )
-                .await
-                {
-                    Ok(slug) => {
-                        log::info!(
-                            "Skill Discovery: discovered '{}' from cluster '{}'.",
-                            slug,
-                            target.id
-                        );
-                        if let Some(registry_item) =
-                            registry.staged_recollections.iter_mut().find(|s| s.id == target.id)
-                        {
-                            registry_item.status = "PROMOTED".to_string();
-                        }
-                    }
-                    Err(err) => {
-                        log::error!("write_promoted_skill failed for '{}': {:?}", target.id, err);
-                    }
-                }
-            }
-
-            if let Ok(serialized) = serde_json::to_string_pretty(&registry) {
-                if let Err(err) = std::fs::write(&recollections_path, serialized) {
-                    log::error!(
-                        "Failed to persist recollections registry after gate and promotion runs: {:?}",
-                        err
-                    );
-                }
-            }
-        });
-    });
-}

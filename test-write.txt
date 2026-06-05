@@ -1,1 +1,0 @@
-Write test - if this file is created, general agents can write.
