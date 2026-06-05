@@ -8060,6 +8060,31 @@ impl ThreadView {
                 .size(IconSize::Small)
                 .color(Color::Muted)
                 .into_any_element()
+        } else if let Some(tool_name) = tool_call.tool_name.as_deref() {
+            // Nir-specific tool icons mapped from programmatic tool_name.
+            // Falls back to the kind-based icon for unknown tool names.
+            let icon_name = match tool_name {
+                "brain_memory" | "brain_backup" => IconName::ToolBrain,
+                "recall_past_context" => IconName::ToolMemory,
+                "scratchpad" => IconName::ToolNotebook,
+                "log_task_completion" => IconName::ToolCheck,
+                _ => match tool_call.kind {
+                    acp::ToolKind::Read => IconName::ToolSearch,
+                    acp::ToolKind::Edit => IconName::ToolPencil,
+                    acp::ToolKind::Delete => IconName::ToolDeleteFile,
+                    acp::ToolKind::Move => IconName::ArrowRightLeft,
+                    acp::ToolKind::Search => IconName::ToolSearch,
+                    acp::ToolKind::Execute => IconName::ToolTerminal,
+                    acp::ToolKind::Think => IconName::ToolThink,
+                    acp::ToolKind::Fetch => IconName::ToolWeb,
+                    acp::ToolKind::SwitchMode => IconName::ArrowRightLeft,
+                    acp::ToolKind::Other | _ => IconName::ToolHammer,
+                },
+            };
+            Icon::new(icon_name)
+                .size(IconSize::Small)
+                .color(Color::Muted)
+                .into_any_element()
         } else {
             Icon::new(match tool_call.kind {
                 acp::ToolKind::Read => IconName::ToolSearch,
@@ -8119,6 +8144,14 @@ impl ThreadView {
             })
             .overflow_hidden()
             .child(tool_icon)
+            .when_some(tool_call.tool_name.as_ref(), |this, name| {
+                this.child(
+                    Label::new(name.to_uppercase())
+                        .size(LabelSize::XSmall)
+                        .color(Color::Muted)
+                        .buffer_font(cx),
+                )
+            })
             .child(if has_location {
                 h_flex()
                     .id(("open-tool-call-location", entry_ix))
