@@ -359,16 +359,64 @@ impl AgentTool for BrainMemoryTool {
 
     const NAME: &'static str = "brain_memory";
 
+    fn description() -> SharedString {
+        "Persistent memory across sessions. Stores notes in 5 files: about, goals, settings, projects, bookmark.
+
+AVAILABLE ACTIONS:
+- `auto`: Infer action from content (default)
+- `create`: Add a new entry to a target file
+- `read`: Retrieve entries by ID, date, or all from a target
+- `read-many`: Batch read multiple target files (comma-separated targets)
+- `read-all`: Dump all 5 memory files at once
+- `list`: Index entries in a target file
+- `modify`: Update an existing entry by ID
+- `delete`: Remove an entry by ID
+
+WHEN TO USE:
+- Persisting user preferences, identity, or project context across sessions
+- Logging milestones, goals, or completed tasks
+- Storing bookmarks, links, or ideas the user wants to keep
+- Recording agent configuration or tool settings
+
+WHEN NOT TO USE:
+- For session-scoped working notes — use `scratchpad` instead
+- For one-off information that doesn't need to persist
+- Do NOT delete without reading first; deletions are by ID and irreversible
+
+TARGETS:
+- `auto`: Defaults to `settings` (default for create with no target)
+- `about`: Identity & personal info
+- `goals`: Objectives & milestones
+- `settings`: System configurations
+- `projects`: Active work tracking
+- `bookmark`: Links, ideas, things to try
+
+Backups: every write auto-saves to `~/.nir/brain/memory/.backups/` (last 5 kept).".into()
+    }
+
     fn kind() -> acp::ToolKind {
         acp::ToolKind::Other
     }
 
     fn initial_title(
         &self,
-        _input: Result<Self::Input, serde_json::Value>,
+        input: Result<Self::Input, serde_json::Value>,
         _cx: &mut App,
     ) -> SharedString {
-        "Managing brain memory".into()
+        let Ok(input) = input else {
+            return "brain_memory".into();
+        };
+        let action = serde_json::to_value(input.action)
+            .ok()
+            .and_then(|v| v.as_str().map(|s| s.to_string()))
+            .unwrap_or_else(|| "auto".to_string());
+        let mut parts = vec![format!("action={}", action)];
+        if let Some(targets) = input.targets.as_deref() {
+            parts.push(format!("targets={}", targets));
+        } else if input.target.as_str() != "auto" {
+            parts.push(format!("target={}", input.target.as_str()));
+        }
+        parts.join(" ").into()
     }
 
     fn run(

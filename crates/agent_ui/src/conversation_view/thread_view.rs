@@ -8064,7 +8064,8 @@ impl ThreadView {
             // Nir-specific tool icons mapped from programmatic tool_name.
             // Falls back to the kind-based icon for unknown tool names.
             let icon_name = match tool_name {
-                "brain_memory" | "brain_backup" => IconName::ToolBrain,
+                "brain_memory" => IconName::ToolBrain,
+                "brain_backup" => IconName::ToolBackup,
                 "recall_past_context" => IconName::ToolMemory,
                 "scratchpad" => IconName::ToolNotebook,
                 "log_task_completion" => IconName::ToolCheck,
@@ -8150,6 +8151,11 @@ impl ThreadView {
                         .size(LabelSize::XSmall)
                         .color(Color::Muted)
                         .buffer_font(cx),
+                )
+                .child(
+                    Label::new("·")
+                        .size(LabelSize::Small)
+                        .color(Color::Muted),
                 )
             })
             .child(if has_location {

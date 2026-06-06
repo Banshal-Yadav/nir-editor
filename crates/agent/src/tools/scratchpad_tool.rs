@@ -249,10 +249,21 @@ EFFICIENCY RULES:
 
     fn initial_title(
         &self,
-        _input: Result<Self::Input, serde_json::Value>,
+        input: Result<Self::Input, serde_json::Value>,
         _cx: &mut App,
     ) -> SharedString {
-        "Managing scratchpad".into()
+        let Ok(input) = input else {
+            return "scratchpad".into();
+        };
+        let action = serde_json::to_value(input.action)
+            .ok()
+            .and_then(|v| v.as_str().map(|s| s.to_string()))
+            .unwrap_or_else(|| "list".to_string());
+        let mut parts = vec![format!("action={}", action)];
+        if let Some(id) = input.id.as_deref() {
+            parts.push(format!("id={}", id));
+        }
+        parts.join(" ").into()
     }
 
     fn run(

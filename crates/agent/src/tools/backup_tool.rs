@@ -302,16 +302,63 @@ impl AgentTool for BackupTool {
 
     const NAME: &'static str = "brain_backup";
 
+    fn description() -> SharedString {
+        "Create, list, restore, prune, and delete backups of brain memory files.
+
+AVAILABLE ACTIONS:
+- `create`: Create a new timestamped backup of the target file(s)
+- `list`: List all existing backups for the target
+- `restore`: Restore a specific backup (requires `backup_file`)
+- `prune`: Delete backups older than `keep_days` (default 30)
+- `delete`: Delete a specific backup (requires `backup_file`)
+
+TARGETS:
+- `all`: All brain memory files (about, goals, settings, projects, bookmark, drafts)
+- `about`: Identity file
+- `goals`: Goals/milestones file
+- `settings`: System config file
+- `projects`: Active projects file
+- `bookmark`: Bookmarks/ideas file
+- `drafts`: Drafts folder
+
+WHEN TO USE:
+- Before risky edits to a memory file
+- Periodically to snapshot memory state
+- To recover from a bad edit
+- To prune disk usage
+
+WHEN NOT TO USE:
+- `brain_memory` already auto-backs up on every write (last 5 kept). Manual backup is for explicit snapshots.".into()
+    }
+
     fn kind() -> acp::ToolKind {
         acp::ToolKind::Other
     }
 
     fn initial_title(
         &self,
-        _input: Result<Self::Input, serde_json::Value>,
+        input: Result<Self::Input, serde_json::Value>,
         _cx: &mut App,
     ) -> SharedString {
-        "Managing brain backups".into()
+        let Ok(input) = input else {
+            return "brain_backup".into();
+        };
+        let action = serde_json::to_value(input.action)
+            .ok()
+            .and_then(|v| v.as_str().map(|s| s.to_string()))
+            .unwrap_or_else(|| "create".to_string());
+        let mut parts = vec![format!("action={}", action)];
+        if input.target.as_str() != "all" {
+            parts.push(format!("target={}", input.target.as_str()));
+        }
+        if let Some(file) = input.backup_file.as_deref() {
+            let f = if file.len() > 30 { format!("{}…", &file[..30]) } else { file.to_string() };
+            parts.push(format!("file={}", f));
+        }
+        if let Some(days) = input.keep_days {
+            parts.push(format!("keep_days={}", days));
+        }
+        parts.join(" ").into()
     }
 
     fn run(

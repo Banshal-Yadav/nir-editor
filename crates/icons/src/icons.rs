@@ -259,6 +259,7 @@ pub enum IconName {
     TodoComplete,
     TodoPending,
     TodoProgress,
+    ToolBackup,
     ToolBrain,
     ToolCheck,
     ToolCopy,

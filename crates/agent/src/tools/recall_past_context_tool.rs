@@ -33,10 +33,24 @@ impl AgentTool for RecallPastContextTool {
 
     fn initial_title(
         &self,
-        _input: Result<Self::Input, serde_json::Value>,
+        input: Result<Self::Input, serde_json::Value>,
         _cx: &mut App,
     ) -> SharedString {
-        "Recalling past context".into()
+        let Ok(input) = input else {
+            return "recall_past_context".into();
+        };
+        if input.last_session_fallback.unwrap_or(false) {
+            "mode=last_session".into()
+        } else if let Some(query) = input.query.as_deref() {
+            let q = if query.len() > 40 {
+                format!("{}…", &query[..40])
+            } else {
+                query.to_string()
+            };
+            format!("query={}", q).into()
+        } else {
+            "recall_past_context".into()
+        }
     }
 
     fn run(

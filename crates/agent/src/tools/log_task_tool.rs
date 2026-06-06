@@ -34,10 +34,20 @@ impl AgentTool for LogTaskTool {
 
     fn initial_title(
         &self,
-        _input: Result<Self::Input, serde_json::Value>,
+        input: Result<Self::Input, serde_json::Value>,
         _cx: &mut App,
     ) -> SharedString {
-        "Logging task completion".into()
+        let Ok(input) = input else {
+            return "log_task_completion".into();
+        };
+        let task = input.task_completed.trim();
+        if task.is_empty() {
+            "log_task_completion".into()
+        } else if task.len() > 60 {
+            format!("{}…", &task[..60]).into()
+        } else {
+            task.to_string().into()
+        }
     }
 
     fn run(
