@@ -36,6 +36,7 @@ pub struct ThreadItem {
     id: ElementId,
     icon: IconName,
     icon_size: IconSize,
+    icon_char: Option<SharedString>,
     icon_color: Option<Color>,
     icon_visible: bool,
     custom_icon_from_external_svg: Option<SharedString>,
@@ -69,8 +70,9 @@ impl ThreadItem {
     pub fn new(id: impl Into<ElementId>, title: impl Into<SharedString>) -> Self {
         Self {
             id: id.into(),
-            icon: IconName::VoidAgent,
+            icon: IconName::ZedAgent,
             icon_size: IconSize::Small,
+            icon_char: None,
             icon_color: None,
             icon_visible: true,
             custom_icon_from_external_svg: None,
@@ -113,6 +115,13 @@ impl ThreadItem {
 
     pub fn icon_size(mut self, size: IconSize) -> Self {
         self.icon_size = size;
+        self
+    }
+
+    /// Renders the given character in place of the icon. Takes precedence over
+    /// [`Self::icon`] and [`Self::custom_icon_from_external_svg`].
+    pub fn icon_char(mut self, icon_char: impl Into<SharedString>) -> Self {
+        self.icon_char = Some(icon_char.into());
         self
     }
 
@@ -269,7 +278,7 @@ impl RenderOnce for ThreadItem {
         let gradient_overlay = GradientFade::new(base_bg, hover_bg, hover_bg)
             .width(px(64.0))
             .right(px(-10.0))
-            .gradient_stop(0.75)
+            .gradient_stop(0.7)
             .group_name("thread-item");
 
         let separator_color = Color::Custom(color.text_muted.opacity(0.4));
@@ -290,12 +299,21 @@ impl RenderOnce for ThreadItem {
                 .when(!icon_visible, |this| this.invisible())
         };
         let icon_color = self.icon_color.unwrap_or(Color::Muted);
-        let agent_icon = if let Some(custom_svg) = self.custom_icon_from_external_svg {
+        let agent_icon = if let Some(icon_char) = self.icon_char {
+            Label::new(icon_char)
+                .size(LabelSize::Small)
+                .color(icon_color)
+                .into_any_element()
+        } else if let Some(custom_svg) = self.custom_icon_from_external_svg {
             Icon::from_external_svg(custom_svg)
                 .color(icon_color)
                 .size(self.icon_size)
+                .into_any_element()
         } else {
-            Icon::new(self.icon).color(icon_color).size(self.icon_size)
+            Icon::new(self.icon)
+                .color(icon_color)
+                .size(self.icon_size)
+                .into_any_element()
         };
 
         let status_icon = if self.status == AgentThreadStatus::Error {
@@ -442,20 +460,20 @@ impl RenderOnce for ThreadItem {
                     .when(self.hovered, |this| {
                         this.when_some(self.action_slot, |this, slot| {
                             let overlay = GradientFade::new(base_bg, hover_bg, hover_bg)
-                                .width(px(80.0))
+                                .width(px(120.0))
                                 .right(px(8.))
-                                .gradient_stop(0.80)
+                                .gradient_stop(0.90)
                                 .group_name("thread-item");
 
                             this.child(
                                 h_flex()
                                     .relative()
                                     .pr_1p5()
+                                    .child(overlay)
+                                    .child(slot)
                                     .on_mouse_down(MouseButton::Left, |_, _, cx| {
                                         cx.stop_propagation()
-                                    })
-                                    .child(overlay)
-                                    .child(slot),
+                                    }),
                             )
                         })
                     }),
@@ -471,7 +489,6 @@ impl RenderOnce for ThreadItem {
                                     Color::Custom(cx.theme().colors().icon_muted.opacity(0.5)),
                                 ),
                             )
-                            // .child(dot_separator())
                         })
                         .when(
                             has_project_name || has_project_paths || has_worktree,

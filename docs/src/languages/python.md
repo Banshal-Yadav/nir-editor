@@ -100,7 +100,13 @@ Configure language servers in Settings ({#kb zed::OpenSettings}) under Languages
 }
 ```
 
-See: [Working with Language Servers](https://github.com/Banshal-Yadav/nir/wiki's default. Read on more for more details about how to configure basedpyright.
+See: [Working with Language Servers](https://zed.dev/docs/configuring-languages#working-with-language-servers) for more information about how to enable and disable language servers.
+
+### Basedpyright
+
+[basedpyright](https://docs.basedpyright.com/latest/) is the primary Python language server in Zed beginning with Zed v0.204.0. It provides core language server functionality like navigation (go to definition/find all references) and type checking. Compared to Pyright, it adds support for additional language server features (like inlay hints) and checking rules.
+
+Note that while basedpyright in isolation defaults to the `recommended` [type-checking mode](https://docs.basedpyright.com/latest/benefits-over-pyright/better-defaults/#typecheckingmode), Zed configures it to use the less-strict `standard` mode by default, which matches the behavior of Pyright. You can set the type-checking mode for your project using the `typeCheckingMode` setting in `pyrightconfig.json` or `pyproject.toml`, which will override Zed's default. Read on for more details about how to configure basedpyright.
 
 #### Basedpyright Configuration
 
@@ -164,7 +170,7 @@ See [Python Language Server Configuration](https://github.com/python-lsp/python-
 
 [Virtual environments](https://docs.python.org/3/library/venv.html) are a useful tool for fixing a Python version and set of dependencies for a specific project, in a way that's isolated from other projects on the same machine. Zed has built-in support for discovering, configuring, and activating virtual environments, based on the language-agnostic concept of a [toolchain](../toolchains.md).
 
-Note that if you have a global Python installation, it is also counted as a toolchain for /nir's purposes.
+Note that if you have a global Python installation, it is also counted as a toolchain for Zed's purposes.
 
 ### Create a Virtual Environment
 
@@ -176,18 +182,18 @@ python3 -m venv .venv
 
 Alternatively, if you're using `uv`, running `uv sync` will create a virtual environment the first time you run it.
 
-### How /nir Uses Python Toolchains
+### How Zed Uses Python Toolchains
 
-/nir uses the selected Python toolchain for your project in the following ways:
+Zed uses the selected Python toolchain for your project in the following ways:
 
 - Built-in language servers will be automatically configured with the path to the toolchain's Python interpreter and, if applicable, virtual environment. This is important so that they can resolve dependencies. (Note that language servers provided by extensions can't be automatically configured like this currently.)
 - Python tasks (such as pytest tests) will be run using the toolchain's Python interpreter.
-- If the toolchain is a virtual environment, the environment's activation script will be run automatically when you launch a new shell in /nir's integrated terminal, giving you convenient access to the selected Python interpreter and dependency set.
+- If the toolchain is a virtual environment, the environment's activation script will be run automatically when you launch a new shell in Zed's integrated terminal, giving you convenient access to the selected Python interpreter and dependency set.
 - If a built-in language server is installed in the active virtual environment, that binary will be used instead of Zed's private automatically-installed binary. This also applies to debugpy.
 
 ### Selecting a Toolchain
 
-For most projects, /nir will automatically select the right Python toolchain. In complex projects with multiple virtual environments, it might be necessary to override this selection. You can use the [toolchain selector](../toolchains.md#selecting-toolchains) to pick a toolchain from the list discovered by /nir, or [specify the path to a toolchain manually](../toolchains.md#adding-toolchains-manually) if it's not on the list.
+For most projects, Zed will automatically select the right Python toolchain. In complex projects with multiple virtual environments, it might be necessary to override this selection. You can use the [toolchain selector](../toolchains.md#selecting-toolchains) to pick a toolchain from the list discovered by Zed, or [specify the path to a toolchain manually](../toolchains.md#adding-toolchains-manually) if it's not on the list.
 
 ## Code Formatting & Linting
 

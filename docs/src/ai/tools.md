@@ -1,15 +1,19 @@
 ---
-title: AI Agent Tools - /nir
-description: Built-in tools for /nir's AI agent including file editing, code search, terminal commands, web search, and diagnostics.
+title: AI Agent Tools - Zed
+description: Built-in tools for Zed's AI agent including file editing, code search, terminal commands, web search, skills, and diagnostics.
 ---
 
 # Tools
 
-/nir's built-in agent has access to these tools for reading, searching, and editing your codebase. These tools are used in the [Agent Panel](./agent-panel.md) during conversations with AI agents.
+Zed's built-in agent has access to these tools for reading, searching, and editing your codebase. These tools are used in the [Agent Panel](./agent-panel.md) during conversations with AI agents.
+
+The exact tool list can vary by [Agent Profile](./agent-profiles.md), selected model provider, and Zed version.
 
 You can configure permissions for tool actions, including situations where they are automatically approved, automatically denied, or require your confirmation on a case-by-case basis. See [Tool Permissions](./tool-permissions.md) for the list of permission-gated tools and details.
 
 To add custom tools beyond these built-in ones, see [MCP servers](./mcp.md).
+
+To choose which built-in tools and MCP tools are available in a Zed Agent thread, use [Agent Profiles](./agent-profiles.md). Profiles control tool availability; tool permissions control allow, deny, and confirm behavior.
 
 ## Read & Search Tools
 
@@ -45,13 +49,15 @@ Lists files and directories in a given path, providing an overview of filesystem
 
 Reads the content of a specified file in the project, allowing access to file contents.
 
+## Web Tools
+
 ### `search_web`
 
 Searches the web for information, providing results with snippets and links from relevant web pages, useful for accessing real-time information.
 
 **Example:** Looking up whether a known bug in a dependency has been patched in a recent release, or finding the current API signature for a third-party library when the local docs are out of date.
 
-> **Note:** The built-in `search_web` tool is only available to [/nir Pro](https://github.com/Banshal-Yadav/nir're on a free plan or using a different provider, you can get equivalent functionality by connecting an MCP server that provides web search capabilities. See [MCP servers](./mcp.md) for details.
+> **Note:** The built-in `search_web` tool is only available to [Zed Pro](https://zed.dev/pricing) subscribers using the Zed provider. If you're on a free plan or using a different provider, you can get equivalent functionality by connecting an MCP server that provides web search capabilities. See [MCP servers](./mcp.md) for details.
 
 ## Edit Tools
 
@@ -88,6 +94,12 @@ Executes shell commands and returns the combined output, creating a new shell pr
 **Example:** After editing a Rust file, run `cargo test --package my_crate 2>&1 | tail -30` to confirm the changes don't break existing tests. Or run `git diff --stat` to review which files have been modified before wrapping up a task.
 
 ## Other Tools
+
+### `skill`
+
+Loads instructions from an available [Skill](./skills.md) so the agent can follow project-specific or workflow-specific guidance. Skills can also be invoked by you directly with slash commands.
+
+**Example:** When a repository has a skill for release-note writing, the agent can load that skill before drafting release notes so it follows the local format.
 
 ### `spawn_agent`
 

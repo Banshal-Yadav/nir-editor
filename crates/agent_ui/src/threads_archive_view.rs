@@ -824,7 +824,7 @@ impl ThreadsArchiveView {
                     if let Some(list) = state
                         .connection
                         .session_list(cx)
-                        .filter(|list| list.supports_delete(cx))
+                        .filter(|list| list.supports_delete())
                     {
                         list.delete_session(session_id, cx)
                     } else {
@@ -1348,7 +1348,7 @@ impl PickerDelegate for ProjectPickerDelegate {
                     .ordered_paths()
                     .map(|path| path.compact().to_string_lossy().into_owned())
                     .collect::<Vec<_>>()
-                    .join("");
+                    .concat();
                 StringMatchCandidate::new(id, &combined_string)
             })
             .collect();
@@ -1384,7 +1384,7 @@ impl PickerDelegate for ProjectPickerDelegate {
                     .ordered_paths()
                     .map(|path| path.compact().to_string_lossy().into_owned())
                     .collect::<Vec<_>>()
-                    .join("");
+                    .concat();
                 StringMatchCandidate::new(id, &combined_string)
             })
             .collect();
@@ -1588,7 +1588,7 @@ impl PickerDelegate for ProjectPickerDelegate {
                         .child(
                             h_flex()
                                 .gap_3()
-                                .flex_grow()
+                                .flex_grow_1()
                                 .child(highlighted_match.render(window, cx)),
                         )
                         .tooltip(Tooltip::text(tooltip_path))
