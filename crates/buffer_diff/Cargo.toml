@@ -23,7 +23,6 @@ language.workspace = true
 log.workspace = true
 pretty_assertions.workspace = true
 rope.workspace = true
-git2.workspace = true
 settings = { workspace = true, optional = true }
 sum_tree.workspace = true
 text.workspace = true

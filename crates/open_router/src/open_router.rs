@@ -543,16 +543,9 @@ pub async fn list_models(
         .uri(uri)
         .header("Accept", "application/json")
         .header("Authorization", format!("Bearer {}", api_key))
-<<<<<<< HEAD
         .header("HTTP-Referer", "https://github.com/Banshal-Yadav/nir")
-        .header("X-Title", "/nir");
-
-    let request = request_builder
-=======
-        .header("HTTP-Referer", "https://zed.dev")
-        .header("X-Title", "Zed Editor")
+        .header("X-Title", "/nir")
         .extra_headers(extra_headers)
->>>>>>> upstream/main
         .body(AsyncBody::default())
         .map_err(OpenRouterError::BuildRequestBody)?;
     let mut response = client

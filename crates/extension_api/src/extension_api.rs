@@ -1,4 +1,6 @@
-//! The /nir Rust Extension API allows you write extensions for [/nir](https://github.com/Banshal-Yadav/nir't relevant to extension authors.
+//! The /nir Rust Extension API allows you write extensions for [/nir](https://github.com/Banshal-Yadav/nir) in Rust.
+//!
+//! Reference documentation for the API surface relevant to extension authors.
 #[doc(hidden)]
 pub use wit::Guest;
 

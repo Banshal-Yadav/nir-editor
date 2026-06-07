@@ -70,7 +70,7 @@ impl ThreadItem {
     pub fn new(id: impl Into<ElementId>, title: impl Into<SharedString>) -> Self {
         Self {
             id: id.into(),
-            icon: IconName::ZedAgent,
+            icon: IconName::VoidAgent,
             icon_size: IconSize::Small,
             icon_char: None,
             icon_color: None,
