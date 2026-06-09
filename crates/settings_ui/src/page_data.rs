@@ -145,6 +145,7 @@ fn developer_page(cx: &App) -> SettingsPage {
                 title: "Performance Profiler",
                 description: "Collect timing data for foreground and background executor tasks so they can be inspected via `/nir: open performance profiler`. May lead to increased memory usage.",
                 field: Box::new(SettingField {
+                    organization_override: None,
                     json_path: Some("instrumentation.performance_profiler.enabled"),
                     pick: |settings_content| {
                         settings_content

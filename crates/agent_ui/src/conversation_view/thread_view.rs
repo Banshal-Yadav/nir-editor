@@ -3990,6 +3990,8 @@ impl ThreadView {
                     .flex_shrink_1()
                     .flex_grow_0()
                     .gap_3()
+                    .when(editor_expanded, |this| this.justify_between())
+                    .when(!editor_expanded, |this| this.justify_center())
                     .when(!has_messages, |this| {
                         let sparkle_animation = Animation::new(std::time::Duration::from_secs(4))
                             .repeat()
@@ -4036,7 +4038,7 @@ impl ThreadView {
                     .child(
                         v_flex()
                             .w_full()
-                            .flex_shrink()
+                            .flex_shrink(1.0)
                             .flex_grow_0()
                             .when(editor_expanded, |this| this.h_full())
                             .when(!has_messages, |this| this.h(vh(0.15, window)))

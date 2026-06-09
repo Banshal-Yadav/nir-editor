@@ -2399,8 +2399,10 @@ fn model_id_to_selection(model_id: &AgentModelId, cx: &App) -> LanguageModelSele
     agent_settings::language_model_to_selection(&resolved, current_user_selection.as_ref())
 }
 
-pub static ZED_AGENT_ID: LazyLock<AgentId> = LazyLock::new(|| AgentId::new("Zed Agent"));
->>>>>>> upstream/main
+// In Nir, the native agent uses the same id as VOID_AGENT_ID. Upstream's callers
+// (sidebar, agent_panel, draft_prompt_store) check against ZED_AGENT_ID to identify
+// the native agent, so we alias it to /nir Agent here.
+pub static ZED_AGENT_ID: LazyLock<AgentId> = LazyLock::new(|| AgentId::new("/nir Agent"));
 
 impl acp_thread::AgentConnection for NativeAgentConnection {
     fn agent_id(&self) -> AgentId {

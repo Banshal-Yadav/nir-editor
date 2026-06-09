@@ -54,7 +54,7 @@ use crate::{
         AcpThreadViewEvent, RootThreadUpdated, ThreadView, reset_fast_mode_warnings,
     },
     ui::{
-        AgentNotification, AgentNotificationEvent, EndTrialUpsell, UpgradePrompt,
+        AgentNotification, AgentNotificationEvent,
     },
 };
 use crate::{

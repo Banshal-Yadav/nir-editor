@@ -14955,5 +14955,4 @@ fn test_split_leading_icon_char() {
     assert_eq!(icon.as_ref(), "#");
     assert_eq!(trimmed.as_ref(), "abc");
     assert_eq!(positions, vec![0, 1]);
->>>>>>> upstream/main
 }

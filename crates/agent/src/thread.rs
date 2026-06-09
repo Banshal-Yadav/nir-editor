@@ -7,7 +7,7 @@ use crate::{
     ListAgentsAndModelsTool, ListDirectoryTool, MovePathTool, ProjectSnapshot, ReadFileTool,
     RenameTool, SandboxedTerminalTool, SpawnAgentTool, SystemPromptTemplate, Template, Templates,
     TerminalTool, ToolPermissionDecision, UpdatePlanTool, UpdateTitleTool, WebSearchTool,
-    BrainMemoryTool, BackupTool, ScratchpadTool, RecallPastContextTool, LogTaskTool, CreateDirectoryTool,
+    BrainMemoryTool, BackupTool, ScratchpadTool, RecallPastContextTool, LogTaskTool,
     WriteFileTool, decide_permission_from_settings,
 };
 use acp_thread::{MentionUri, UserMessageId};
