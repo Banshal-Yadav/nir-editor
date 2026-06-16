@@ -1,32 +1,34 @@
 use anyhow::Result;
-use convert_case::{Case, Casing};
 use credentials_provider::CredentialsProvider;
 use futures::{FutureExt, StreamExt, future::BoxFuture};
-use gpui::{AnyView, App, AsyncApp, Context, Entity, SharedString, Task, TaskExt, Window};
+use gpui::{AnyView, App, AppContext, AsyncApp, Entity, Task, Window};
 use http_client::{CustomHeaders, HttpClient};
 use language_model::{
-    ApiKeyState, AuthenticateError, EnvVar, IconOrSvg, LanguageModel, LanguageModelCompletionError,
+    AuthenticateError, IconOrSvg, LanguageModel, LanguageModelCompletionError,
     LanguageModelCompletionEvent, LanguageModelId, LanguageModelName, LanguageModelProvider,
     LanguageModelProviderId, LanguageModelProviderName, LanguageModelProviderState,
     LanguageModelRequest, LanguageModelToolChoice, LanguageModelToolSchemaFormat, RateLimiter,
 };
-use menu;
 use open_ai::{
     ResponseStreamEvent,
     responses::{Request as ResponseRequest, StreamEvent as ResponsesStreamEvent, stream_response},
     stream_completion,
 };
-use settings::{Settings, SettingsStore};
+use settings::Settings;
 use std::sync::Arc;
-use ui::{ElevationIndex, Tooltip, prelude::*};
-use ui_input::InputField;
-use util::ResultExt;
+use ui::IconName;
 
+use crate::provider::api_compatible::{
+    ApiCompatibleProviderConfigurationView, ApiCompatibleProviderSettings,
+    ApiCompatibleProviderState,
+};
 use crate::provider::open_ai::{
     OpenAiEventMapper, OpenAiResponseEventMapper, into_open_ai, into_open_ai_response,
 };
 pub use settings::OpenAiCompatibleAvailableModel as AvailableModel;
 pub use settings::OpenAiCompatibleModelCapabilities as ModelCapabilities;
+
+const API_KEY_PLACEHOLDER: &str = "000000000000000000000000000000000000000000000000000";
 
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct OpenAiCompatibleSettings {
@@ -35,47 +37,19 @@ pub struct OpenAiCompatibleSettings {
     pub custom_headers: CustomHeaders,
 }
 
+impl ApiCompatibleProviderSettings for OpenAiCompatibleSettings {
+    fn api_url(&self) -> &str {
+        &self.api_url
+    }
+}
+
+pub type State = ApiCompatibleProviderState<OpenAiCompatibleSettings>;
+
 pub struct OpenAiCompatibleLanguageModelProvider {
     id: LanguageModelProviderId,
     name: LanguageModelProviderName,
     http_client: Arc<dyn HttpClient>,
     state: Entity<State>,
-}
-
-pub struct State {
-    id: Arc<str>,
-    api_key_state: ApiKeyState,
-    settings: OpenAiCompatibleSettings,
-    credentials_provider: Arc<dyn CredentialsProvider>,
-}
-
-impl State {
-    fn is_authenticated(&self) -> bool {
-        self.api_key_state.has_key()
-    }
-
-    fn set_api_key(&mut self, api_key: Option<String>, cx: &mut Context<Self>) -> Task<Result<()>> {
-        let credentials_provider = self.credentials_provider.clone();
-        let api_url = SharedString::new(self.settings.api_url.as_str());
-        self.api_key_state.store(
-            api_url,
-            api_key,
-            |this| &mut this.api_key_state,
-            credentials_provider,
-            cx,
-        )
-    }
-
-    fn authenticate(&mut self, cx: &mut Context<Self>) -> Task<Result<(), AuthenticateError>> {
-        let credentials_provider = self.credentials_provider.clone();
-        let api_url = SharedString::new(self.settings.api_url.clone());
-        self.api_key_state.load_if_needed(
-            api_url,
-            |this| &mut this.api_key_state,
-            credentials_provider,
-            cx,
-        )
-    }
 }
 
 impl OpenAiCompatibleLanguageModelProvider {
@@ -85,43 +59,16 @@ impl OpenAiCompatibleLanguageModelProvider {
         credentials_provider: Arc<dyn CredentialsProvider>,
         cx: &mut App,
     ) -> Self {
-        fn resolve_settings<'a>(id: &'a str, cx: &'a App) -> Option<&'a OpenAiCompatibleSettings> {
-            crate::AllLanguageModelSettings::get_global(cx)
-                .openai_compatible
-                .get(id)
-        }
-
-        let api_key_env_var_name = format!("{}_API_KEY", id).to_case(Case::UpperSnake).into();
-        let state = cx.new(|cx| {
-            cx.observe_global::<SettingsStore>(|this: &mut State, cx| {
-                let Some(settings) = resolve_settings(&this.id, cx).cloned() else {
-                    return;
-                };
-                if &this.settings != &settings {
-                    let credentials_provider = this.credentials_provider.clone();
-                    let api_url = SharedString::new(settings.api_url.as_str());
-                    this.api_key_state.handle_url_change(
-                        api_url,
-                        |this| &mut this.api_key_state,
-                        credentials_provider,
-                        cx,
-                    );
-                    this.settings = settings;
-                    cx.notify();
-                }
-            })
-            .detach();
-            let settings = resolve_settings(&id, cx).cloned().unwrap_or_default();
-            State {
-                id: id.clone(),
-                api_key_state: ApiKeyState::new(
-                    SharedString::new(settings.api_url.as_str()),
-                    EnvVar::new(api_key_env_var_name),
-                ),
-                settings,
-                credentials_provider,
-            }
-        });
+        let state = State::new(
+            id.clone(),
+            credentials_provider,
+            |id, cx| {
+                crate::AllLanguageModelSettings::get_global(cx)
+                    .openai_compatible
+                    .get(id)
+            },
+            cx,
+        );
 
         Self {
             id: id.clone().into(),
@@ -202,8 +149,16 @@ impl LanguageModelProvider for OpenAiCompatibleLanguageModelProvider {
         window: &mut Window,
         cx: &mut App,
     ) -> AnyView {
-        cx.new(|cx| ConfigurationView::new(self.state.clone(), window, cx))
-            .into()
+        cx.new(|cx| {
+            ApiCompatibleProviderConfigurationView::new(
+                self.state.clone(),
+                "OpenAI",
+                API_KEY_PLACEHOLDER,
+                window,
+                cx,
+            )
+        })
+        .into()
     }
 
     fn reset_credentials(&self, cx: &mut App) -> Task<Result<()>> {

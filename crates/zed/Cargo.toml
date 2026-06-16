@@ -2,7 +2,7 @@
 description = "The fast AI coding platform and personal data management app."
 edition.workspace = true
 name = "nir"
-version = "1.7.0"
+version = "1.8.0"
 publish.workspace = true
 license = "GPL-3.0-or-later"
 authors = ["/nir Team"]
@@ -178,6 +178,7 @@ repl.workspace = true
 reqwest.workspace = true
 reqwest_client.workspace = true
 rope.workspace = true
+sandbox.workspace = true
 search.workspace = true
 serde.workspace = true
 serde_json.workspace = true

@@ -33,7 +33,9 @@ Check out the [MCP Server Extensions](../extensions/mcp-extensions.md) page to l
 
 Many MCP servers are available as extensions. Find them via:
 
-1. [the Zed website](https://github.com/Banshal-Yadav/nir's top-right menu and look for the "View Server Extensions" menu item
+1. [the Zed website](https://github.com/Banshal-Yadav/nir)
+2. in the app, open the Command Palette and run the {#action zed::Extensions} action
+3. in the app, go to the Agent Panel's top-right menu and look for the "Install New Servers…" menu item under the "MCP Servers" section
 
 Popular servers available as an extension include:
 
@@ -44,7 +46,7 @@ Popular servers available as an extension include:
       "env": {}
     },
     "remote-mcp-server": {
-      "url": "custom",
+      "url": "https://example.com/mcp",
       "headers": { "Authorization": "Bearer <token>" }
     },
     "remote-mcp-server-with-oauth": {
@@ -89,7 +91,6 @@ As an example, [the Dagger team suggests](https://container-use.com/agent-integr
       "name": "Container Use",
       "tools": {
         "fetch": true,
-        "thinking": true,
         "copy_path": false,
         "find_path": false,
         "delete_path": false,

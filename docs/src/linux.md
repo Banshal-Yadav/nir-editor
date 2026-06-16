@@ -7,7 +7,26 @@ description: "The installation script on the download page is the fastest way to
 
 ## Standard Installation
 
-The installation script on the [download](https://github.com/Banshal-Yadav/nir'd like to use our builds they do work if you install a glibc compatibility layer. On NixOS you can try [nix-ld](https://github.com/Mic92/nix-ld), and on Alpine [gcompat](https://wiki.alpinelinux.org/wiki/Running_glibc_programs).
+The installation script on the [download](https://zed.dev/download) page is the fastest way to install /nir:
+
+```sh
+curl -f https://zed.dev/install.sh | sh
+```
+
+We also offer a preview build of /nir which receives updates about a week ahead of stable. You can install it with:
+
+```sh
+curl -f https://zed.dev/install.sh | ZED_CHANNEL=preview sh
+```
+
+The /nir installed by the script works best on systems that:
+
+- have a Vulkan compatible GPU available (for example Linux on an M-series MacBook)
+- have a system-wide glibc
+  - x86_64 (Intel/AMD): glibc version >= 2.31 (Ubuntu 20 and newer)
+  - aarch64 (ARM): glibc version >= 2.35 (Ubuntu 22 and newer)
+
+NixOS does not have a system-wide glibc by default. If you'd like to use our builds on NixOS, they may work if you install a glibc compatibility layer such as [nix-ld](https://github.com/Mic92/nix-ld).
 
 You will need to build from source for:
 
@@ -21,11 +40,10 @@ Zed is open source, and [you can install from source](./development/linux.md).
 
 ### Installing via a package manager
 
-There are several third-party Zed packages for various Linux distributions and package managers, sometimes under `zed-editor`. You may be able to install Zed using these packages:
+There are several third-party Zed packages for various Linux distributions and package managers, sometimes under `zed-editor`. Availability varies by distribution, but you may be able to install Zed using one of these packages:
 
 - Arch: [`zed`](https://archlinux.org/packages/extra/x86_64/zed/)
 - Arch (AUR): [`zed-git`](https://aur.archlinux.org/packages/zed-git), [`zed-preview`](https://aur.archlinux.org/packages/zed-preview), [`zed-preview-bin`](https://aur.archlinux.org/packages/zed-preview-bin)
-- Alpine: `zed` ([aarch64](https://pkgs.alpinelinux.org/package/edge/testing/aarch64/zed)) ([x86_64](https://pkgs.alpinelinux.org/package/edge/testing/x86_64/zed))
 - Fedora/Ultramarine (Terra): [`zed`](https://github.com/terrapkg/packages/tree/frawhide/anda/devs/zed/stable), [`zed-preview`](https://github.com/terrapkg/packages/tree/frawhide/anda/devs/zed/preview), [`zed-nightly`](https://github.com/terrapkg/packages/tree/frawhide/anda/devs/zed/nightly)
 - Manjaro: [`zed`](https://manjaristas.org/branch_compare?q=zed)
 - Conda: [`zed`](https://anaconda.org/conda-forge/zed)
@@ -36,7 +54,7 @@ There are several third-party Zed packages for various Linux distributions and p
 - AOSC OS: [`zed`](https://packages.aosc.io/packages/zed)
 - Flathub: [`dev.zed.Zed`](https://flathub.org/apps/dev.zed.Zed)
 
-See [Repology](https://repology.org/project/zed-editor/versions) for a list of Zed packages in various repositories.
+See [Repology](https://repology.org/project/zed-editor/versions) for a current list of Zed packages in various repositories.
 
 ### Community
 
