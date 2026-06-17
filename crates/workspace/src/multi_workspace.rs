@@ -2143,6 +2143,30 @@ impl MultiWorkspace {
         for workspace in self.workspaces() {
             let is_active = workspace == active_workspace;
 
+            // Compute git status dot color for this workspace's project.
+            let git_dot_color: Option<gpui::Hsla> = {
+                let project = workspace.read(cx).project().read(cx);
+                let git_store = project.git_store().read(cx);
+                git_store.active_repository().map(|repo| {
+                    let repo = repo.read(cx);
+                    let summary = repo.status_summary();
+                    if summary.conflict > 0 {
+                        gpui::rgba(0xE06C75FF).into() // red
+                    } else if summary.index.added > 0
+                        || summary.index.modified > 0
+                        || summary.index.deleted > 0
+                        || summary.worktree.added > 0
+                        || summary.worktree.modified > 0
+                        || summary.worktree.deleted > 0
+                        || summary.untracked > 0
+                    {
+                        gpui::rgba(0xE5C07BFF).into() // yellow
+                    } else {
+                        gpui::rgba(0x98C379FF).into() // green
+                    }
+                })
+            };
+
             // Case 1 — No worktrees or single-file worktrees only: push a muted file icon.
             // (zero-worktree workspaces satisfy .all() vacuously, so no separate check needed)
             let project = workspace.read(cx).project();
@@ -2275,11 +2299,25 @@ impl MultiWorkspace {
                                             .flex()
                                             .items_center()
                                             .justify_center()
+                                            .relative()
                                             .child(
                                                 Icon::new(IconName::File)
                                                     .size(IconSize::Medium)
                                                     .color(file_fg)
                                             )
+                                            .when_some(git_dot_color, |this, color| {
+                                                this.child(
+                                                    div()
+                                                        .absolute()
+                                                        .bottom_0()
+                                                        .right_0()
+                                                        .size(px(8.))
+                                                        .rounded_full()
+                                                        .bg(color)
+                                                        .border_2()
+                                                        .border_color(file_bg)
+                                                )
+                                            })
                                     )
                                     .cursor_pointer()
                                     .on_click(move |_, window, cx| {
@@ -2395,8 +2433,22 @@ impl MultiWorkspace {
                                         .flex()
                                         .items_center()
                                         .justify_center()
+                                        .relative()
                                         .text_color(text_color)
                                         .child(first_letter.to_string())
+                                        .when_some(git_dot_color, |this, color| {
+                                            this.child(
+                                                div()
+                                                    .absolute()
+                                                    .bottom_0()
+                                                    .right_0()
+                                                    .size(px(8.))
+                                                    .rounded_full()
+                                                    .bg(color)
+                                                    .border_2()
+                                                    .border_color(avatar_color)
+                                            )
+                                        })
                                 )
                                 .cursor_pointer()
                                 .on_click(move |_, window, cx| {
