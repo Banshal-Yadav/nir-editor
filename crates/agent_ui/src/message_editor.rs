@@ -116,6 +116,7 @@ impl SessionCapabilities {
                 description: command.description.clone().into(),
                 requires_argument: command.input.is_some(),
                 source: None,
+                category: None,
             })
             .collect()
     }

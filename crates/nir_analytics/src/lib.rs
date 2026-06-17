@@ -149,43 +149,77 @@ pub fn list_log_files() -> Result<Vec<String>> {
     Ok(files)
 }
 
-/// Deletes a specific log entry.
+/// Deletes a specific log entry by ID, removing it from both the markdown log
+/// file and the FTS5 checkpoint index so `recall_past_context` stops returning it.
+/// Returns `true` if the entry was found and removed from at least one source.
 pub fn delete_log_entry(date_str: &str, target_id: &str) -> Result<bool> {
-    let logs_dir = get_logs_dir()?;
-    let file_path = logs_dir.join(format!("{}.md", date_str));
-    
-    if !file_path.exists() {
-        return Ok(false);
-    }
-    
-    let mut file = OpenOptions::new().read(true).open(&file_path)?;
-    let mut raw_content = String::new();
-    file.read_to_string(&mut raw_content)?;
-    
-    let lines: Vec<&str> = raw_content.lines().collect();
-    let mut updated_lines = Vec::new();
     let mut found = false;
-    
-    for line in lines {
-        if let Some(entry) = parse_line_entry(line.trim()) {
-            if entry.id == target_id {
-                found = true;
-                continue;
+
+    // 1. Try to remove from the markdown log file.
+    if let Ok(logs_dir) = get_logs_dir() {
+        let file_path = logs_dir.join(format!("{}.md", date_str));
+        if file_path.exists() {
+            if let Ok(mut file) = OpenOptions::new().read(true).open(&file_path) {
+                let mut raw_content = String::new();
+                if file.read_to_string(&mut raw_content).is_ok() {
+                    let lines: Vec<&str> = raw_content.lines().collect();
+                    let mut updated_lines: Vec<&str> = Vec::new();
+                    for line in lines {
+                        if let Some(entry) = parse_line_entry(line.trim()) {
+                            if entry.id == target_id {
+                                found = true;
+                                continue;
+                            }
+                        }
+                        updated_lines.push(line);
+                    }
+                    if found {
+                        if let Ok(mut out_file) = OpenOptions::new()
+                            .write(true)
+                            .truncate(true)
+                            .open(&file_path)
+                        {
+                            for line in updated_lines {
+                                let _ = writeln!(out_file, "{}", line);
+                            }
+                        }
+                    }
+                }
             }
         }
-        updated_lines.push(line);
     }
-    
-    if found {
-        let mut out_file = OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .open(&file_path)?;
-        for line in updated_lines {
-            writeln!(out_file, "{}", line)?;
+
+    // 2. Also remove from FTS5 checkpoint index (even if markdown file was
+    //    already gone — they can drift apart). Best-effort; failure here
+    //    doesn't change the return value since the markdown may have succeeded.
+    if let Ok(db_path) = get_state_db_path() {
+        if let Ok(connection) = init_storage_engine(&db_path) {
+            let safe_id = target_id.replace('\'', "''");
+            // Check if it existed in FTS5 before deleting — if so, mark found.
+            let existed: bool = connection
+                .select::<i32>(
+                    &format!("SELECT COUNT(*) FROM checkpoints WHERE id = '{safe_id}'"),
+                )
+                .ok()
+                .and_then(|mut stmt| stmt().ok())
+                .and_then(|rows| rows.first().copied())
+                .map(|count| count > 0)
+                .unwrap_or(false);
+            if existed {
+                found = true;
+            }
+            let _ = connection
+                .exec(&format!(
+                    "DELETE FROM checkpoints_fts WHERE rowid IN \
+                     (SELECT rowid FROM checkpoints WHERE id = '{safe_id}')"
+                ))
+                .and_then(|mut stmt| stmt());
+            let _ = connection
+                .exec(&format!("DELETE FROM checkpoints WHERE id = '{safe_id}'"))
+                .and_then(|mut stmt| stmt());
         }
     }
-    
+
     Ok(found)
 }
 

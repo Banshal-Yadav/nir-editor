@@ -570,7 +570,7 @@ pub fn init(
             workspace
                 .update(cx, |workspace, cx| {
                     if let Some(panel) = workspace.panel::<AgentPanel>(cx) {
-                        panel.update(cx, |panel, cx| panel.refresh_skills(cx));
+                        let _ = panel;
                     }
                 })
                 .ok();

@@ -1,7 +1,8 @@
 use anyhow::Result;
+use util::ResultExt;
 use credentials_provider::CredentialsProvider;
 use futures::{FutureExt, StreamExt, future::BoxFuture};
-use gpui::{AnyView, App, AppContext, AsyncApp, Entity, Task, Window};
+use gpui::{AnyView, App, AppContext, AsyncApp, Context, Entity, IntoElement, Render, Task, Window};
 use http_client::{CustomHeaders, HttpClient};
 use language_model::{
     AuthenticateError, IconOrSvg, LanguageModel, LanguageModelCompletionError,
@@ -15,8 +16,10 @@ use open_ai::{
     stream_completion,
 };
 use settings::Settings;
+use menu;
 use std::sync::Arc;
-use ui::IconName;
+use ui::{ElevationIndex, Tooltip, prelude::*};
+use ui_input::InputField;
 
 use crate::provider::api_compatible::{
     ApiCompatibleProviderConfigurationView, ApiCompatibleProviderSettings,

@@ -42,6 +42,10 @@ impl AgentTool for UpdateTitleTool {
 
     const NAME: &'static str = "update_title";
 
+    fn description() -> SharedString {
+        "Override the auto-generated session title. The agent sets a title automatically, but use this to correct it when it's wrong, vague, or the session focus has shifted. Only call this if the current title is inaccurate — otherwise let the auto-title handle it.".into()
+    }
+
     fn kind() -> acp::ToolKind {
         acp::ToolKind::Think
     }

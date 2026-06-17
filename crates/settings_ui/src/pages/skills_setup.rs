@@ -1,5 +1,6 @@
 use agent_skills::{MAX_SKILL_DESCRIPTION_LEN, Skill, SkillIndex, encode_skill_share_link};
-use gpui::{Action as _, App, ClipboardItem, ScrollHandle, SharedString, prelude::*};
+use gpui::{App, ClipboardItem, ScrollHandle, SharedString, prelude::*};
+use std::borrow::Cow;
 use std::fs;
 
 use ui::{Divider, Switch, ToggleState, Tooltip, prelude::*};

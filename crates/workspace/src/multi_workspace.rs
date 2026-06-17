@@ -2614,7 +2614,7 @@ impl MultiWorkspace {
                             .on_click(cx.listener(|_, _, window, cx| {
                                 window.dispatch_action(
                                     Box::new(crate::Open {
-                                        create_new_window: false,
+                                        create_new_window: Some(false),
                                     }),
                                     cx,
                                 );
@@ -2623,7 +2623,7 @@ impl MultiWorkspace {
                                 Tooltip::for_action(
                                     "Add Project to Window",
                                     &crate::Open {
-                                        create_new_window: false,
+                                        create_new_window: Some(false),
                                     },
                                     cx,
                                 )

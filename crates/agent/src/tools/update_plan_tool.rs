@@ -68,6 +68,10 @@ impl AgentTool for UpdatePlanTool {
 
     const NAME: &'static str = "update_plan";
 
+    fn description() -> SharedString {
+        "Create or update the visible task plan shown in the agent panel. Use this to break a complex task into ordered steps with status (pending, in_progress, completed). Call with an empty plan to clear the current plan. Only use for multi-step tasks — not for single operations.".into()
+    }
+
     fn kind() -> acp::ToolKind {
         acp::ToolKind::Think
     }

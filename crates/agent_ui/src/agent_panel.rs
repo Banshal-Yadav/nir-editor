@@ -30,8 +30,8 @@ use zed_actions::{
         ResolveConflictsWithAgent, ReviewBranchDiff,
     },
     assistant::{
-        CreateSkillFromUrl, FocusAgent, OpenGlobalAgentsMdRules, OpenProjectAgentsMdRules,
-        OpenRulesLibrary, OpenSkillCreator, Toggle, ToggleFocus,
+        FocusAgent, OpenGlobalAgentsMdRules, OpenProjectAgentsMdRules,
+        Toggle, ToggleFocus,
     },
 };
 
@@ -87,7 +87,7 @@ use notifications::status_toast::StatusToast;
 use project::{Project, ProjectPath, Worktree};
 use settings::TerminalDockPosition;
 use settings::{NotifyWhenAgentWaiting, Settings, update_settings_file};
-use skill_creator::{SkillCreatorOpenMode, is_supported_skill_url, open_skill_creator};
+
 use task::{HideStrategy, RevealStrategy, SaveStrategy, Shell, SpawnInTerminal, TaskId};
 use terminal::{Event as TerminalEvent, terminal_settings::TerminalSettings};
 use terminal_view::{TerminalView, terminal_panel::TerminalPanel};
@@ -425,35 +425,11 @@ pub fn init(cx: &mut App) {
                         });
                     }
                 })
-                .register_action(|workspace, action: &OpenRulesLibrary, window, cx| {
-                    if let Some(panel) = workspace.panel::<AgentPanel>(cx) {
-                        workspace.focus_panel::<AgentPanel>(window, cx);
-                        panel.update(cx, |panel, cx| {
-                            panel.deploy_rules_library(action, window, cx)
-                        });
-                    }
-                })
                 .register_action(|workspace, _: &OpenGlobalAgentsMdRules, window, cx| {
                     open_global_rules(workspace, window, cx);
                 })
                 .register_action(|workspace, _: &OpenProjectAgentsMdRules, window, cx| {
                     open_project_rules(workspace, window, cx);
-                })
-                .register_action(|workspace, action: &OpenSkillCreator, window, cx| {
-                    if let Some(panel) = workspace.panel::<AgentPanel>(cx) {
-                        workspace.focus_panel::<AgentPanel>(window, cx);
-                        panel.update(cx, |panel, cx| {
-                            panel.deploy_skill_creator(action, window, cx)
-                        });
-                    }
-                })
-                .register_action(|workspace, action: &CreateSkillFromUrl, window, cx| {
-                    if let Some(panel) = workspace.panel::<AgentPanel>(cx) {
-                        workspace.focus_panel::<AgentPanel>(window, cx);
-                        panel.update(cx, |panel, cx| {
-                            panel.deploy_skill_creator_from_url(action, window, cx)
-                        });
-                    }
                 })
                 .register_action(|workspace, _: &Follow, window, cx| {
                     workspace.follow(CollaboratorId::Agent, window, cx);
@@ -2069,7 +2045,7 @@ impl AgentPanel {
                 Err(error) => {
                     log::error!("failed to spawn agent panel task terminal: {error:#}");
                     workspace
-                        .update(cx, |workspace, cx| workspace.show_error(&error, cx))
+                        .update(cx, |workspace, cx| workspace.show_error(error, cx))
                         .log_err();
                     return anyhow::Ok(());
                 }
@@ -2164,7 +2140,7 @@ impl AgentPanel {
                 Err(error) => {
                     log::error!("failed to spawn agent panel terminal: {error:#}");
                     workspace
-                        .update(cx, |workspace, cx| workspace.show_error(&error, cx))
+                        .update(cx, |workspace, cx| workspace.show_error(error, cx))
                         .log_err();
                     this.update(cx, |this, cx| {
                         if this.pending_terminal_spawn == Some(terminal_id) {
@@ -2233,7 +2209,7 @@ impl AgentPanel {
                 Err(error) => {
                     log::error!("failed to restore agent terminal task: {error:#}");
                     workspace
-                        .update(cx, |workspace, cx| workspace.show_error(&error, cx))
+                        .update(cx, |workspace, cx| workspace.show_error(error, cx))
                         .log_err();
                     this.update(cx, |this, cx| {
                         if this.pending_terminal_spawn == Some(terminal_id) {
@@ -3766,93 +3742,6 @@ impl AgentPanel {
             cx,
         );
         self.set_base_view(thread.into(), focus, window, cx);
-    }
-
-    fn deploy_rules_library(
-        &mut self,
-        _action: &OpenRulesLibrary,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        // The legacy Rules action is rerouted to the skill creator so the
-        // existing keyboard shortcut (still bound to `OpenRulesLibrary` in
-        // the default keymaps) and any persisted user keymap entries keep
-        // working.
-        self.deploy_skill_creator(&OpenSkillCreator, window, cx);
-    }
-
-    fn deploy_skill_creator(
-        &mut self,
-        _action: &OpenSkillCreator,
-        _window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        self.open_skill_creator(SkillCreatorOpenMode::Form, cx);
-    }
-
-    fn deploy_skill_creator_from_url(
-        &mut self,
-        _action: &CreateSkillFromUrl,
-        _window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        let initial_url = cx
-            .read_from_clipboard()
-            .and_then(|clipboard| clipboard.text())
-            .map(|text| text.trim().to_string())
-            .filter(|text| is_supported_skill_url(text));
-
-        self.open_skill_creator(SkillCreatorOpenMode::Url { initial_url }, cx);
-    }
-
-    /// Open the skill creator pre-filled with a skill received from a
-    /// `zed://skill` share link, so the user can review it and choose a scope
-    /// before installing.
-    pub fn install_shared_skill(&mut self, content: String, cx: &mut Context<Self>) {
-        self.open_skill_creator(SkillCreatorOpenMode::Install { content }, cx);
-    }
-
-    fn open_skill_creator(&mut self, open_mode: SkillCreatorOpenMode, cx: &mut Context<Self>) {
-        let this = cx.weak_entity();
-        let on_saved: Rc<dyn Fn(&mut App)> = Rc::new(move |cx: &mut App| {
-            this.update(cx, |this, cx| {
-                if !this.has_open_project(cx) {
-                    return;
-                }
-
-                this.ensure_native_agent_connection(cx);
-                let Some(connect_task) = this.connection_store.update(cx, |store, cx| {
-                    store
-                        .entry(&Agent::NativeAgent)
-                        .map(|entry| entry.read(cx).wait_for_connection())
-                }) else {
-                    return;
-                };
-                let project = this.project.clone();
-                cx.spawn(async move |_this, cx| -> Result<()> {
-                    let connected = connect_task.await?;
-                    if let Some(native_connection) = connected
-                        .connection
-                        .downcast::<agent::NativeAgentConnection>()
-                    {
-                        cx.update(|cx| native_connection.refresh_skills_for_project(project, cx));
-                    }
-                    Ok(())
-                })
-                .detach_and_log_err(cx);
-            })
-            .log_err();
-        });
-
-        open_skill_creator(
-            Some(self.workspace.clone()),
-            self.language_registry.clone(),
-            self.fs.clone(),
-            open_mode,
-            Some(on_saved),
-            cx,
-        )
-        .detach_and_log_err(cx);
     }
 
     fn expand_message_editor(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -6060,13 +5949,6 @@ impl AgentPanel {
                                 )
                                 .separator()
                                 .header("Skills")
-                                .entry(
-                                    "Create Skill…",
-                                    Some(Box::new(OpenRulesLibrary::default())),
-                                    |window, cx| {
-                                        window.dispatch_action(Box::new(OpenSkillCreator), cx);
-                                    },
-                                )
                                 .entry("Manage Skills…", None, |window, cx| {
                                     window.dispatch_action(
                                         Box::new(zed_actions::OpenSettingsAt {
@@ -6133,7 +6015,7 @@ impl AgentPanel {
                                 }
 
                                 menu = menu.entry("Rules Library", None, |_window, cx| {
-                                    cx.open_url(&zed_urls::rules_docs(cx));
+                                    cx.open_url(&zed_urls::skills_docs(cx));
                                 });
 
                                 menu = menu.separator();
@@ -6919,8 +6801,6 @@ impl Render for AgentPanel {
                 this.open_configuration(window, cx);
             }))
             .on_action(cx.listener(Self::open_active_thread_as_markdown))
-            .on_action(cx.listener(Self::deploy_rules_library))
-            .on_action(cx.listener(Self::deploy_skill_creator))
             .on_action(cx.listener(Self::go_back))
             .on_action(cx.listener(Self::toggle_options_menu))
             .on_action(cx.listener(Self::increase_font_size))

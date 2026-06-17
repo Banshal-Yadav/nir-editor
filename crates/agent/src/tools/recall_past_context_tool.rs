@@ -104,11 +104,13 @@ async fn execute_recall_past_context(input: RecallPastContextInput) -> Result<St
         .join("\n"))
 }
 
-/// Formats a checkpoint record as `[YYYY-MM-DD] <summary>` for human-readable recall output.
+/// Formats a checkpoint record as `[YYYY-MM-DD] <summary> (ID: <entry_id>)` for
+/// human-readable recall output. The entry ID lets downstream tools like
+/// `delete_log_entry` target specific log lines.
 fn format_record_line(record: &nir_analytics::CheckPointRecord) -> String {
     let date = record
         .id
         .get(..10)
         .unwrap_or("Unknown Date");
-    format!("[{}] {}", date, record.summary)
+    format!("[{}] {} (ID: {})", date, record.summary, record.id)
 }

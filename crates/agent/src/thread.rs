@@ -6,7 +6,7 @@ use crate::{
     FetchTool, FindPathTool, FindReferencesTool, GetCodeActionsTool, GoToDefinitionTool, GrepTool,
     ListAgentsAndModelsTool, ListDirectoryTool, MovePathTool, ProjectSnapshot, ReadFileTool,
     RenameTool, SandboxedTerminalTool, SpawnAgentTool, SystemPromptTemplate, Template, Templates,
-    TerminalTool, ToolPermissionDecision, UpdatePlanTool, UpdateTitleTool, WebSearchTool,
+    TerminalTool, ToolPermissionDecision, DeleteLogEntryTool, UpdatePlanTool, UpdateTitleTool, WebSearchTool,
     BrainMemoryTool, BackupTool, ScratchpadTool, RecallPastContextTool, LogTaskTool,
     WriteFileTool, decide_permission_from_settings,
 };
@@ -838,6 +838,7 @@ pub enum ThreadEvent {
     Retry(acp_thread::RetryStatus),
     ContextCompaction(acp_thread::ContextCompaction),
     ContextCompactionUpdate(acp_thread::ContextCompactionUpdate),
+    Plan(acp::Plan),
     Stop(acp::StopReason),
 }
 
@@ -1964,6 +1965,9 @@ impl Thread {
         self.add_tool(ScratchpadTool::new(self.project.clone()));
         self.add_tool(RecallPastContextTool);
         self.add_tool(LogTaskTool);
+        self.add_tool(DeleteLogEntryTool);
+        self.add_tool(UpdatePlanTool);
+        self.add_tool(UpdateTitleTool::new(cx.weak_entity()));
         self.add_tool(DiagnosticsTool::new(self.project.clone()));
 
         let code_action_store: CodeActionStore = cx.new(|_cx| None);
@@ -3586,7 +3590,7 @@ impl Thread {
     }
 
     pub fn generate_title(&mut self, cx: &mut Context<Self>) {
-        if !self.can_generate_title() {
+        if !self.can_generate_title(cx) {
             return;
         }
 
@@ -5026,6 +5030,10 @@ impl ThreadEventStream {
         self.0.unbounded_send(Ok(ThreadEvent::Retry(status))).ok();
     }
 
+    fn send_plan(&self, plan: acp::Plan) {
+        self.0.unbounded_send(Ok(ThreadEvent::Plan(plan))).ok();
+    }
+
     fn send_context_compaction(
         &self,
         id: acp_thread::ContextCompactionId,
@@ -5213,6 +5221,10 @@ impl ToolCallEventStream {
             .0
             .unbounded_send(Ok(ThreadEvent::SubagentSpawned(id)))
             .ok();
+    }
+
+    pub fn update_plan(&self, plan: acp::Plan) {
+        self.stream.send_plan(plan);
     }
 
     /// Authorize a third-party tool (e.g., MCP tool from a context server).

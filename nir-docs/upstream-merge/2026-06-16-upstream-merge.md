@@ -1,52 +1,83 @@
 # Upstream Merge — 2026-06-16
 
-Tracking today's merge from `zed-industries/zed` (upstream) into `Banshal-Yadav/nir` (origin).
+Tracking the merge from `zed-industries/zed` (upstream) into `Banshal-Yadav/nir` (origin).
+
+| Field | Value |
+|-------|-------|
+| **Upstream ref** | `137e677a05..6661273a41` (185 commits, Jun 16) |
+| **Upstream URL** | `https://github.com/zed-industries/zed.git` |
+| **Local branch** | `main` |
+| **Snapshot** | `pre-merge-snapshot-2026-06-16` at `301d1593a1` |
 
 ## Pre-merge State
 
 - [x] All local work committed
-- [x] Snapshot branch: `pre-merge-snapshot-2026-06-16` at `301d1593a1`
-- [x] Pushed to `origin/main`
+- [x] Snapshot branch created and pushed
 - Last local commit: `301d1593a1 feat(agent): improve system prompt with workflow guidance and memory rules`
-- 4 commits ahead of last merge (2 fixes + 1 feat)
-- Upstream: 185 commits ahead (`137e677a05..6661273a41`)
+- 4 commits ahead of last merge
 
-## Merge Steps
+## Key Upstream Features Brought In
 
-- [x] `git fetch upstream` (done)
-- [x] `git merge upstream/main`
-- [x] Resolve conflicts
-- [ ] `cargo build` (debug — skipped, no Rust toolchain in env)
-- [ ] Smoke test core features (chat, agent, terminal)
-- [ ] Test Nir-specific tools
+- **Context compaction**: `/compact` command, auto-compact settings, refined UX, compaction telemetry
+- **Linux sandboxing**: bubblewrap integration, network allowlist (allow/deny per host), sandbox permission prompts
+- **HTTP proxy crate**: in-process allowlisting proxy server with upstream proxy config
+- **Skills management**: moved from agent into settings UI
+- **Anthropic-compatible provider**: additional LLM provider support
+- **Stream git blame parsing**: async blame with streaming chunks
+- **Workspace typed errors**: `workspace_error.rs` for typed error handling
+- **Benchmarks**: reorganized to `crates/benchmarks/`
+- OpenCode model updates, general bug fixes, UI polish
 
-## Key Upstream Features Preserved
+## Conflicts Resolved (34 files)
 
-- **Compaction**: `/compact` command, auto-compact settings, server-side (OpenAI/Anthropic)
-- Stream git blame parsing
-- Skills management in settings UI
-- OpenCode model updates
-- Typed workspace errors (`workspace_error.rs`)
-- Sandboxing improvements (bubblewrap)
-- Benchmarks crate moved to `crates/benchmarks/`
-- Anthropic-compatible provider
-- HTTP proxy crate
+| Category | Strategy |
+|----------|----------|
+| GitHub workflows (11) | Took upstream (restored deleted CI files) |
+| Agent core (5 files) | Kept Nir features + restored deleted tools |
+| Agent UI (2 files) | Kept Nir version (full agent launcher/analytics) |
+| Settings (4 files) | Kept Nir defaults + upstream code merged |
+| LLM provider (1 file) | Kept Nir branding + upstream code |
+| Workspace/UI (4 files) | Merged both |
+| Branding/docs (5 files) | Took upstream + reapplied Nir branding |
+| Simple/misc (2 files) | Took upstream (no Nir changes) |
 
-## Conflicts Resolved (34 files total)
+## Post-merge Fixes (follow-up commit, not yet committed)
 
-| Category | Files | Strategy |
-|----------|-------|----------|
-| GitHub workflows (11) | `.github/workflows/*` | Took upstream (restored deleted CI files) |
-| Agent core (5) | `thread.rs`, `system_prompt.hbs`, `experimental_system_prompt.hbs`, `tools.rs` | Kept Nir features + restored deleted tools |
-| Agent UI (2) | `agent_panel.rs`, `message_editor.rs` | Kept Nir version (full agent launcher/analytics) |
-| Settings (4) | `default.json`, `skills_setup.rs`, `tool_permissions_setup.rs`, `settings_ui.rs` | Kept Nir defaults + branding |
-| LLM provider (1) | `open_ai_compatible.rs` | Kept Nir branding + upstream code |
-| Workspace/UI (4) | `workspace.rs`, `welcome.rs`, `notifications.rs`, `title_bar.rs` | Merged: kept Nir welcome/title, took upstream notifications, merged both modules |
-| Branding/docs (5) | `askpass.rs`, `gpui/README.md`, `install_cli.rs`, `mcp.md`, `linux.md` | Took upstream + reapplied Nir branding |
-| Simple/misc (2) | `zed_urls.rs`, `zeta.rs` | Took upstream (no Nir changes) |
+### Plan Tool — Restored & Wired
 
-## Post-merge
+Upstream deleted `update_plan` / `update_title` as "experimental" (#58824).
+Fully restored across all 4 gating layers:
 
-- [ ] `cargo build` smoke test (needs Rust toolchain)
-- [ ] Push merged branch to `origin/main`
-- [ ] Log merge commit SHA
+- `tools!` macro, `add_default_tools()`, settings allowlists
+- `ThreadEvent::Plan` → now calls `acp_thread.update_plan()` (was no-op)
+- Added proper LLM descriptions
+
+### delete_log_entry — New Tool
+
+Removes a log entry from markdown file + FTS5 index atomically.
+`recall_past_context` now exposes entry IDs for targeting.
+
+### Tool Description Cleanup
+
+| Tool | Change |
+|------|--------|
+| `scratchpad` | Long defensive → "Use PROACTIVELY, reading is free, forgetting costs tokens" |
+| `log_task_completion` | Explicit allow/deny list (no more "Acknowledged user input" spam) |
+| `update_plan` | Added description (was empty) |
+| `update_title` | Added description (was empty) |
+
+### Other
+
+- Fixed `EXCLUDED_TOOLS`: `"backup"` → `"brain_backup"`, added missing Nir tools
+- Removed dead `skill_creator` code from `agent_panel.rs`
+- Scrapped `update_log_entry` tool (implemented but user decided against it)
+
+## Status
+
+- [x] Merge auto-resolution done
+- [x] 34 conflicts resolved
+- [x] Plan tool restored and tested
+- [x] delete_log_entry works (confirmed)
+- [x] `cargo build` passes (debug)
+- [ ] Follow-up commit with post-merge fixes (pending user approval)
+- [ ] Push to `origin/main`

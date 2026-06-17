@@ -25,7 +25,7 @@ impl AgentTool for LogTaskTool {
     const NAME: &'static str = "log_task_completion";
 
     fn description() -> SharedString {
-        "Call this tool ONLY when a user-requested task, technical implementation, or milestone is fully finished. Provide a clear, concise summary of the engineering work done.".into()
+        "Record a task completion in the persistent log. Call this only when code was written, a bug was fixed, a file was created/modified, a build ran, a test passed, a meaningful engineering milestone was reached, or when the user explicitly asks you to log something. NEVER use this for acknowledgments, confirmations, conversation, reading files, or any action that didn't produce a concrete output.".into()
     }
 
     fn kind() -> acp::ToolKind {

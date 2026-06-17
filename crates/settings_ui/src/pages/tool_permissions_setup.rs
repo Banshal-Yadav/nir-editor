@@ -1427,7 +1427,11 @@ mod tests {
             "update_plan",
             // memory tools manage internal .nir files and don't need regex permissions
             "brain_memory",
-            "backup",
+            "brain_backup",
+            "scratchpad",
+            "recall_past_context",
+            "log_task_completion",
+            "delete_log_entry",
             // update_title updates UI-visible session metadata but
             // does not use tool permission rules.
             "update_title",
