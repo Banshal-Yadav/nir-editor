@@ -850,10 +850,11 @@ impl TitleBar {
     fn render_project_name(
         &self,
         name: Option<SharedString>,
-        _: &mut Window,
-        _: &mut Context<Self>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let is_project_selected = name.is_some();
+        let workspace = self.workspace.clone();
 
         let display_name = if let Some(ref name) = name {
             util::truncate_and_trailoff(name, MAX_PROJECT_NAME_LENGTH)
@@ -863,7 +864,20 @@ impl TitleBar {
 
         Button::new("project_name_label", display_name)
             .label_size(LabelSize::Small)
-            .disabled(true)
+            .on_click(move |_, window, cx| {
+                if let Some(workspace) = workspace.upgrade() {
+                    let _ = workspace.update(cx, |workspace, cx| {
+                        recent_projects::RecentProjects::open(
+                            workspace,
+                            Some(false),
+                            Vec::new(),
+                            window,
+                            cx.focus_handle(),
+                            cx,
+                        );
+                    });
+                }
+            })
             .when(!is_project_selected, |s| s.color(Color::Muted))
             .into_any_element()
     }
