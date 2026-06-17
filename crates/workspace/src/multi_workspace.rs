@@ -2143,15 +2143,20 @@ impl MultiWorkspace {
         for workspace in self.workspaces() {
             let is_active = workspace == active_workspace;
 
-            // Compute git status dot color for this workspace's project.
-            let git_dot_color: Option<gpui::Hsla> = {
+            // Compute git status dot color and tooltip for this workspace's project.
+            let git_dot_info: Option<(gpui::Hsla, SharedString)> = {
                 let project = workspace.read(cx).project().read(cx);
                 let git_store = project.git_store().read(cx);
                 git_store.active_repository().map(|repo| {
                     let repo = repo.read(cx);
                     let summary = repo.status_summary();
                     if summary.conflict > 0 {
-                        gpui::rgba(0xE06C75FF).into() // red
+                        let label = if summary.conflict == 1 {
+                            "1 conflict".into()
+                        } else {
+                            format!("{} conflicts", summary.conflict).into()
+                        };
+                        (gpui::rgba(0xE06C75FF).into(), label) // red
                     } else if summary.index.added > 0
                         || summary.index.modified > 0
                         || summary.index.deleted > 0
@@ -2160,9 +2165,17 @@ impl MultiWorkspace {
                         || summary.worktree.deleted > 0
                         || summary.untracked > 0
                     {
-                        gpui::rgba(0xE5C07BFF).into() // yellow
+                        let total = summary.index.added + summary.index.modified + summary.index.deleted
+                            + summary.worktree.added + summary.worktree.modified + summary.worktree.deleted
+                            + summary.untracked;
+                        let label = if total == 1 {
+                            "1 uncommitted change".into()
+                        } else {
+                            format!("{} uncommitted changes", total).into()
+                        };
+                        (gpui::rgba(0xE5C07BFF).into(), label) // yellow
                     } else {
-                        gpui::rgba(0x98C379FF).into() // green
+                        (gpui::rgba(0x98C379FF).into(), "Clean".into()) // green
                     }
                 })
             };
@@ -2305,7 +2318,9 @@ impl MultiWorkspace {
                                                     .size(IconSize::Medium)
                                                     .color(file_fg)
                                             )
-                                            .when_some(git_dot_color, |this, color| {
+                                            .when_some(git_dot_info, |this, (color, label)| {
+                                                let workspace_id = workspace_clone.entity_id().as_u64();
+                                                let tooltip_label = label.clone();
                                                 this.child(
                                                     div()
                                                         .absolute()
@@ -2316,6 +2331,10 @@ impl MultiWorkspace {
                                                         .bg(color)
                                                         .border_2()
                                                         .border_color(file_bg)
+                                                        .id(("git_dot", workspace_id))
+                                                        .tooltip(move |window, cx| {
+                                                            Tooltip::text(tooltip_label.clone())(window, cx)
+                                                        })
                                                 )
                                             })
                                     )
@@ -2436,7 +2455,9 @@ impl MultiWorkspace {
                                         .relative()
                                         .text_color(text_color)
                                         .child(first_letter.to_string())
-                                        .when_some(git_dot_color, |this, color| {
+                                        .when_some(git_dot_info, |this, (color, label)| {
+                                            let workspace_id = workspace_clone.entity_id().as_u64();
+                                            let tooltip_label = label.clone();
                                             this.child(
                                                 div()
                                                     .absolute()
@@ -2447,6 +2468,10 @@ impl MultiWorkspace {
                                                     .bg(color)
                                                     .border_2()
                                                     .border_color(avatar_color)
+                                                    .id(("git_dot", workspace_id))
+                                                    .tooltip(move |window, cx| {
+                                                        Tooltip::text(tooltip_label.clone())(window, cx)
+                                                    })
                                             )
                                         })
                                 )
