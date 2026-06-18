@@ -390,6 +390,11 @@ impl LmStudioLanguageModel {
                         }
                     }
                     MessageContent::ToolResult(tool_result) => {
+                        let has_images = tool_result
+                            .content
+                            .iter()
+                            .any(|part| matches!(part, LanguageModelToolResultContent::Image(_)));
+
                         let content: Vec<lmstudio::MessagePart> = tool_result
                             .content
                             .iter()
@@ -410,10 +415,16 @@ impl LmStudioLanguageModel {
                             })
                             .collect();
 
-                        messages.push(lmstudio::ChatMessage::Tool {
-                            content: content.into(),
-                            tool_call_id: tool_result.tool_use_id.to_string(),
-                        });
+                        if has_images {
+                            messages.push(lmstudio::ChatMessage::User {
+                                content: content.into(),
+                            });
+                        } else {
+                            messages.push(lmstudio::ChatMessage::Tool {
+                                content: content.into(),
+                                tool_call_id: tool_result.tool_use_id.to_string(),
+                            });
+                        }
                     }
                 }
             }
