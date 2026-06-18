@@ -17,7 +17,12 @@ use std::path::Path;
 use std::sync::Arc;
 use util::markdown::MarkdownInlineCode;
 
+const MAX_FILES_LISTED: usize = 100;
+
 /// Lists files and directories in a given path. Prefer the `grep` or `find_path` tools when searching the codebase.
+///
+/// Directories with many files are truncated — only the first 100 files are shown.
+/// Use `find_path` with a glob pattern to search for specific files in large directories.
 ///
 /// The only supported path outside the project is `~/.agents/skills` or a descendant, for global agent skills.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -99,7 +104,20 @@ impl ListDirectoryTool {
             writeln!(output, "# Folders:\n{}", folders.join("\n")).unwrap();
         }
         if !files.is_empty() {
-            writeln!(output, "\n# Files:\n{}", files.join("\n")).unwrap();
+            let total = files.len();
+            if total > MAX_FILES_LISTED {
+                files.truncate(MAX_FILES_LISTED);
+                writeln!(
+                    output,
+                    "\n# Files ({} of {}):\n{}",
+                    files.len(),
+                    total,
+                    files.join("\n")
+                )
+                .unwrap();
+            } else {
+                writeln!(output, "\n# Files:\n{}", files.join("\n")).unwrap();
+            }
         }
         if output.is_empty() {
             writeln!(output, "{input_path} is empty.").unwrap();
@@ -167,7 +185,20 @@ impl ListDirectoryTool {
         }
 
         if !files.is_empty() {
-            writeln!(output, "\n# Files:\n{}", files.join("\n")).unwrap();
+            let total = files.len();
+            if total > MAX_FILES_LISTED {
+                files.truncate(MAX_FILES_LISTED);
+                writeln!(
+                    output,
+                    "\n# Files ({} of {}):\n{}",
+                    files.len(),
+                    total,
+                    files.join("\n")
+                )
+                .unwrap();
+            } else {
+                writeln!(output, "\n# Files:\n{}", files.join("\n")).unwrap();
+            }
         }
 
         if output.is_empty() {
@@ -495,6 +526,67 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(output, "project/empty_dir is empty.\n");
+    }
+
+    #[gpui::test]
+    async fn test_list_directory_truncates_large_directories(cx: &mut TestAppContext) {
+        init_test(cx);
+
+        let fs = FakeFs::new(cx.executor());
+        let mut tree = serde_json::Map::new();
+        let mut files = serde_json::Map::new();
+        for i in 0..150 {
+            files.insert(
+                format!("file_{:03}.txt", i),
+                serde_json::Value::String("content".into()),
+            );
+        }
+        tree.insert("big_dir".into(), serde_json::Value::Object(files));
+        tree.insert(
+            "small_dir".into(),
+            serde_json::json!({ "a.txt": "content" }),
+        );
+        fs.insert_tree(path!("/project"), serde_json::Value::Object(tree))
+            .await;
+
+        let project = Project::test(fs.clone(), [path!("/project").as_ref()], cx).await;
+        let tool = Arc::new(ListDirectoryTool::new(project));
+
+        let input = ListDirectoryToolInput {
+            path: "project/big_dir".into(),
+        };
+        let output = cx
+            .update(|cx| {
+                tool.clone().run(
+                    ToolInput::resolved(input),
+                    ToolCallEventStream::test().0,
+                    cx,
+                )
+            })
+            .await
+            .unwrap();
+        assert!(
+            output.contains("(100 of 150)"),
+            "Should show truncated count: {output}"
+        );
+
+        let input = ListDirectoryToolInput {
+            path: "project/small_dir".into(),
+        };
+        let output = cx
+            .update(|cx| {
+                tool.clone().run(
+                    ToolInput::resolved(input),
+                    ToolCallEventStream::test().0,
+                    cx,
+                )
+            })
+            .await
+            .unwrap();
+        assert!(
+            !output.contains("of "),
+            "Should not show count for small directories: {output}"
+        );
     }
 
     #[gpui::test]
