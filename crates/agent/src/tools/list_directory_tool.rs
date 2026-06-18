@@ -184,6 +184,25 @@ impl ListDirectoryTool {
                 continue;
             }
 
+            // Skip common build/dependency directories that waste context
+            if entry.is_dir() {
+                if let Some(name) = entry.path.file_name().and_then(|n| n.to_str()) {
+                    if matches!(
+                        name,
+                        "target"
+                            | "node_modules"
+                            | "build"
+                            | "dist"
+                            | "__pycache__"
+                            | ".next"
+                            | ".nuxt"
+                            | "vendor"
+                    ) {
+                        continue;
+                    }
+                }
+            }
+
             let full_path = worktree_root_name
                 .join(&entry.path)
                 .display(worktree_snapshot.path_style())
@@ -191,34 +210,41 @@ impl ListDirectoryTool {
             if entry.is_dir() {
                 folders.push(full_path);
             } else {
-                files.push(full_path);
+                files.push((full_path, entry.mtime));
             }
         }
 
         let mut output = String::new();
+
+        folders.sort();
 
         if !folders.is_empty() {
             writeln!(output, "# Folders:\n{}", folders.join("\n")).unwrap();
         }
 
         if !files.is_empty() {
+            // Sort by mtime descending (most recent first), files without mtime last
+            files.sort_by(|a, b| b.1.cmp(&a.1));
+
             let total = files.len();
             let start = offset.unwrap_or(0);
             let page_size = limit.unwrap_or(MAX_FILES_LISTED);
             let end = (start + page_size).min(total);
             if start > 0 || end < total {
-                let page = &files[start..end];
+                let page: Vec<&str> = files[start..end].iter().map(|(p, _)| p.as_str()).collect();
                 writeln!(
                     output,
-                    "\n# Files ({}-{} of {}):\n{}",
+                    "\n# Files ({}-{} of {}):\n{}\n\n(Use find_path with a pattern to search the remaining {} files)",
                     start,
                     end,
                     total,
-                    page.join("\n")
+                    page.join("\n"),
+                    total - end,
                 )
                 .unwrap();
             } else {
-                writeln!(output, "\n# Files:\n{}", files.join("\n")).unwrap();
+                let paths: Vec<&str> = files.iter().map(|(p, _)| p.as_str()).collect();
+                writeln!(output, "\n# Files:\n{}", paths.join("\n")).unwrap();
             }
         }
 
