@@ -21,8 +21,9 @@ const MAX_FILES_LISTED: usize = 100;
 
 /// Lists files and directories in a given path. Prefer the `grep` or `find_path` tools when searching the codebase.
 ///
-/// Directories with many files are truncated — only the first 100 files are shown.
-/// Use `find_path` with a glob pattern to search for specific files in large directories.
+/// Directories with many files are paginated — only 100 files shown by default.
+/// Use `offset` and `limit` to browse through large directories.
+/// Folders are always listed in full.
 ///
 /// The only supported path outside the project is `~/.agents/skills` or a descendant, for global agent skills.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -53,6 +54,14 @@ pub struct ListDirectoryToolInput {
     /// To list a global agent skill directory, you may provide a path under `~/.agents/skills`, such as `~/.agents/skills/my-skill`.
     /// </example>
     pub path: String,
+
+    /// Starting index for file listing (0-based). Use with `limit` to paginate large directories.
+    #[serde(default)]
+    pub offset: Option<usize>,
+
+    /// Maximum number of files to list. Defaults to 100. Folders are always shown.
+    #[serde(default)]
+    pub limit: Option<usize>,
 }
 
 pub struct ListDirectoryTool {
@@ -71,6 +80,8 @@ impl ListDirectoryTool {
         canonical_path: &Path,
         fs: &dyn Fs,
         input_path: &str,
+        offset: Option<usize>,
+        limit: Option<usize>,
     ) -> Result<String, String> {
         let mut entries = fs
             .read_dir(canonical_path)
@@ -105,14 +116,18 @@ impl ListDirectoryTool {
         }
         if !files.is_empty() {
             let total = files.len();
-            if total > MAX_FILES_LISTED {
-                files.truncate(MAX_FILES_LISTED);
+            let start = offset.unwrap_or(0);
+            let page_size = limit.unwrap_or(MAX_FILES_LISTED);
+            let end = (start + page_size).min(total);
+            if start > 0 || end < total {
+                let page = &files[start..end];
                 writeln!(
                     output,
-                    "\n# Files ({} of {}):\n{}",
-                    files.len(),
+                    "\n# Files ({}-{} of {}):\n{}",
+                    start,
+                    end,
                     total,
-                    files.join("\n")
+                    page.join("\n")
                 )
                 .unwrap();
             } else {
@@ -129,6 +144,8 @@ impl ListDirectoryTool {
         project: &Entity<Project>,
         project_path: &ProjectPath,
         input_path: &str,
+        offset: Option<usize>,
+        limit: Option<usize>,
         cx: &App,
     ) -> Result<String> {
         let worktree = project
@@ -186,14 +203,18 @@ impl ListDirectoryTool {
 
         if !files.is_empty() {
             let total = files.len();
-            if total > MAX_FILES_LISTED {
-                files.truncate(MAX_FILES_LISTED);
+            let start = offset.unwrap_or(0);
+            let page_size = limit.unwrap_or(MAX_FILES_LISTED);
+            let end = (start + page_size).min(total);
+            if start > 0 || end < total {
+                let page = &files[start..end];
                 writeln!(
                     output,
-                    "\n# Files ({} of {}):\n{}",
-                    files.len(),
+                    "\n# Files ({}-{} of {}):\n{}",
+                    start,
+                    end,
                     total,
-                    files.join("\n")
+                    page.join("\n")
                 )
                 .unwrap();
             } else {
@@ -279,6 +300,8 @@ impl AgentTool for ListDirectoryTool {
                     &skill_path,
                     fs.as_ref(),
                     &input.path,
+                    input.offset,
+                    input.limit,
                 )
                 .await;
             }
@@ -359,8 +382,10 @@ impl AgentTool for ListDirectoryTool {
             }
 
             let list_path = input.path;
+            let offset = input.offset;
+            let limit = input.limit;
             cx.update(|cx| {
-                Self::build_directory_output(&project, &project_path, &list_path, cx)
+                Self::build_directory_output(&project, &project_path, &list_path, offset, limit, cx)
             }).map_err(|e| e.to_string())
         })
     }
@@ -554,6 +579,8 @@ mod tests {
 
         let input = ListDirectoryToolInput {
             path: "project/big_dir".into(),
+            offset: None,
+            limit: None,
         };
         let output = cx
             .update(|cx| {
@@ -566,12 +593,35 @@ mod tests {
             .await
             .unwrap();
         assert!(
-            output.contains("(100 of 150)"),
-            "Should show truncated count: {output}"
+            output.contains("(0-100 of 150)"),
+            "Should show paginated count: {output}"
+        );
+
+        // Test with offset and limit
+        let input = ListDirectoryToolInput {
+            path: "project/big_dir".into(),
+            offset: Some(14),
+            limit: Some(50),
+        };
+        let output = cx
+            .update(|cx| {
+                tool.clone().run(
+                    ToolInput::resolved(input),
+                    ToolCallEventStream::test().0,
+                    cx,
+                )
+            })
+            .await
+            .unwrap();
+        assert!(
+            output.contains("(14-64 of 150)"),
+            "Should show offset-range: {output}"
         );
 
         let input = ListDirectoryToolInput {
             path: "project/small_dir".into(),
+            offset: None,
+            limit: None,
         };
         let output = cx
             .update(|cx| {
