@@ -2321,6 +2321,7 @@ impl MultiWorkspace {
                                             .when_some(git_dot_info, |this, (color, label)| {
                                                 let workspace_id = workspace_clone.entity_id().as_u64();
                                                 let tooltip_label = label.clone();
+                                                let ws = workspace_clone.clone();
                                                 this.child(
                                                     div()
                                                         .absolute()
@@ -2334,6 +2335,18 @@ impl MultiWorkspace {
                                                         .id(("git_dot", workspace_id))
                                                         .tooltip(move |window, cx| {
                                                             Tooltip::text(tooltip_label.clone())(window, cx)
+                                                        })
+                                                        .on_click(move |_, window, cx| {
+                                                            ws.update(cx, |workspace, cx| {
+                                                                for dock in workspace.all_docks() {
+                                                                    if let Some(panel_ix) = dock.read(cx).panel_index_for_persistent_name("GitPanel", cx) {
+                                                                        dock.update(cx, |dock, cx| {
+                                                                            dock.activate_panel(panel_ix, window, cx);
+                                                                        });
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            });
                                                         })
                                                 )
                                             })
@@ -2458,6 +2471,7 @@ impl MultiWorkspace {
                                         .when_some(git_dot_info, |this, (color, label)| {
                                             let workspace_id = workspace_clone.entity_id().as_u64();
                                             let tooltip_label = label.clone();
+                                            let ws = workspace_clone.clone();
                                             this.child(
                                                 div()
                                                     .absolute()
@@ -2471,6 +2485,18 @@ impl MultiWorkspace {
                                                     .id(("git_dot", workspace_id))
                                                     .tooltip(move |window, cx| {
                                                         Tooltip::text(tooltip_label.clone())(window, cx)
+                                                    })
+                                                    .on_click(move |_, window, cx| {
+                                                        ws.update(cx, |workspace, cx| {
+                                                            for dock in workspace.all_docks() {
+                                                                if let Some(panel_ix) = dock.read(cx).panel_index_for_persistent_name("GitPanel", cx) {
+                                                                    dock.update(cx, |dock, cx| {
+                                                                        dock.activate_panel(panel_ix, window, cx);
+                                                                    });
+                                                                    break;
+                                                                }
+                                                            }
+                                                        });
                                                     })
                                             )
                                         })

@@ -24,7 +24,7 @@ use project::search::SearchQuery;
 use settings::{SeedQuerySetting, Settings};
 use theme::{SystemAppearance, Theme, ThemeRegistry};
 use theme_settings::ThemeSettings;
-use ui::{ContextMenu, WithScrollbar, prelude::*, right_click_menu};
+use ui::{ContextMenu, Tooltip, WithScrollbar, prelude::*, right_click_menu};
 use util::markdown::split_local_url_fragment;
 use workspace::item::{Item, ItemBufferKind, ItemHandle, SaveOptions};
 use workspace::searchable::{
@@ -34,6 +34,7 @@ use workspace::{Pane, Workspace};
 
 use crate::{
     OpenFollowingPreview, OpenPreview, OpenPreviewToTheSide, ScrollDown, ScrollDownByItem,
+    ToggleCompactMode,
 };
 use crate::{ScrollPageDown, ScrollPageUp, ScrollToBottom, ScrollToTop, ScrollUp, ScrollUpByItem};
 
@@ -51,6 +52,7 @@ pub struct MarkdownPreviewView {
     base_directory: Option<PathBuf>,
     pending_update_task: Option<Task<Result<()>>>,
     mode: MarkdownPreviewMode,
+    compact_mode: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -246,6 +248,7 @@ impl MarkdownPreviewView {
                 base_directory: None,
                 pending_update_task: None,
                 mode,
+                compact_mode: true,
             };
 
             this.set_editor(active_editor, window, cx);
@@ -967,6 +970,22 @@ impl Item for MarkdownPreviewView {
     }
 }
 
+impl MarkdownPreviewView {
+    fn toggle_compact_mode(&mut self, cx: &mut Context<Self>) {
+        self.compact_mode = !self.compact_mode;
+        cx.notify();
+    }
+
+    fn toggle_compact_mode_action(
+        &mut self,
+        _: &ToggleCompactMode,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.toggle_compact_mode(cx);
+    }
+}
+
 impl Render for MarkdownPreviewView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let preview_theme = self.resolve_preview_theme(cx);
@@ -987,6 +1006,7 @@ impl Render for MarkdownPreviewView {
             .on_action(cx.listener(MarkdownPreviewView::scroll_down_by_item))
             .on_action(cx.listener(MarkdownPreviewView::scroll_to_top))
             .on_action(cx.listener(MarkdownPreviewView::scroll_to_bottom))
+            .on_action(cx.listener(MarkdownPreviewView::toggle_compact_mode_action))
             .w_full()
             .flex_1()
             .min_h_0()
@@ -997,29 +1017,61 @@ impl Render for MarkdownPreviewView {
                     .size_full()
                     .overflow_y_scroll()
                     .track_scroll(&self.scroll_handle)
-                    .p_4()
-                    .child({
-                        let markdown_element =
-                            self.render_markdown_element(&preview_theme, window, cx);
-                        let markdown = self.markdown.clone();
-                        right_click_menu("markdown-preview-context-menu")
-                            .trigger(move |_, _, _| markdown_element)
-                            .menu(move |window, cx| {
-                                let focus = window.focused(cx);
-                                let context_menu_link =
-                                    markdown.read(cx).context_menu_link().cloned();
-                                ContextMenu::build(window, cx, move |menu, _, _cx| {
-                                    menu.when_some(focus, |menu, focus| menu.context(focus))
-                                        .when_some(context_menu_link, |menu, url| {
-                                            menu.entry("Copy Link", None, move |_, cx| {
-                                                cx.write_to_clipboard(ClipboardItem::new_string(
-                                                    url.to_string(),
-                                                ));
-                                            })
+                    .child(
+                        div()
+                            .id("markdown-content")
+                            .p_4()
+                            .when(self.compact_mode, |el| el.max_w(px(900.)).mx_auto())
+                            .child({
+                                let markdown_element =
+                                    self.render_markdown_element(&preview_theme, window, cx);
+                                let markdown = self.markdown.clone();
+                                right_click_menu("markdown-preview-context-menu")
+                                    .trigger(move |_, _, _| markdown_element)
+                                    .menu(move |window, cx| {
+                                        let focus = window.focused(cx);
+                                        let context_menu_link =
+                                            markdown.read(cx).context_menu_link().cloned();
+                                        ContextMenu::build(window, cx, move |menu, _, _cx| {
+                                            menu.when_some(focus, |menu, focus| menu.context(focus))
+                                                .when_some(context_menu_link, |menu, url| {
+                                                    menu.entry("Copy Link", None, move |_, cx| {
+                                                        cx.write_to_clipboard(ClipboardItem::new_string(
+                                                            url.to_string(),
+                                                        ));
+                                                    })
+                                                })
                                         })
-                                })
-                            })
-                    }),
+                                    })
+                            }),
+                    )
+            )
+            .child(
+                div()
+                    .absolute()
+                    .top_0()
+                    .right_0()
+                    .mr_1()
+                    .mt_1()
+                    .child(
+                        IconButton::new(
+                            "toggle-compact-mode",
+                            if self.compact_mode {
+                                IconName::ExpandWidth
+                            } else {
+                                IconName::CompressWidth
+                            },
+                        )
+                        .icon_size(IconSize::Small)
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.toggle_compact_mode(cx);
+                        }))
+                        .tooltip(Tooltip::text(if self.compact_mode {
+                            "Full Width"
+                        } else {
+                            "Compact"
+                        })),
+                    ),
             )
             .vertical_scrollbar_for(&self.scroll_handle, window, cx)
     }

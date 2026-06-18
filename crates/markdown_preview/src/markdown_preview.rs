@@ -27,7 +27,9 @@ actions!(
         /// Scrolls to the bottom of the markdown preview.
         ScrollToBottom,
         /// Opens a following markdown preview that syncs with the editor.
-        OpenFollowingPreview
+        OpenFollowingPreview,
+        /// Toggles between compact (centered, max-width) and full-width preview.
+        ToggleCompactMode
     ]
 );
 
