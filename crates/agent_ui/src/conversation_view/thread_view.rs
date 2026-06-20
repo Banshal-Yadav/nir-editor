@@ -6716,7 +6716,7 @@ impl ThreadView {
                                 .pl_3p5()
                                 .border_l_1()
                                 .border_color(self.tool_card_border_color(cx))
-                                .when(is_constrained, |this| this.max_h_64())
+                                .when(is_constrained, |this| this.max_h_32())
                                 .when_some(scroll_handle, |this, scroll_handle| {
                                     this.track_scroll(&scroll_handle)
                                 })
@@ -6735,8 +6735,8 @@ impl ThreadView {
                                     .size_full()
                                     .bg(linear_gradient(
                                         180.,
-                                        linear_color_stop(panel_bg.opacity(0.8), 0.),
-                                        linear_color_stop(panel_bg.opacity(0.), 0.1),
+                                        linear_color_stop(panel_bg.opacity(0.9), 0.),
+                                        linear_color_stop(panel_bg.opacity(0.), 0.2),
                                     ))
                                     .block_mouse_except_scroll(),
                             )

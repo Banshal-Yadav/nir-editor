@@ -37,9 +37,6 @@ mod web_search_tool;
 mod write_file_tool;
 
 use crate::AgentTool;
-use feature_flags::{
-    CreateThreadToolFeatureFlag, FeatureFlagAppExt as _, LspToolFeatureFlag, RenameToolFeatureFlag,
-};
 use gpui::App;
 use language_model::{LanguageModelRequestTool, LanguageModelToolSchemaFormat};
 use serde::{
@@ -230,16 +227,10 @@ tools! {
 /// uses it to decide what the model receives, and the agent-profile
 /// configuration UI uses it to decide what to offer — so the UI can never list
 /// a tool the agent would silently drop (see #56778).
-pub fn tool_feature_flag_enabled(tool_name: &str, cx: &App) -> bool {
-    match tool_name {
-        RenameTool::NAME => cx.has_flag::<RenameToolFeatureFlag>(),
-        FindReferencesTool::NAME
-        | GetCodeActionsTool::NAME
-        | ApplyCodeActionTool::NAME
-        | GoToDefinitionTool::NAME => cx.has_flag::<LspToolFeatureFlag>(),
-        CreateThreadTool::NAME | ListAgentsAndModelsTool::NAME => {
-            cx.has_flag::<CreateThreadToolFeatureFlag>()
-        }
-        _ => true,
-    }
+pub fn tool_feature_flag_enabled(_tool_name: &str, _cx: &App) -> bool {
+    // All tools enabled — feature flags removed for local/offline builds.
+    // Flags gated LSP tools (find_references, go_to_definition, code_actions,
+    // rename_symbol) and sub-agent tools (create_thread, list_agents_and_models),
+    // all of which are safe with a working LSP server.
+    true
 }

@@ -456,6 +456,7 @@ impl LmStudioLanguageModel {
                 LanguageModelToolChoice::Any => lmstudio::ToolChoice::Required,
                 LanguageModelToolChoice::None => lmstudio::ToolChoice::None,
             }),
+            stream_options: Some(lmstudio::StreamOptions { include_usage: true }),
         }
     }
 
@@ -584,13 +585,25 @@ impl LmStudioEventMapper {
         &mut self,
         event: lmstudio::ResponseStreamEvent,
     ) -> Vec<Result<LanguageModelCompletionEvent, LanguageModelCompletionError>> {
+        let mut events = Vec::new();
+
+        if let Some(usage) = event.usage {
+            events.push(Ok(LanguageModelCompletionEvent::UsageUpdate(TokenUsage {
+                input_tokens: usage.prompt_tokens,
+                output_tokens: usage.completion_tokens,
+                cache_creation_input_tokens: 0,
+                cache_read_input_tokens: 0,
+            })));
+        }
+
         let Some(choice) = event.choices.into_iter().next() else {
+            if !events.is_empty() {
+                return events;
+            }
             return vec![Err(LanguageModelCompletionError::from(anyhow!(
                 "Response contained no choices"
             )))];
         };
-
-        let mut events = Vec::new();
         if let Some(content) = choice.delta.content {
             events.push(Ok(LanguageModelCompletionEvent::Text(content)));
         }
@@ -629,14 +642,7 @@ impl LmStudioEventMapper {
             }
         }
 
-        if let Some(usage) = event.usage {
-            events.push(Ok(LanguageModelCompletionEvent::UsageUpdate(TokenUsage {
-                input_tokens: usage.prompt_tokens,
-                output_tokens: usage.completion_tokens,
-                cache_creation_input_tokens: 0,
-                cache_read_input_tokens: 0,
-            })));
-        }
+
 
         match choice.finish_reason.as_deref() {
             Some("stop") => {

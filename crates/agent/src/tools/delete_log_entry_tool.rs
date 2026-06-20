@@ -26,15 +26,18 @@ impl AgentTool for DeleteLogEntryTool {
     }
 
     fn kind() -> acp::ToolKind {
-        acp::ToolKind::Other
+        acp::ToolKind::Delete
     }
 
     fn initial_title(
         &self,
-        _input: Result<Self::Input, serde_json::Value>,
+        input: Result<Self::Input, serde_json::Value>,
         _cx: &mut App,
     ) -> SharedString {
-        "Delete log entry".into()
+        let Ok(input) = input else {
+            return "Delete log entry".into();
+        };
+        format!("date={} id={}", input.date, input.entry_id).into()
     }
 
     fn run(

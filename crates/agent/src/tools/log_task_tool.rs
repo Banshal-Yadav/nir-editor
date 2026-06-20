@@ -74,7 +74,7 @@ impl AgentTool for LogTaskTool {
                 .context("Failed to open state database for FTS5 insert")
                 .map_err(|e| e.to_string())?;
             let checkpoint = nir_analytics::CheckPointRecord {
-                id: entry_id,
+                id: entry_id.clone(),
                 timestamp: chrono::Utc::now().timestamp(),
                 category: "task_completion".to_string(),
                 summary: input.task_completed,

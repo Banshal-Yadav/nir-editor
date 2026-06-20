@@ -2146,16 +2146,25 @@ impl Thread {
     }
 
     pub fn latest_token_usage(&self) -> Option<acp_thread::TokenUsage> {
-        let usage = self.latest_request_token_usage()?;
         let model = self.model.clone()?;
-        let input_tokens = total_input_tokens(usage);
+        let max_tokens = model.max_token_count();
+        if max_tokens == 0 {
+            return None;
+        }
+
+        let (used_tokens, input_tokens, output_tokens) =
+            if let Some(usage) = self.latest_request_token_usage() {
+                (usage.total_tokens(), total_input_tokens(usage), usage.output_tokens)
+            } else {
+                (0, 0, 0)
+            };
 
         Some(acp_thread::TokenUsage {
-            max_tokens: model.max_token_count(),
+            max_tokens,
             max_output_tokens: model.max_output_tokens(),
-            used_tokens: usage.total_tokens(),
+            used_tokens,
             input_tokens,
-            output_tokens: usage.output_tokens,
+            output_tokens,
         })
     }
 
