@@ -19,6 +19,24 @@ use util::markdown::MarkdownInlineCode;
 
 const MAX_FILES_LISTED: usize = 100;
 
+fn is_build_directory(name: &str) -> bool {
+    matches!(
+        name,
+        "target"
+            | "node_modules"
+            | "build"
+            | "dist"
+            | "__pycache__"
+            | ".next"
+            | ".nuxt"
+            | "vendor"
+            | "venv"
+            | ".venv"
+            | "out"
+            | ".cache"
+    )
+}
+
 /// Lists files and directories in a given path. Prefer the `grep` or `find_path` tools when searching the codebase.
 ///
 /// Directories with many files are paginated — only 100 files shown by default.
@@ -166,6 +184,16 @@ impl ListDirectoryTool {
             return Err(anyhow!("{input_path} is not a directory."));
         }
 
+        // Reject build/dependency directories outright — listing them wastes context
+        if let Some(name) = project_path.path.file_name() {
+            if is_build_directory(name) {
+                return Err(anyhow!(
+                    "{} is a build/dependency directory. Use find_path to search for specific files instead.",
+                    input_path
+                ));
+            }
+        }
+
         let mut folders = Vec::new();
         let mut files = Vec::new();
 
@@ -186,18 +214,8 @@ impl ListDirectoryTool {
 
             // Skip common build/dependency directories that waste context
             if entry.is_dir() {
-                if let Some(name) = entry.path.file_name().and_then(|n| n.to_str()) {
-                    if matches!(
-                        name,
-                        "target"
-                            | "node_modules"
-                            | "build"
-                            | "dist"
-                            | "__pycache__"
-                            | ".next"
-                            | ".nuxt"
-                            | "vendor"
-                    ) {
+                if let Some(name) = entry.path.file_name() {
+                    if is_build_directory(name) {
                         continue;
                     }
                 }
@@ -224,7 +242,14 @@ impl ListDirectoryTool {
 
         if !files.is_empty() {
             // Sort by mtime descending (most recent first), files without mtime last
-            files.sort_by(|a, b| b.1.cmp(&a.1));
+            files.sort_by(|a, b| match (&b.1, &a.1) {
+                (Some(b_time), Some(a_time)) => b_time
+                    .timestamp_for_user()
+                    .cmp(&a_time.timestamp_for_user()),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => std::cmp::Ordering::Equal,
+            });
 
             let total = files.len();
             let start = offset.unwrap_or(0);

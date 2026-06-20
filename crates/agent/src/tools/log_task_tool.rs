@@ -25,7 +25,7 @@ impl AgentTool for LogTaskTool {
     const NAME: &'static str = "log_task_completion";
 
     fn description() -> SharedString {
-        "Record a task completion in the persistent log. Call this only when code was written, a bug was fixed, a file was created/modified, a build ran, a test passed, a meaningful engineering milestone was reached, or when the user explicitly asks you to log something. NEVER use this for acknowledgments, confirmations, conversation, reading files, or any action that didn't produce a concrete output.".into()
+        "Record a task completion in the persistent log. Returns an Entry ID on success (format: YYYY-MM-DD-YYYYMMDDHHMMSS-xxxx). Call this only when code was written, a bug was fixed, a file was created/modified, a build ran, a test passed, a meaningful engineering milestone was reached, or when the user explicitly asks you to log something. NEVER use this for acknowledgments, confirmations, conversation, reading files, or any action that didn't produce a concrete output.".into()
     }
 
     fn kind() -> acp::ToolKind {
@@ -85,7 +85,7 @@ impl AgentTool for LogTaskTool {
                 .context("Failed to write checkpoint to FTS5 index")
                 .map_err(|e| e.to_string())?;
 
-            Ok("Milestone logged successfully.".to_string())
+            Ok(format!("Milestone logged successfully. Entry ID: {entry_id}"))
         })
     }
 }

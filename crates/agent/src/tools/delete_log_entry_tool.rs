@@ -22,7 +22,7 @@ impl AgentTool for DeleteLogEntryTool {
     const NAME: &'static str = "delete_log_entry";
 
     fn description() -> SharedString {
-        "Deletes a specific log entry by date and ID. Returns whether the entry was found and removed.".into()
+        "Deletes a specific log entry by date and ID. Returns whether the entry was found and removed. The date (YYYY-MM-DD) is the first 10 characters of the entry ID returned by log_task_completion.".into()
     }
 
     fn kind() -> acp::ToolKind {
