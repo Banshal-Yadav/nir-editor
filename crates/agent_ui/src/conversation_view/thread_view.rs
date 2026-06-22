@@ -6519,7 +6519,9 @@ impl ThreadView {
 
         if !matches!(
             thinking_display,
-            ThinkingBlockDisplay::Auto | ThinkingBlockDisplay::Preview
+            ThinkingBlockDisplay::Auto
+                | ThinkingBlockDisplay::Preview
+                | ThinkingBlockDisplay::AutoPreview
         ) {
             return;
         }
@@ -6549,7 +6551,9 @@ impl ThreadView {
                 cx.notify();
             }
         } else if self.auto_expanded_thinking_block.is_some() {
-            if thinking_display == ThinkingBlockDisplay::Auto {
+            if thinking_display == ThinkingBlockDisplay::Auto
+                || thinking_display == ThinkingBlockDisplay::AutoPreview
+            {
                 if let Some(key) = self.auto_expanded_thinking_block {
                     if !self.user_toggled_thinking_blocks.contains(&key) {
                         self.expanded_thinking_blocks.remove(&key);
@@ -6569,7 +6573,7 @@ impl ThreadView {
         let thinking_display = AgentSettings::get_global(cx).thinking_display;
 
         match thinking_display {
-            ThinkingBlockDisplay::Auto => {
+            ThinkingBlockDisplay::Auto | ThinkingBlockDisplay::AutoPreview => {
                 let is_open = self.expanded_thinking_blocks.contains(&key)
                     || self.user_toggled_thinking_blocks.contains(&key);
 
@@ -6638,7 +6642,7 @@ impl ThreadView {
                 let is_open = is_user_toggled || is_in_expanded_set;
                 (is_open, false)
             }
-            ThinkingBlockDisplay::Preview => {
+            ThinkingBlockDisplay::Preview | ThinkingBlockDisplay::AutoPreview => {
                 let is_open = is_user_toggled || is_in_expanded_set;
                 let is_constrained = is_in_expanded_set && !is_user_toggled;
                 (is_open, is_constrained)

@@ -65,6 +65,10 @@ pub enum ThinkingBlockDisplay {
     /// then remain in their constrained state when complete. Users can click
     /// to fully expand or collapse.
     Preview,
+    /// Thinking blocks auto-expand with a height constraint during streaming,
+    /// then auto-collapse when the model finishes thinking, like Auto's
+    /// collapse behavior with Preview's constrained layout.
+    AutoPreview,
     /// Thinking blocks are always fully expanded by default (no height constraint).
     AlwaysExpanded,
     /// Thinking blocks are always collapsed by default.
