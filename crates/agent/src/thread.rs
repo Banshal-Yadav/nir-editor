@@ -3523,7 +3523,6 @@ impl Thread {
     pub fn can_generate_title(&self, cx: &App) -> bool {
         self.pending_title_generation.is_none()
             && (self.summarization_model.is_some() || self.model().is_some())
-            && !self.update_title_tool_available(cx)
     }
 
     fn update_title_tool_available(&self, cx: &App) -> bool {
