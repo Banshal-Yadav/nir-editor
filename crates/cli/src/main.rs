@@ -1,4 +1,4 @@
-#![allow(
+﻿#![allow(
     clippy::disallowed_methods,
     reason = "We are not in an async environment, so std::process::Command is fine"
 )]
@@ -7,8 +7,12 @@
     allow(dead_code)
 )]
 
+mod completions;
+
+use crate::completions::Shell;
+
 use anyhow::{Context as _, Result};
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 use cli::{CliRequest, CliResponse, IpcHandshake, ipc::IpcOneShotServer};
 use parking_lot::Mutex;
 use std::{
@@ -44,21 +48,21 @@ trait InstalledApp {
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "zed",
+    name = "nir",
     disable_version_flag = true,
-    before_help = "The Zed CLI binary.
-This CLI is a separate binary that invokes Zed.
+    before_help = "The /nir CLI binary.
+This CLI is a separate binary that invokes /nir.
 
 Examples:
-    `zed`
-          Simply opens Zed
-    `zed --foreground`
+    `nir`
+          Simply opens /nir
+    `nir --foreground`
           Runs in foreground (shows all logs)
-    `zed path-to-your-project`
-          Open your project in Zed
-    `zed -n path-to-file `
+    `nir path-to-your-project`
+          Open your project in /nir
+    `nir -n path-to-file `
           Open file/folder in a new window",
-    after_help = "To read from stdin, append '-', e.g. 'ps axf | zed -'"
+    after_help = "To read from stdin, append '-', e.g. 'ps axf | nir -'"
 )]
 struct Args {
     /// Wait for all of the given paths to be opened/closed before exiting.
@@ -83,25 +87,26 @@ struct Args {
     classic: bool,
     /// Sets a custom directory for all user data (e.g., database, extensions, logs).
     /// This overrides the default platform-specific data directory location:
-    #[cfg_attr(target_os = "macos", doc = "`~/Library/Application Support/Zed`.")]
-    #[cfg_attr(target_os = "windows", doc = "`%LOCALAPPDATA%\\Zed`.")]
+    #[cfg_attr(target_os = "macos", doc = "`~/Library/Application Support/nir`.")]
+    #[cfg_attr(target_os = "windows", doc = "`%APPDATA%\\nir`.")]
     #[cfg_attr(
         not(any(target_os = "windows", target_os = "macos")),
-        doc = "`$XDG_DATA_HOME/zed`."
+        doc = "`$XDG_DATA_HOME/nir`."
     )]
-    #[arg(long, value_name = "DIR")]
+    #[arg(long, value_name = "DIR", value_hint = clap::ValueHint::DirPath)]
     user_data_dir: Option<String>,
     /// The paths to open in /nir (space-separated).
     ///
     /// Use `path:line:column` syntax to open a file at the given line and column.
+    #[arg(trailing_var_arg = true, value_hint = clap::ValueHint::AnyPath)]
     paths_with_position: Vec<String>,
-    /// Print /nir's version and the app path.
+    /// Print /nir.s version and the app path.
     #[arg(short, long)]
     version: bool,
     /// Run zed in the foreground (useful for debugging)
     #[arg(long)]
     foreground: bool,
-    /// Custom path to /nir.app or the zed binary
+    /// Custom path to Zed.app or the /nir binary
     #[arg(long)]
     zed: Option<PathBuf>,
     /// Run zed in dev-server mode
@@ -131,8 +136,11 @@ struct Args {
     dev_container: bool,
     /// Pairs of file paths to diff. Can be specified multiple times.
     /// When directories are provided, recurses into them and shows all changed files in a single multi-diff view.
-    #[arg(long, action = clap::ArgAction::Append, num_args = 2, value_names = ["OLD_PATH", "NEW_PATH"])]
+    #[arg(long, action = clap::ArgAction::Append, num_args = 2, value_names = ["OLD_PATH", "NEW_PATH"], value_hint = clap::ValueHint::AnyPath)]
     diff: Vec<String>,
+    /// Generate shell completions for /nir
+    #[arg(long, value_names = ["SHELL"])]
+    completions: Option<Shell>,
     /// Uninstall /nir from user system
     #[cfg(all(
         any(target_os = "linux", target_os = "macos"),
@@ -142,7 +150,7 @@ struct Args {
     uninstall: bool,
 
     /// Used for SSH/Git password authentication, to remove the need for netcat as a dependency,
-    /// by having /nir act like netcat communicating over a Unix socket.
+    /// by having Zed act like netcat communicating over a Unix socket.
     #[arg(long, hide = true)]
     askpass: Option<String>,
 }
@@ -488,7 +496,7 @@ fn run() -> Result<()> {
         }
     }
 
-    // Must happen before clap — SSH invokes cli.exe directly as SSH_ASKPASS
+    // Must happen before clap ΓÇö SSH invokes cli.exe directly as SSH_ASKPASS
     // and passes the socket path via env var to avoid argument parsing.
     if let Ok(socket) = std::env::var("ZED_ASKPASS_SOCKET") {
         askpass::main_from_args(&socket, std::env::args().skip(1));
@@ -514,6 +522,20 @@ fn run() -> Result<()> {
 
     let app = Detect::detect(args.zed.as_deref()).context("Bundle detection")?;
 
+    if let Some(shell) = &args.completions {
+        let file_path = std::env::current_exe()?;
+        let file_name = file_path
+            .file_name()
+            .and_then(OsStr::to_str)
+            .ok_or("--completions expects a UTF-8 name for cli bin")
+            .map_err(anyhow::Error::msg)?;
+        let mut cmd = Args::command();
+        cmd.set_bin_name(file_name);
+        cmd.build();
+        crate::completions::main(&cmd, shell);
+        return Ok(());
+    }
+
     if args.version {
         println!("{}", app.zed_version_string());
         return Ok(());
@@ -522,7 +544,7 @@ fn run() -> Result<()> {
     if args.system_specs {
         let path = app.path();
         let msg = [
-            "The `--system-specs` argument is not supported in the Zed CLI, only on Zed binary.",
+            "The `--system-specs` argument is not supported in the Zed CLI, only on /nir binary.",
             "To retrieve the system specs on the command line, run the following command:",
             &format!("{} --system-specs", path.display()),
         ];
@@ -630,7 +652,7 @@ fn run() -> Result<()> {
     let (expanded_diff_paths, temp_dirs) = expand_directory_diff_pairs(diff_paths)?;
     diff_paths = expanded_diff_paths;
     // Prevent automatic cleanup of temp directories containing empty stub files
-    // for directory diffs. The CLI process may exit before /nir has read these
+    // for directory diffs. The CLI process may exit before Zed has read these
     // files (e.g., when RPC-ing into an already-running instance). The files
     // live in the OS temp directory and will be cleaned up on reboot.
     for temp_dir in temp_dirs {
@@ -664,7 +686,7 @@ fn run() -> Result<()> {
 
     anyhow::ensure!(
         args.dev_server_token.is_none(),
-        "Dev servers were removed in v0.157.x please upgrade to SSH remoting: https://github.com/Banshal-Yadav/nir/wiki"
+        "Dev servers were removed in v0.157.x please upgrade to SSH remoting: https://zed.dev/docs/remote-development"
     );
 
     rayon::ThreadPoolBuilder::new()
@@ -896,7 +918,7 @@ mod linux {
     impl InstalledApp for App {
         fn zed_version_string(&self) -> String {
             format!(
-                "/nir {}{}{} – {}",
+                "Zed {}{}{} ΓÇô {}",
                 if *release_channel::RELEASE_CHANNEL_NAME == "stable" {
                     "".to_string()
                 } else {
@@ -1143,7 +1165,7 @@ mod windows {
     impl InstalledApp for App {
         fn zed_version_string(&self) -> String {
             format!(
-                "/nir {}{}{} – {}",
+                "Zed {}{}{} ΓÇô {}",
                 if *release_channel::RELEASE_CHANNEL_NAME == "stable" {
                     "".to_string()
                 } else {
@@ -1215,7 +1237,7 @@ mod windows {
                 let cli = std::env::current_exe()?;
                 let dir = cli.parent().context("no parent path for cli")?;
 
-                // ..//nir.exe is the standard, lib/zed is for MSYS2, ./zed.exe is for the target
+                // ../Zed.exe is the standard, lib/zed is for MSYS2, ./zed.exe is for the target
                 // directory in development builds.
                 let possible_locations = ["../Zed.exe", "../lib/zed/zed-editor.exe", "./zed.exe"];
                 possible_locations
@@ -1316,7 +1338,7 @@ mod mac_os {
 
     impl InstalledApp for Bundle {
         fn zed_version_string(&self) -> String {
-            format!("/nir {} – {}", self.version(), self.path().display(),)
+            format!("Zed {} ΓÇô {}", self.version(), self.path().display(),)
         }
 
         fn launch(&self, url: String, user_data_dir: Option<&str>) -> anyhow::Result<()> {
@@ -1334,7 +1356,7 @@ mod mac_os {
                             kCFStringEncodingUTF8,
                             ptr::null(),
                         ));
-                        // equivalent to: open zed-cli:... -a /Applications//nir\ Preview.app
+                        // equivalent to: open zed-cli:... -a /Applications/Zed\ Preview.app
                         let urls_to_open =
                             CFArray::from_copyable(&[url_to_open.as_concrete_TypeRef()]);
                         LSOpenFromURLSpec(

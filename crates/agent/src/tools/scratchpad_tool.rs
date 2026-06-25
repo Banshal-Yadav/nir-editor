@@ -1,4 +1,4 @@
-use std::fs;
+﻿use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use chrono::Utc;
@@ -8,7 +8,7 @@ use schemars::JsonSchema;
 
 use gpui::{App, Entity, SharedString, Task};
 use project::Project;
-use agent_client_protocol::schema as acp;
+use agent_client_protocol::schema::v1 as acp;
 
 use crate::{AgentTool, ToolCallEventStream, ToolInput};
 use super::brain_memory_tool::brain_dir;

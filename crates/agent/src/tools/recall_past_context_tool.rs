@@ -1,10 +1,10 @@
-use std::sync::Arc;
+﻿use std::sync::Arc;
 use anyhow::{Context, Result};
 use gpui::{App, SharedString, Task};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use agent_client_protocol::schema as acp;
+use agent_client_protocol::schema::v1 as acp;
 use crate::{AgentTool, ToolCallEventStream, ToolInput};
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]

@@ -1,5 +1,5 @@
-use crate::{AgentTool, Thread, ToolCallEventStream, ToolInput};
-use agent_client_protocol::schema as acp;
+﻿use crate::{AgentTool, Thread, ToolCallEventStream, ToolInput};
+use agent_client_protocol::schema::v1 as acp;
 use gpui::{App, SharedString, Task, WeakEntity};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

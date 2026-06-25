@@ -1,9 +1,9 @@
-use super::tool_permissions::{
+﻿use super::tool_permissions::{
     ResolvedProjectPath, authorize_symlink_access, canonicalize_worktree_roots,
     resolve_project_path,
 };
 use crate::{AgentTool, ToolInput};
-use agent_client_protocol::schema as acp;
+use agent_client_protocol::schema::v1 as acp;
 use futures::FutureExt as _;
 use gpui::{App, AppContext as _, Entity, SharedString, Task};
 use project::Project;

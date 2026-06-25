@@ -41,7 +41,8 @@ use thiserror::Error;
 use anthropic::completion::{AnthropicEventMapper, AnthropicPromptCacheMode, into_anthropic};
 use google_ai::completion::{GoogleEventMapper, into_google};
 use open_ai::completion::{
-    OpenAiEventMapper, OpenAiResponseEventMapper, into_open_ai, into_open_ai_response,
+    ChatCompletionMaxTokensParameter, OpenAiEventMapper, OpenAiResponseEventMapper, into_open_ai,
+    into_open_ai_response,
 };
 
 const PROVIDER_ID: LanguageModelProviderId = ZED_CLOUD_PROVIDER_ID;
@@ -362,6 +363,10 @@ impl<TP: CloudLlmTokenProvider + 'static> LanguageModel for CloudLanguageModel<T
         self.model.supports_fast_mode
     }
 
+    fn supports_server_side_compaction(&self) -> bool {
+        self.model.supports_server_side_compaction
+    }
+
     fn supported_effort_levels(&self) -> Vec<LanguageModelEffortLevel> {
         self.model
             .supported_effort_levels
@@ -584,6 +589,7 @@ impl<TP: CloudLlmTokenProvider + 'static> LanguageModel for CloudLanguageModel<T
                     self.model.supports_parallel_tool_calls,
                     false,
                     None,
+                    ChatCompletionMaxTokensParameter::MaxCompletionTokens,
                     None,
                     false,
                 );

@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+﻿use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -10,7 +10,7 @@ use schemars::JsonSchema;
 
 use gpui::{App, Entity, SharedString, Task};
 use project::Project;
-use agent_client_protocol::schema as acp;
+use agent_client_protocol::schema::v1 as acp;
 
 use crate::{AgentTool, ToolCallEventStream, ToolInput};
 

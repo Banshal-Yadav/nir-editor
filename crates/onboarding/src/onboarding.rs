@@ -238,6 +238,7 @@ impl Onboarding {
                 Some(Plan::ZedPro) => "pro",
                 Some(Plan::ZedProTrial) => "trial",
                 Some(Plan::ZedBusiness) => "business",
+                Some(Plan::ZedVip) => "vip",
                 Some(Plan::ZedStudent) => "student",
                 Some(Plan::ZedFree) | None => "free",
             }
