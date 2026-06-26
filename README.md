@@ -22,7 +22,7 @@ cargo run
 
 ## Waitlist
 
-[nir-editor.dev](https://nir-editor.dev)
+[nir-editor.dev](https://nir-editor.vercel.app/)
 
 ---
 
