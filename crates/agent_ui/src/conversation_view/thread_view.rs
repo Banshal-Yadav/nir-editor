@@ -4043,7 +4043,7 @@ impl ThreadView {
                                 )
                                 .child(self.title_editor.clone())
                                 .when(is_done && is_canceled_or_failed, |this| {
-                                    this.child(Icon::new(IconName::Close).color(Color::Error))
+                                    this.child(Icon::new(IconName::Close).color(Color::Muted))
                                 })
                                 .when(is_done && !is_canceled_or_failed, |this| {
                                     this.child(Icon::new(IconName::Check).color(Color::Success))
@@ -8325,7 +8325,7 @@ impl ThreadView {
                                                     } else {
                                                         this.child(
                                                             Icon::new(IconName::Close)
-                                                                .color(Color::Error)
+                                                                .color(Color::Muted)
                                                                 .size(IconSize::Small),
                                                         )
                                                     }
@@ -10094,7 +10094,7 @@ impl ThreadView {
                 .child(
                     Icon::new(IconName::Close)
                         .size(IconSize::Small)
-                        .color(Color::Error),
+                        .color(Color::Muted),
                 )
                 .tooltip(Tooltip::text("Subagent Failed"))
                 .into_any_element()
