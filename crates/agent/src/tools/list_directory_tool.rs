@@ -259,12 +259,11 @@ impl ListDirectoryTool {
                 let page: Vec<&str> = files[start..end].iter().map(|(p, _)| p.as_str()).collect();
                 writeln!(
                     output,
-                    "\n# Files ({}-{} of {}):\n{}\n\n(Use find_path with a pattern to search the remaining {} files)",
+                    "\n# Files ({}-{} of {}):\n{}\n\n(Use list_directory with offset={end} to browse the remaining files, or find_path with a pattern to search)",
                     start,
                     end,
                     total,
                     page.join("\n"),
-                    total - end,
                 )
                 .unwrap();
             } else {
