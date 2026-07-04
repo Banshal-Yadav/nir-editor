@@ -66,7 +66,7 @@ The packages in this section provide binary installs for Zed but are not officia
 
 #### Debian and Ubuntu
 
-Zed is available in [this community-maintained repository](https://debian.griffo.io/).
+Nir is built from source on Linux. See the [development guide](./development/linux.md) for build instructions.
 
 Instructions for each version are available in the README of the repository where packages are built.
 Build, packaging and instructions for each version are available in the README of the [repository](https://github.com/dariogriffo/zed-debian)

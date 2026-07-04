@@ -9,9 +9,7 @@ Zed is developed primarily on macOS, making it a first-class platform with full 
 
 ## Installing Zed
 
-Download Zed from the [download page](https://github.com/Banshal-Yadav/nir's running
-2. Drag Zed from Applications to the Trash
-3. Optionally, remove your settings and extensions:
+Download Zed from the [download page](https://github.com/Banshal-Yadav/nir's running 2. Drag Zed from Applications to the Trash 3. Optionally, remove your settings and extensions:
 
 ```sh
 rm -rf ~/.config/zed

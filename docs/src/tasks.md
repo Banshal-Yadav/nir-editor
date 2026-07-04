@@ -342,8 +342,7 @@ In doing so, you can change which task is shown in the runnables indicator.
 
 ## Keybindings to run tasks bound to runnables
 
-When you have a task definition that is bound to the runnable, you can quickly run it using [Code Actions](https://github.com/Banshal-Yadav/nir/wiki"task" and select **task: spawn**
-3. Select the script from the list
+When you have a task definition that is bound to the runnable, you can quickly run it using [Code Actions](https://github.com/Banshal-Yadav/nir/wiki"task" and select **task: spawn** 3. Select the script from the list
 
 Bash scripts are tagged with `bash-script`, allowing you to filter or reference them in task configurations.
 

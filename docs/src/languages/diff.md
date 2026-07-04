@@ -12,6 +12,9 @@ Diff support is available natively in Zed.
 ## Configuration
 
 Zed will not attempt to format diff files and has [`remove_trailing_whitespace_on_save`](https://github.com/Banshal-Yadav/nir/wiki"file_types": {
-    "Diff": ["dif"]
-  },
+"Diff": ["dif"]
+},
+
+```
+
 ```

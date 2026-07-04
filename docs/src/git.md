@@ -1,6 +1,6 @@
 ---
-description: Zed is a text editor that supports lots of Git features
-title: Zed Editor Git integration documentation
+description: Nir is a code editor with Git integration built in
+title: Nir Editor Git integration documentation
 ---
 
 # Git

@@ -19,43 +19,44 @@ There are two important directories for an icon theme extension:
 - `icons`: This directory contains the icon assets distributed with the extension. You can create subdirectories in this directory as needed.
 
 Each icon theme file should adhere to the JSON schema specified at [`https://github.com/Banshal-Yadav/nir"$schema": "https://github.com/Banshal-Yadav/nir",
-  "name": "My Icon Theme",
-  "author": "Your Name",
-  "themes": [
-    {
-      "name": "My Icon Theme",
-      "appearance": "dark",
-      "directory_icons": {
-        "collapsed": "./icons/folder.svg",
-        "expanded": "./icons/folder-open.svg"
-      },
-      "named_directory_icons": {
-        "stylesheets": {
-          "collapsed": "./icons/folder-stylesheets.svg",
-          "expanded": "./icons/folder-stylesheets-open.svg"
-        }
-      },
-      "chevron_icons": {
-        "collapsed": "./icons/chevron-right.svg",
-        "expanded": "./icons/chevron-down.svg"
-      },
-      "file_stems": {
-        "Makefile": "make"
-      },
-      "file_suffixes": {
-        "mp3": "audio",
-        "rs": "rust"
-      },
-      "file_icons": {
-        "audio": { "path": "./icons/audio.svg" },
-        "default": { "path": "./icons/file.svg" },
-        "make": { "path": "./icons/make.svg" },
-        "rust": { "path": "./icons/rust.svg" }
-        // ...
-      }
-    }
-  ]
+"name": "My Icon Theme",
+"author": "Your Name",
+"themes": [
+{
+"name": "My Icon Theme",
+"appearance": "dark",
+"directory_icons": {
+"collapsed": "./icons/folder.svg",
+"expanded": "./icons/folder-open.svg"
+},
+"named_directory_icons": {
+"stylesheets": {
+"collapsed": "./icons/folder-stylesheets.svg",
+"expanded": "./icons/folder-stylesheets-open.svg"
 }
+},
+"chevron_icons": {
+"collapsed": "./icons/chevron-right.svg",
+"expanded": "./icons/chevron-down.svg"
+},
+"file_stems": {
+"Makefile": "make"
+},
+"file_suffixes": {
+"mp3": "audio",
+"rs": "rust"
+},
+"file_icons": {
+"audio": { "path": "./icons/audio.svg" },
+"default": { "path": "./icons/file.svg" },
+"make": { "path": "./icons/make.svg" },
+"rust": { "path": "./icons/rust.svg" }
+// ...
+}
+}
+]
+}
+
 ```
 
 Each icon path is resolved relative to the root of the extension directory.
@@ -63,15 +64,19 @@ Each icon path is resolved relative to the root of the extension directory.
 In this example, the extension would have this structure:
 
 ```
+
 extension.toml
 icon_themes/
-  my-icon-theme.json
+my-icon-theme.json
 icons/
-  audio.svg
-  chevron-down.svg
-  chevron-right.svg
-  file.svg
-  folder-open.svg
-  folder.svg
-  rust.svg
+audio.svg
+chevron-down.svg
+chevron-right.svg
+file.svg
+folder-open.svg
+folder.svg
+rust.svg
+
+```
+
 ```

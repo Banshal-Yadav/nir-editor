@@ -40,20 +40,21 @@ Many MCP servers are available as extensions. Find them via:
 Popular servers available as an extension include:
 
 - [Context7](https://github.com/Banshal-Yadav/nir"context_servers": {
-    "local-mcp-server": {
-      "command": "some-command",
-      "args": ["arg-1", "arg-2"],
-      "env": {}
-    },
-    "remote-mcp-server": {
-      "url": "https://example.com/mcp",
-      "headers": { "Authorization": "Bearer <token>" }
-    },
-    "remote-mcp-server-with-oauth": {
-      "url": "https://mcp.example.com/mcp"
-    }
+  "local-mcp-server": {
+  "command": "some-command",
+  "args": ["arg-1", "arg-2"],
+  "env": {}
+  },
+  "remote-mcp-server": {
+  "url": "https://example.com/mcp",
+  "headers": { "Authorization": "Bearer <token>" }
+  },
+  "remote-mcp-server-with-oauth": {
+  "url": "https://mcp.example.com/mcp"
   }
-}
+  }
+  }
+
 ```
 
 Alternatively, you can also add a custom server by accessing the Agent Panel's Settings view (also accessible via the {#action agent::OpenSettings} action).

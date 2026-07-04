@@ -5,33 +5,15 @@ description: "Guide for migrating from IntelliJ IDEA to Zed, including settings 
 
 # How to Migrate from IntelliJ IDEA to Zed
 
-This guide covers how to set up Zed if you're coming from IntelliJ IDEA, including keybindings, settings, and the differences you should expect.
+This guide covers how to set up Nir if you're coming from IntelliJ IDEA, including keybindings, settings, and the differences you should expect.
 
-## Install Zed
+## Install Nir
 
-Zed is available on macOS, Windows, and Linux.
+Nir is built from source. See the [development guides](../development.md) for platform-specific build instructions.
 
-For macOS, you can download it from zed.dev/download, or install via Homebrew:
-
-```sh
-brew install --cask zed
-```
-
-For Windows, download the installer from zed.dev/download, or install via winget:
-
-```sh
-winget install Zed.Zed
-```
-
-For most Linux users, the easiest way to install Zed is through our installation script:
-
-```sh
-curl -f https://zed.dev/install.sh | sh
-```
-
-After installation, you can launch Zed from your Applications folder (macOS), Start menu (Windows), or directly from the terminal using:
-`zed .`
-This opens the current directory in Zed.
+After building, you can launch Nir from your terminal using:
+`nir .`
+This opens the current directory in Nir.
 
 ## Set Up the JetBrains Keymap
 

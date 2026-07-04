@@ -19,10 +19,12 @@ The Collaboration Panel has two sections:
 > **Warning:** Sharing a project gives collaborators access to your local file system within that project. Only collaborate with people you trust.
 
 See the [Data and Privacy FAQs](https://github.com/Banshal-Yadav/nir/wiki"audio": {
-    "experimental.output_audio_device": "Device Name (device-id)",
-    "experimental.input_audio_device": "Device Name (device-id)"
-  }
+"experimental.output_audio_device": "Device Name (device-id)",
+"experimental.input_audio_device": "Device Name (device-id)"
 }
+}
+
 ```
 
 Set either value to `null` to use system defaults.
+```

@@ -9,19 +9,13 @@ This guide explains how to move from VS Code to Zed without rebuilding your work
 
 It covers which settings import automatically, which shortcuts map cleanly, and which behaviors differ so you can adjust quickly.
 
-## Install Zed
+## Install Nir
 
-Zed is available on macOS, Windows, and Linux.
+Nir is built from source. See the [development guides](../development.md) for platform-specific build instructions.
 
-For macOS, you can download it from zed.dev/download, or install via Homebrew:
-`brew install zed-editor/zed/zed`
-
-For most Linux users, the easiest way to install Zed is through our installation script:
-`curl -f https://zed.dev/install.sh | sh`
-
-After installation, you can launch Zed from your Applications folder (macOS) or directly from the terminal (Linux) using:
-`zed .`
-This opens the current directory in Zed.
+After building, you can launch Nir from your terminal using:
+`nir .`
+This opens the current directory in Nir.
 
 ## Import Settings from VS Code
 
@@ -173,14 +167,15 @@ Zed doesn’t import extensions or keybindings, but this import gets core editor
 You can configure most settings in the Settings Editor ({#kb zed::OpenSettings}). For advanced settings, run {#action zed::OpenSettingsFile} from the Command Palette to edit your settings file directly.
 
 Here’s how common VS Code settings translate:
-| VS Code | Zed | Notes |
-| --- | --- | --- |
-| editor.fontFamily | buffer_font_family | Zed uses Zed Mono by default |
-| editor.fontSize | buffer_font_size | Set in pixels |
-| editor.tabSize | tab_size | Can override per language |
-| editor.insertSpaces | insert_spaces | Boolean |
-| editor.formatOnSave | format_on_save | Works with formatter enabled |
-| editor.wordWrap | soft_wrap | Supports optional wrap column |
+
+| VS Code             | Zed                | Notes                         |
+| ------------------- | ------------------ | ----------------------------- |
+| editor.fontFamily   | buffer_font_family | Zed uses Zed Mono by default  |
+| editor.fontSize     | buffer_font_size   | Set in pixels                 |
+| editor.tabSize      | tab_size           | Can override per language     |
+| editor.insertSpaces | insert_spaces      | Boolean                       |
+| editor.formatOnSave | format_on_save     | Works with formatter enabled  |
+| editor.wordWrap     | soft_wrap          | Supports optional wrap column |
 
 Zed also supports per-project settings. You can find these in the Settings Editor as well.
 
