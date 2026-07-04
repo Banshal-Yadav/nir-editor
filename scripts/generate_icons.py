@@ -19,6 +19,12 @@ import io
 import os
 import sys
 
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
 # ---------------------------------------------------------------------------
 # Pure-Python PNG writer (no dependencies)
 # ---------------------------------------------------------------------------
@@ -194,74 +200,168 @@ def _rect_stroke_coverage(px, py, x0, y0, x1, y1, half_w, samples=4):
 
 
 # ---------------------------------------------------------------------------
-# Render one icon — full-bleed background with larger [/] mark:
-#
-#   <rect x="0" y="0" width="100" height="100" rx="18" fill="#0a0a0b"/>
-#   <rect x="17" y="17" width="66" height="66" stroke="#fff" stroke-width="10"/>
-#   <path d="M39 61 L61 39" stroke="#fff" stroke-width="10" stroke-linecap="square"/>
+# Cubic bezier helpers for the stacked wave logo
+# ---------------------------------------------------------------------------
+
+def _cubic_bezier_point(t, p0, p1, p2, p3):
+    """Evaluate a cubic bezier at parameter t (0..1)."""
+    mt = 1.0 - t
+    mt2 = mt * mt
+    mt3 = mt2 * mt
+    t2 = t * t
+    t3 = t2 * t
+    x = mt3 * p0[0] + 3 * mt2 * t * p1[0] + 3 * mt * t2 * p2[0] + t3 * p3[0]
+    y = mt3 * p0[1] + 3 * mt2 * t * p1[1] + 3 * mt * t2 * p2[1] + t3 * p3[1]
+    return (x, y)
+
+
+def _sample_bezier(p0, p1, p2, p3, num_segments=24):
+    """Sample a cubic bezier curve as connected line segments."""
+    pts = []
+    for i in range(num_segments + 1):
+        t = i / num_segments
+        pts.append(_cubic_bezier_point(t, p0, p1, p2, p3))
+    return pts
+
+
+def _thick_bezier_coverage(px, py, p0, p1, p2, p3, half_w, samples=3):
+    """Anti-aliased coverage for a thick cubic bezier stroke.
+    Approximates the curve with line segments.
+    """
+    pts = _sample_bezier(p0, p1, p2, p3, num_segments=24)
+    max_cov = 0.0
+    for i in range(len(pts) - 1):
+        cov = _segment_coverage_square_cap(
+            px, py,
+            pts[i][0], pts[i][1],
+            pts[i + 1][0], pts[i + 1][1],
+            half_w, samples,
+        )
+        if cov > max_cov:
+            max_cov = cov
+            if max_cov >= 1.0:
+                break
+    return max_cov
+
+
+# ---------------------------------------------------------------------------
+# Render one icon — full-bleed dark background with three stacked wave lines:
+#   Three overlapping cubic bezier curves with lavender color and opacities
+#   0.3 / 0.6 / 1.0, representing "nir" (flow/water).
 #
 # All coordinates are in the 100x100 SVG unit space, scaled to pixel space.
 # ---------------------------------------------------------------------------
 
-def render_icon(size, bg_color=(0x0a, 0x0a, 0x0b), logo_color=(0xFF, 0xFF, 0xFF)):
+# Wave curves in 100x100 SVG space — centred with 20px horizontal padding
+WAVES = [
+    {  # Wave 1 — back, faintest
+        "p0": (20, 32), "p1": (38, 22), "p2": (62, 46), "p3": (80, 32),
+        "opacity": 0.3,
+    },
+    {  # Wave 2 — middle
+        "p0": (20, 50), "p1": (38, 40), "p2": (62, 64), "p3": (80, 50),
+        "opacity": 0.6,
+    },
+    {  # Wave 3 — front, full opacity
+        "p0": (20, 68), "p1": (38, 58), "p2": (62, 82), "p3": (80, 68),
+        "opacity": 1.0,
+    },
+]
+
+# Lavender color for the waves
+WAVE_COLOR = (139, 139, 158)
+
+# Stroke width in SVG units
+WAVE_STROKE_WIDTH = 11
+
+
+def render_icon(size, bg_color=(0x0a, 0x0a, 0x0b), logo_color=None):
     """
-    Render a size x size RGBA icon.
+    Render a size x size RGBA icon with stacked wave design.
+
+    For performance, renders natively at BASE_RES (256) pixels and scales
+    to the target size using Pillow (Lanczos). Falls back to native rendering
+    if Pillow is unavailable.
 
     SVG coordinate space is 0..100 units. Each unit = size/100 pixels.
 
     Background: full-bleed rounded rect (0,0) 100x100 rx=18, fill #0a0a0b
-    Logo [/]:   no scale transform:
-      Square rect (17,17)-(83,83) sw=10
-      Slash M39 61 L61 39 sw=10 (stroke-linecap=square)
+    Logo: Three overlapping bezier waves (lavender, varying opacities)
     """
+    BASE_RES = 256  # native render resolution — scaled up/down for other sizes
     S = size
-    s = S / 100.0   # pixels per SVG unit
+
+    # Decide native render resolution
+    native = min(S, BASE_RES)
+    scale = S / native
+
+    s_native = native / 100.0  # pixels per SVG unit at native res
 
     # ---- Background rounded rect (full-bleed) ----
-    bg_x0 = 0 * s;   bg_y0 = 0 * s
-    bg_x1 = 100 * s; bg_y1 = 100 * s
-    bg_rx = 18 * s;  bg_ry = 18 * s
+    bg_x0 = 0 * s_native;   bg_y0 = 0 * s_native
+    bg_x1 = 100 * s_native; bg_y1 = 100 * s_native
+    bg_rx = 18 * s_native;  bg_ry = 18 * s_native
 
-    # ---- Logo geometry (centre of stroke lines) ----
-    # Square: 66x66 centred at (50,50) -> (17,17)-(83,83)
-    sq_x0 = 17 * s;  sq_y0 = 17 * s
-    sq_x1 = 83 * s;  sq_y1 = 83 * s
-    logo_hw = 5.0 * s   # half of stroke-width 10
+    wave_hw = (WAVE_STROKE_WIDTH * 0.5) * s_native
 
-    # Slash: diagonal through centre (no scale applied)
-    sax = 39 * s;  say = 61 * s
-    sbx = 61 * s;  sby = 39 * s
+    # Pre-compute bezier sample points scaled to pixel space
+    scaled_waves = []
+    for w in WAVES:
+        p0 = (w["p0"][0] * s_native, w["p0"][1] * s_native)
+        p1 = (w["p1"][0] * s_native, w["p1"][1] * s_native)
+        p2 = (w["p2"][0] * s_native, w["p2"][1] * s_native)
+        p3 = (w["p3"][0] * s_native, w["p3"][1] * s_native)
+        scaled_waves.append({
+            "p0": p0, "p1": p1, "p2": p2, "p3": p3,
+            "opacity": w["opacity"],
+        })
 
-    pixels = bytearray(S * S * 4)
+    pixels = bytearray(native * native * 4)
 
-    for y in range(S):
-        for x in range(S):
+    for y in range(native):
+        for x in range(native):
             # ---- Background coverage (rounded rect) ----
             bg_cov = rounded_rect_coverage(x, y, bg_x0, bg_y0, bg_x1, bg_y1,
                                            bg_rx, bg_ry, samples=4)
             if bg_cov <= 0.0:
-                idx = (y * S + x) * 4
+                idx = (y * native + x) * 4
                 pixels[idx:idx+4] = bytes([0, 0, 0, 0])
                 continue
 
-            # ---- Logo coverage ----
-            rect_cov  = _rect_stroke_coverage(x, y, sq_x0, sq_y0, sq_x1, sq_y1,
-                                              logo_hw, samples=4)
-            slash_cov = _segment_coverage_square_cap(x, y, sax, say, sbx, sby,
-                                                     logo_hw, samples=4)
-            logo_cov  = min(1.0, rect_cov + slash_cov)
+            # ---- Draw three waves from back to front ----
+            r_acc, g_acc, b_acc = bg_color
+            a_acc = 255
 
-            # Composite logo over background; alpha = bg_cov for AA edges
-            r = int(bg_color[0] * (1 - logo_cov) + logo_color[0] * logo_cov)
-            g = int(bg_color[1] * (1 - logo_cov) + logo_color[1] * logo_cov)
-            b = int(bg_color[2] * (1 - logo_cov) + logo_color[2] * logo_cov)
+            for w in scaled_waves:
+                cov = _thick_bezier_coverage(
+                    x, y, w["p0"], w["p1"], w["p2"], w["p3"],
+                    wave_hw, samples=3,
+                )
+                if cov > 0.0:
+                    # Blend this wave's color over accumulated background
+                    alpha = cov * w["opacity"]
+                    inv = 1.0 - alpha
+                    r_acc = r_acc * inv + WAVE_COLOR[0] * alpha
+                    g_acc = g_acc * inv + WAVE_COLOR[1] * alpha
+                    b_acc = b_acc * inv + WAVE_COLOR[2] * alpha
+
+            r = int(r_acc)
+            g = int(g_acc)
+            b = int(b_acc)
             a = int(255 * bg_cov)
 
-            idx = (y * S + x) * 4
+            idx = (y * native + x) * 4
             pixels[idx]   = r
             pixels[idx+1] = g
             pixels[idx+2] = b
             pixels[idx+3] = a
+
+    # Scale to target size using Pillow if available
+    if HAS_PIL and native != S:
+        img = Image.frombuffer('RGBA', (native, native), bytes(pixels), 'raw', 'RGBA', 0, 1)
+        img = img.resize((S, S), Image.LANCZOS)
+        out = bytearray(img.tobytes())
+        return out
 
     return pixels
 

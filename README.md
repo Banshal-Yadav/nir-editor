@@ -27,5 +27,9 @@ cargo run
 ---
 
 <p align="center">
-  <i>Licensed under AGPL-3.0 and Apache-2.0.</i>
+  <i>Licensed under GPL-3.0 and Apache-2.0.</i>
+  <br>
+  <i>Nir and the Nir logo are trademarks of Banshal Yadav. See <a href="./TRADEMARK.md">TRADEMARK.md</a>.</i>
+  <br>
+  <i>Not affiliated with Zed Industries.</i>
 </p>
