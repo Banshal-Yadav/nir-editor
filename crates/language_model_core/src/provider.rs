@@ -18,7 +18,7 @@ pub const X_AI_PROVIDER_NAME: LanguageModelProviderName = LanguageModelProviderN
 
 pub const ZED_CLOUD_PROVIDER_ID: LanguageModelProviderId = LanguageModelProviderId::new("zed.dev");
 pub const ZED_CLOUD_PROVIDER_NAME: LanguageModelProviderName =
-    LanguageModelProviderName::new("Zed");
+    LanguageModelProviderName::new("Nir");
 
 pub fn provider_name_for_id(provider_id: &LanguageModelProviderId) -> LanguageModelProviderName {
     if provider_id == &OPEN_AI_PROVIDER_ID {

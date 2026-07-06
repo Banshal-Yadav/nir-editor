@@ -724,7 +724,7 @@ pub fn dcr_registration_body(
     };
 
     serde_json::json!({
-        "client_name": "Zed",
+        "client_name": "Nir",
         "redirect_uris": [redirect_uri],
         "grant_types": grant_types,
         "response_types": ["code"],
