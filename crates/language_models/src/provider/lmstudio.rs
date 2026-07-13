@@ -474,12 +474,7 @@ impl LmStudioLanguageModel {
                 LanguageModelToolChoice::Any => lmstudio::ToolChoice::Required,
                 LanguageModelToolChoice::None => lmstudio::ToolChoice::None,
             }),
-<<<<<<< HEAD
-            stream_options: Some(lmstudio::StreamOptions { include_usage: true }),
-        }
-=======
         })
->>>>>>> upstream/main
     }
 
     fn stream_completion(
@@ -621,23 +616,11 @@ impl LmStudioEventMapper {
             })));
         }
 
-<<<<<<< HEAD
-        let Some(choice) = event.choices.into_iter().next() else {
-            if !events.is_empty() {
-                return events;
-            }
-            return vec![Err(LanguageModelCompletionError::from(anyhow!(
-                "Response contained no choices"
-            )))];
-        };
-=======
         // The final usage summary chunk from OpenAI-compatible servers has an empty choices array.
         // Return accumulated events instead of treating it as an error.
         let Some(choice) = event.choices.into_iter().next() else {
             return events;
         };
-
->>>>>>> upstream/main
         if let Some(content) = choice.delta.content {
             events.push(Ok(LanguageModelCompletionEvent::Text(content)));
         }
@@ -676,11 +659,7 @@ impl LmStudioEventMapper {
             }
         }
 
-<<<<<<< HEAD
 
-
-=======
->>>>>>> upstream/main
         match choice.finish_reason.as_deref() {
             Some("stop") => {
                 events.push(Ok(LanguageModelCompletionEvent::Stop(StopReason::EndTurn)));
@@ -1045,23 +1024,8 @@ impl ConfigurationView {
             "API key configured".to_string()
         };
 
-<<<<<<< HEAD
-        if !state.api_key_state.has_key() {
-            v_flex()
-                .on_action(cx.listener(Self::save_api_key))
-                .child(self.api_key_editor.clone())
-                .child(
-                    Label::new(format!(
-                        "You can also set the {API_KEY_ENV_VAR_NAME} environment variable and restart /nir."
-                    ))
-                    .size(LabelSize::Small)
-                    .color(Color::Muted),
-                )
-                .into_any_element()
-=======
         let api_key_control = if !state.api_key_state.has_key() {
             self.api_key_editor.clone().into_any_element()
->>>>>>> upstream/main
         } else {
             ConfiguredApiCard::new("lmstudio-reset-key", configured_card_label)
                 .disabled(env_var_set)

@@ -13,9 +13,9 @@ use crate::{
     ActionLink, DynamicItem, PROJECT, SettingField, SettingItem, SettingsFieldMetadata,
     SettingsPage, SettingsPageItem, SubPageLink, USER, active_language, all_language_names,
     pages::{
-        open_audio_test_window, render_edit_prediction_setup_page, render_external_agents_page,
-        render_llm_providers_page, render_mcp_servers_page, render_sandbox_settings_page,
-        render_skills_setup_page, render_tool_permissions_setup_page,
+        open_audio_test_window, render_agent_logs_page, render_edit_prediction_setup_page,
+        render_external_agents_page, render_llm_providers_page, render_mcp_servers_page,
+        render_sandbox_settings_page, render_skills_setup_page, render_tool_permissions_setup_page,
     },
 };
 
@@ -8119,6 +8119,16 @@ fn ai_page(cx: &App) -> SettingsPage {
                 in_json: true,
                 files: USER,
                 render: render_tool_permissions_setup_page,
+            }),
+            SettingsPageItem::SubPageLink(SubPageLink {
+                title: "Agent Logs".into(),
+                r#type: Default::default(),
+                json_path: Some("agent.agent_logs"),
+                description: Some("View agent session history, checkpoints, and log files.".into()),
+                search_aliases: &["checkpoint", "history", "log", "logs", "session"],
+                in_json: false,
+                files: USER,
+                render: render_agent_logs_page,
             }),
         ]);
 

@@ -99,7 +99,7 @@ use crate::example_spec::RecentFile;
 use crate::license_detection::LicenseDetectionWatcher;
 use crate::mercury::Mercury;
 pub use crate::metrics::{KeptRateResult, compute_kept_rate};
-use crate::onboarding_modal::ZedPredictModal;
+use crate::onboarding_modal::NirPredictModal;
 use crate::prediction::EditPredictionResult;
 pub use crate::prediction::{EditPrediction, EditPredictionId, EditPredictionInputs};
 pub use language_model::ApiKeyState;
@@ -1167,11 +1167,11 @@ impl EditPredictionStore {
                 edit_prediction_types::EditPredictionIconSet::new(IconName::Inception)
             }
             EditPredictionModel::Zeta => {
-                edit_prediction_types::EditPredictionIconSet::new(IconName::ZedPredict)
-                    .with_disabled(IconName::ZedPredictDisabled)
-                    .with_up(IconName::ZedPredictUp)
-                    .with_down(IconName::ZedPredictDown)
-                    .with_error(IconName::ZedPredictError)
+                edit_prediction_types::EditPredictionIconSet::new(IconName::NirPredict)
+                    .with_disabled(IconName::NirPredictDisabled)
+                    .with_up(IconName::NirPredictUp)
+                    .with_down(IconName::NirPredictDown)
+                    .with_error(IconName::NirPredictError)
             }
             EditPredictionModel::Fim { .. } => {
                 let settings = &all_language_settings(None, cx).edit_predictions;
@@ -3451,7 +3451,7 @@ pub struct ZedUpdateRequiredError {
 #[error("Cloud request timed out")]
 pub(crate) struct CloudRequestTimeoutError;
 
-struct ZedPredictUpsell;
+struct NirPredictUpsell;
 
 fn is_upsell_dismissed(cx: &App) -> bool {
     // To make this backwards compatible with older versions of Zed, we
@@ -3467,12 +3467,12 @@ fn is_upsell_dismissed(cx: &App) -> bool {
         return true;
     }
 
-    kvp.read_kvp(ZedPredictUpsell::KEY)
+    kvp.read_kvp(NirPredictUpsell::KEY)
         .log_err()
         .is_some_and(|s| s.is_some())
 }
 
-impl Dismissable for ZedPredictUpsell {
+impl Dismissable for NirPredictUpsell {
     const KEY: &'static str = "dismissed-edit-predict-upsell";
 
     fn dismissed(cx: &App) -> bool {
@@ -3487,8 +3487,8 @@ pub fn should_show_upsell_modal(cx: &App) -> bool {
 pub fn init(cx: &mut App) {
     cx.observe_new(move |workspace: &mut Workspace, _, _cx| {
         workspace.register_action(
-            move |workspace, _: &zed_actions::OpenZedPredictOnboarding, window, cx| {
-                ZedPredictModal::toggle(
+            move |workspace, _: &zed_actions::OpenNirPredictOnboarding, window, cx| {
+                NirPredictModal::toggle(
                     workspace,
                     workspace.user_store().clone(),
                     workspace.client().clone(),

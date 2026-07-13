@@ -1701,7 +1701,7 @@ struct InlineAssistTabBarButton {
 impl RenderOnce for InlineAssistTabBarButton {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
         let focus_handle = self.focus_handle;
-        IconButton::new("terminal_inline_assistant", IconName::ZedAssistant)
+        IconButton::new("terminal_inline_assistant", IconName::VoidAssistant)
             .icon_size(IconSize::Small)
             .on_click({
                 let focus_handle = focus_handle.clone();
@@ -1940,7 +1940,7 @@ mod tests {
         cx.run_until_parked();
 
         let button_bounds = cx
-            .debug_bounds("ICON-ZedAssistant")
+            .debug_bounds("ICON-VoidAssistant")
             .expect("inline assist button should be rendered in the terminal tab bar");
         cx.simulate_mouse_move(button_bounds.center(), None, Modifiers::default());
 
