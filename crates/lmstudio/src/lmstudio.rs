@@ -209,8 +209,6 @@ pub struct FunctionContent {
 
 #[derive(Serialize, Debug)]
 pub struct StreamOptions {
-    /// Ask the server to append a final chunk with usage statistics.
-    /// Supported by LM Studio and OpenAI-compatible servers.
     pub include_usage: bool,
 }
 
@@ -219,6 +217,8 @@ pub struct ChatCompletionRequest {
     pub model: String,
     pub messages: Vec<ChatMessage>,
     pub stream: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stream_options: Option<StreamOptions>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -229,8 +229,6 @@ pub struct ChatCompletionRequest {
     pub tools: Vec<ToolDefinition>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_choice: Option<ToolChoice>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stream_options: Option<StreamOptions>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

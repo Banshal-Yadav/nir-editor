@@ -57,23 +57,26 @@ If your inventory file is in the YAML format, you can either:
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/inventory.json
 ```
 
-- or, configure the YAML language server settings to set this schema for all your inventory files, that match your inventory pattern, under your Zed settings ([ref](https://github.com/Banshal-Yadav/nir/wiki"lsp": {
-  "yaml-language-server": {
-  "settings": {
-  "yaml": {
-  "schemas": {
-  "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/inventory.json": [
-  "./inventory/*.yaml",
-  "hosts.yml"
-  ]
-  }
-  }
-  }
-  }
-  }
-  }
+- or, configure the YAML language server settings to set this schema for all your inventory files that match your inventory pattern, under your Zed settings ([ref](https://zed.dev/docs/languages/yaml)):
 
-````
+```json [settings]
+{
+  "lsp": {
+    "yaml-language-server": {
+      "settings": {
+        "yaml": {
+          "schemas": {
+            "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/inventory.json": [
+              "./inventory/*.yaml",
+              "hosts.yml"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+```
 
 ### LSP Configuration
 
@@ -100,7 +103,7 @@ By default, the following configuration is passed to the Ansible language server
     }
   }
 }
-````
+```
 
 > **Note:** In order for linting to work, ensure that `ansible-lint` is installed and discoverable on your `$PATH`.
 

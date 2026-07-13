@@ -55,19 +55,25 @@ Here is a common `settings.json` including the above mentioned configurations:
 
 ## Debugging
 
-Debug support is enabled via our [Fork of Java Debug](https://github.com/zed-industries/java-debug), which the extension will automatically download and start for you. Please refer to the [Debugger Documentation](https://github.com/Banshal-Yadav/nir/wiki"adapter": "Java",
-"request": "launch",
-"label": "Launch Debugger",
-// if your project has multiple entry points, specify the one to use:
-// "mainClass": "com.myorganization.myproject.MyMainClass",
-//
-// this effectively sets a breakpoint at your program entry:
-"stopOnEntry": true,
-// the working directory for the debug process
-"cwd": "$ZED_WORKTREE_ROOT",
-},
-]
+Debug support is enabled via our [Fork of Java Debug](https://github.com/zed-industries/java-debug), which the extension will automatically download and start for you. Please refer to the [Debugger Documentation](https://zed.dev/docs/debugger#getting-started) for general information about how debugging works in Zed.
 
+To get started with Java, click the `edit debug.json` button in the Debug menu, and replace the contents of the file with the following:
+
+```jsonc
+[
+  {
+    "adapter": "Java",
+    "request": "launch",
+    "label": "Launch Debugger",
+    // if your project has multiple entry points, specify the one to use:
+    // "mainClass": "com.myorganization.myproject.MyMainClass",
+    //
+    // this effectively sets a breakpoint at your program entry:
+    "stopOnEntry": true,
+    // the working directory for the debug process
+    "cwd": "$ZED_WORKTREE_ROOT",
+  },
+]
 ```
 
 You should then be able to start a new Debug Session with the "Launch Debugger" scenario from the debug menu.
@@ -76,7 +82,15 @@ You should then be able to start a new Debug Session with the "Launch Debugger" 
 
 This extension provides tasks for running your application and tests from within Zed via little play buttons next to tests/entry points. However, due to current limitations of Zed's extension interface, we can not provide scripts that will work across Maven and Gradle on both Windows and Unix-compatible systems, so out of the box the launch scripts only work on Mac and Linux.
 
-There is a fairly straightforward fix that you can apply to make it work on Windows by supplying your own task scripts. Please see [this Issue](https://github.com/zed-extensions/java/issues/94) for information on how to do that and read the [Tasks section in Zeds documentation](https://github.com/Banshal-Yadav/nir/wiki"lsp": {
+There is a fairly straightforward fix that you can apply to make it work on Windows by supplying your own task scripts. Please see [this Issue](https://github.com/zed-extensions/java/issues/94) for information on how to do that and read the [Tasks section in Zed's documentation](https://zed.dev/docs/tasks) for more information.
+
+## Advanced Configuration/JDTLS initialization Options
+
+JDTLS provides many configuration options that can be passed via the `initialize` LSP-request. The extension will pass the JSON-object from `lsp.jdtls.settings.initialization_options` in your settings on to JDTLS. Please refer to the [JDTLS Configuration Wiki Page](https://github.com/eclipse-jdtls/eclipse.jdt.ls/wiki/Running-the-JAVA-LS-server-from-the-command-line#initialize-request) for the available options and values. Below is an example `settings.json` that would pass on the example configuration from the above wiki page to JDTLS:
+
+```jsonc
+{
+  "lsp": {
     "jdtls": {
       "settings": {
         // this will be sent to JDTLS as initializationOptions:

@@ -2,12 +2,14 @@ mod agent_notification;
 mod upgrade_prompt;
 mod mention_crease;
 mod model_selector_components;
+mod sandbox_status_tooltip;
 mod undo_reject_toast;
 
 pub use agent_notification::*;
 pub use upgrade_prompt::*;
 pub use mention_crease::*;
 pub use model_selector_components::*;
+pub use sandbox_status_tooltip::*;
 pub use undo_reject_toast::*;
 
 /// Returns the appropriate [`DocumentationSide`] for documentation asides
