@@ -91,7 +91,7 @@ h_flex()
 
 <img width="552" height="auto" alt="Screenshot for the Worktree feature" src="https://github.com/user-attachments/assets/da5c58e4-b02e-4038-9736-27e3509fdbfa" />
 
-- [Multibuffer](https://github.com/Banshal-Yadav/nir/wiki"800" height="auto" alt="Screenshot for the MultiBuffer feature" src="https://github.com/user-attachments/assets/d59dcecd-8ab6-4172-8fb6-b1fc3c3eaf9d" />
+- [Multibuffer](https://github.com/Banshal-Yadav/nir-editor/wiki"800" height="auto" alt="Screenshot for the MultiBuffer feature" src="https://github.com/user-attachments/assets/d59dcecd-8ab6-4172-8fb6-b1fc3c3eaf9d" />
 
 ## Editor
 

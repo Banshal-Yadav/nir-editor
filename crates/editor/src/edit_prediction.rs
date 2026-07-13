@@ -2537,7 +2537,7 @@ impl Render for MissingEditPredictionKeybindingTooltip {
                             window.dispatch_action(zed_actions::OpenKeymapFile.boxed_clone(), cx)
                         }))
                         .child(Button::new("see-docs", "See Docs").size(ButtonSize::Compact).on_click(|_ev, _window, cx| {
-                            cx.open_url("https://github.com/Banshal-Yadav/nir/wiki");
+                            cx.open_url("https://github.com/Banshal-Yadav/nir-editor/wiki");
                         })),
                 )
         })

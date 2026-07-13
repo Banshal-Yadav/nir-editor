@@ -3813,7 +3813,7 @@ impl Project {
                         notification_id: format!("local-tasks-{path:?}").into(),
                         link: Some(ToastLink {
                             label: "Open Tasks Documentation",
-                            url: "https://github.com/Banshal-Yadav/nir/wiki",
+                            url: "https://github.com/Banshal-Yadav/nir-editor/wiki",
                         }),
                         message,
                     });

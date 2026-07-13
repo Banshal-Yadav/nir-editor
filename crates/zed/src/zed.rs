@@ -108,9 +108,9 @@ use zed_actions::{
     OpenSettingsFile, OpenStatusPage, OpenZedUrl, Quit,
 };
 
-const DOCS_URL: &str = "https://github.com/Banshal-Yadav/nir/wiki";
-const STATUS_URL: &str = "https://github.com/Banshal-Yadav/nir";
-const MERCH_URL: &str = "https://github.com/Banshal-Yadav/nir";
+const DOCS_URL: &str = "https://github.com/Banshal-Yadav/nir-editor/wiki";
+const STATUS_URL: &str = "https://github.com/Banshal-Yadav/nir-editor";
+const MERCH_URL: &str = "https://github.com/Banshal-Yadav/nir-editor";
 
 pub struct CrashHandler(pub Arc<crashes::Client>);
 

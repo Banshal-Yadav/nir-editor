@@ -16,7 +16,7 @@ use util::ResultExt;
 
 use super::QuickActionBar;
 
-const ZED_REPL_DOCUMENTATION: &str = "https://github.com/Banshal-Yadav/nir/wiki";
+const ZED_REPL_DOCUMENTATION: &str = "https://github.com/Banshal-Yadav/nir-editor/wiki";
 
 struct ReplMenuState {
     tooltip: SharedString,

@@ -1,7 +1,7 @@
 // Zed keymap
 //
 // For information on binding keys, see the Zed
-// documentation: https://github.com/Banshal-Yadav/nir/wiki"context": "Workspace",
+// documentation: https://github.com/Banshal-Yadav/nir-editor/wiki"context": "Workspace",
     "bindings": {
       // "shift shift": "file_finder::Toggle"
     },

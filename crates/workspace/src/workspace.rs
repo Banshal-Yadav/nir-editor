@@ -9503,7 +9503,7 @@ actions!(
         ///
         /// If you want to open a specific channel, use `zed::OpenZedUrl` with a channel notes URL -
         /// can be copied via "Copy link to section" in the context menu of the channel notes
-        /// buffer. These URLs look like `https://github.com/Banshal-Yadav/nir/channel/channel-name-CHANNEL_ID/notes`.
+        /// buffer. These URLs look like `https://github.com/Banshal-Yadav/nir-editor/channel/channel-name-CHANNEL_ID/notes`.
         OpenChannelNotes,
         /// Mutes your microphone.
         Mute,

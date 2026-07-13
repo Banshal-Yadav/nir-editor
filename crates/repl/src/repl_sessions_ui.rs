@@ -255,7 +255,7 @@ impl Render for ReplSessionsPage {
                             .child(Label::new("Install Kernels"))
                             .on_click(move |_, _, cx| {
                                 cx.open_url(
-                                    "https://github.com/Banshal-Yadav/nir/wiki",
+                                    "https://github.com/Banshal-Yadav/nir-editor/wiki",
                                 )
                             }),
                     ),

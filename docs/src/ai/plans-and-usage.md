@@ -5,7 +5,7 @@ description: Compare Zed's Free, Pro, and Business plans, and understand token-b
 
 # Plans & Pricing
 
-For costs and more information on pricing, visit [Zed's pricing page](https://github.com/Banshal-Yadav/nir's hosted models require a Pro subscription.
+For costs and more information on pricing, visit [Zed's pricing page](https://github.com/Banshal-Yadav/nir-editor's hosted models require a Pro subscription.
 
 ### Zed Pro {#pro}
 
@@ -21,7 +21,7 @@ For a full feature overview, see [Zed Business](../business/overview.md). For bi
 
 ### Student Plan {#student}
 
-The [Zed Student plan](https://github.com/Banshal-Yadav/nir's hosted models is measured on a token basis, converted to dollars at the rates listed on [the Models page](./models.md) (list price from the provider, +10%).
+The [Zed Student plan](https://github.com/Banshal-Yadav/nir-editor's hosted models is measured on a token basis, converted to dollars at the rates listed on [the Models page](./models.md) (list price from the provider, +10%).
 
 Monthly included credit resets on your monthly billing date. To view your current usage, navigate to the Billing page at [dashboard.zed.dev](https://dashboard.zed.dev). Usage data from our metering provider, Orb, is embedded on that page.
 

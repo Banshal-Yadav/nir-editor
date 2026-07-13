@@ -26,7 +26,7 @@ pub use crate::repl_settings::ReplSettings;
 pub use crate::repl_store::ReplStore;
 pub use crate::session::Session;
 
-pub const KERNEL_DOCS_URL: &str = "https://github.com/Banshal-Yadav/nir/wiki";
+pub const KERNEL_DOCS_URL: &str = "https://github.com/Banshal-Yadav/nir-editor/wiki";
 
 pub fn init(fs: Arc<dyn Fs>, cx: &mut App) {
     set_dispatcher(zed_dispatcher(cx));

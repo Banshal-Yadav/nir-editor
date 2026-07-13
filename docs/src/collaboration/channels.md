@@ -24,7 +24,7 @@ You can keep both work and side-project channels in the Collaboration Panel.
 
 Joining a channel adds you to a shared room where you can work on projects together.
 
-_Join [our channel tree](https://github.com/Banshal-Yadav/nir's project, your editor features still work: jump to definition, use AI features, and view diagnostics.
+_Join [our channel tree](https://github.com/Banshal-Yadav/nir-editor's project, your editor features still work: jump to definition, use AI features, and view diagnostics.
 For pairing, one person can implement while the other reads and validates nearby code.
 Because you keep your own local configuration, the session still feels like your normal setup.
 

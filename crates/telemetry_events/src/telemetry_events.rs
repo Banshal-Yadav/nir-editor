@@ -1,4 +1,4 @@
-//! See [Telemetry in /nir](https://github.com/Banshal-Yadav/nir/wiki) for additional information.
+//! See [Telemetry in /nir](https://github.com/Banshal-Yadav/nir-editor/wiki) for additional information.
 
 use semver::Version;
 use serde::{Deserialize, Serialize};

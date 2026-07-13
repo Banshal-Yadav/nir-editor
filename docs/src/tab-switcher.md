@@ -9,7 +9,7 @@ The Tab Switcher provides a quick way to navigate between open tabs in Zed. It
 displays a list of your open tabs sorted by recent usage, making it easy to jump
 back to whatever you were just working on.
 
-![Tab Switcher with multiple panes](https://github.com/Banshal-Yadav/nir'll stay
+![Tab Switcher with multiple panes](https://github.com/Banshal-Yadav/nir-editor'll stay
 active as long as the <kbd class="keybinding">ctrl</kbd> key is held down.
 
 While holding down <kbd class="keybinding">ctrl</kbd>, each subsequent <kbd

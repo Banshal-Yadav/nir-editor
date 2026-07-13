@@ -113,4 +113,4 @@ Note however that you do _not_ need to go through a 2-phase resolution; if you c
 
 ## Available Extensions
 
-See DAP servers published as extensions [on Zed's site](https://github.com/Banshal-Yadav/nir
+See DAP servers published as extensions [on Zed's site](https://github.com/Banshal-Yadav/nir-editor

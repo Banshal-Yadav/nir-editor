@@ -1,7 +1,7 @@
 // Some example tasks for common languages.
 //
 // For more documentation on how to configure debug tasks,
-// see: https://github.com/Banshal-Yadav/nir/wiki"label": "Debug active Python file",
+// see: https://github.com/Banshal-Yadav/nir-editor/wiki"label": "Debug active Python file",
     "adapter": "Debugpy",
     "program": "$ZED_FILE",
     "request": "launch",

@@ -100,7 +100,7 @@ impl Component for ListBulletItem {
                 "With Link",
                 ListBulletItem::new("")
                     .child(Label::new("Create a /nir account by"))
-                    .child(ButtonLink::new("visiting the website", "https://github.com/Banshal-Yadav/nir"))
+                    .child(ButtonLink::new("visiting the website", "https://github.com/Banshal-Yadav/nir-editor"))
                     .into_any_element(),
             ),
         ];

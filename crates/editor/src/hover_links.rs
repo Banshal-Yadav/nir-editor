@@ -1847,22 +1847,22 @@ mod tests {
         .await;
 
         cx.set_state(indoc! {"
-            Let's test a [complex](https://github.com/Banshal-Yadav/nir"});
+            Let's test a [complex](https://github.com/Banshal-Yadav/nir-editor"});
 
         let screen_coord = cx.pixel_position(indoc! {"
-            Let's test a [complex](https://github.com/Banshal-Yadav/nir"});
+            Let's test a [complex](https://github.com/Banshal-Yadav/nir-editor"});
 
         cx.simulate_mouse_move(screen_coord, None, Modifiers::secondary_key());
         cx.assert_editor_text_highlights(
             HighlightKey::HoveredLinkState,
             indoc! {"
-            Let's test a [complex](«https://github.com/Banshal-Yadav/nir"},
+            Let's test a [complex](«https://github.com/Banshal-Yadav/nir-editor"},
         );
 
         cx.simulate_click(screen_coord, Modifiers::secondary_key());
         assert_eq!(
             cx.opened_url(),
-            Some("https://github.com/Banshal-Yadav/nir".into())
+            Some("https://github.com/Banshal-Yadav/nir-editor".into())
         );
     }
 
@@ -1895,23 +1895,23 @@ mod tests {
 
         // No link
         cx.set_state(indoc! {"
-            Let's test a [complex](https://github.com/Banshal-Yadav/nir"});
+            Let's test a [complex](https://github.com/Banshal-Yadav/nir-editor"});
         assert_no_highlight!(cx);
 
         // No modifier
         let screen_coord = cx.pixel_position(indoc! {"
-            Let's test a [complex](https://github.com/Banshal-Yadav/nir"});
+            Let's test a [complex](https://github.com/Banshal-Yadav/nir-editor"});
         cx.simulate_mouse_move(screen_coord, None, Modifiers::none());
         assert_no_highlight!(cx);
 
         // Modifier active
         let screen_coord = cx.pixel_position(indoc! {"
-            Let's test a [complex](https://github.com/Banshal-Yadav/nir"});
+            Let's test a [complex](https://github.com/Banshal-Yadav/nir-editor"});
         cx.simulate_mouse_move(screen_coord, None, Modifiers::secondary_key());
         cx.assert_editor_text_highlights(
             HighlightKey::HoveredLinkState,
             indoc! {"
-            Let's test a [complex](«https://github.com/Banshal-Yadav/nir"},
+            Let's test a [complex](«https://github.com/Banshal-Yadav/nir-editor"},
         );
     }
 
@@ -1926,19 +1926,19 @@ mod tests {
         )
         .await;
 
-        cx.set_state(indoc! {"https://github.com/Banshal-Yadav/nir"});
+        cx.set_state(indoc! {"https://github.com/Banshal-Yadav/nir-editor"});
 
         let screen_coord =
-            cx.pixel_position(indoc! {"https://github.com/Banshal-Yadav/nir"});
+            cx.pixel_position(indoc! {"https://github.com/Banshal-Yadav/nir-editor"});
 
         cx.simulate_mouse_move(screen_coord, None, Modifiers::secondary_key());
         cx.assert_editor_text_highlights(
             HighlightKey::HoveredLinkState,
-            indoc! {"«https://github.com/Banshal-Yadav/nir"},
+            indoc! {"«https://github.com/Banshal-Yadav/nir-editor"},
         );
 
         cx.simulate_click(screen_coord, Modifiers::secondary_key());
-        assert_eq!(cx.opened_url(), Some("https://github.com/Banshal-Yadav/nir".into()));
+        assert_eq!(cx.opened_url(), Some("https://github.com/Banshal-Yadav/nir-editor".into()));
     }
 
     #[gpui::test]
@@ -1952,19 +1952,19 @@ mod tests {
         )
         .await;
 
-        cx.set_state(indoc! {"A cool ˇwebpage is https://github.com/Banshal-Yadav/nir"});
+        cx.set_state(indoc! {"A cool ˇwebpage is https://github.com/Banshal-Yadav/nir-editor"});
 
         let screen_coord =
-            cx.pixel_position(indoc! {"A cool webpage is https://github.com/Banshal-Yadav/nir"});
+            cx.pixel_position(indoc! {"A cool webpage is https://github.com/Banshal-Yadav/nir-editor"});
 
         cx.simulate_mouse_move(screen_coord, None, Modifiers::secondary_key());
         cx.assert_editor_text_highlights(
             HighlightKey::HoveredLinkState,
-            indoc! {"A cool webpage is «https://github.com/Banshal-Yadav/nir"},
+            indoc! {"A cool webpage is «https://github.com/Banshal-Yadav/nir-editor"},
         );
 
         cx.simulate_click(screen_coord, Modifiers::secondary_key());
-        assert_eq!(cx.opened_url(), Some("https://github.com/Banshal-Yadav/nir".into()));
+        assert_eq!(cx.opened_url(), Some("https://github.com/Banshal-Yadav/nir-editor".into()));
     }
 
     #[test]

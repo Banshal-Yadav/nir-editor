@@ -7,7 +7,7 @@ use std::{env, str::FromStr, sync::LazyLock};
 use gpui::{App, Global};
 use semver::Version;
 
-const ZED_DOCS_URL: &str = "https://github.com/Banshal-Yadav/nir/wiki";
+const ZED_DOCS_URL: &str = "https://github.com/Banshal-Yadav/nir-editor/wiki";
 
 /// stable | dev | nightly | preview
 pub static RELEASE_CHANNEL_NAME: LazyLock<String> = LazyLock::new(|| {
@@ -274,19 +274,19 @@ mod tests {
     fn test_docs_url_for_release_channel() {
         assert_eq!(
             ReleaseChannel::Dev.docs_url("settings"),
-            "https://github.com/Banshal-Yadav/nir/wiki"
+            "https://github.com/Banshal-Yadav/nir-editor/wiki"
         );
         assert_eq!(
             ReleaseChannel::Nightly.docs_url("settings"),
-            "https://github.com/Banshal-Yadav/nir/wiki"
+            "https://github.com/Banshal-Yadav/nir-editor/wiki"
         );
         assert_eq!(
             ReleaseChannel::Preview.docs_url("settings"),
-            "https://github.com/Banshal-Yadav/nir/wiki"
+            "https://github.com/Banshal-Yadav/nir-editor/wiki"
         );
         assert_eq!(
             ReleaseChannel::Stable.docs_url("settings"),
-            "https://github.com/Banshal-Yadav/nir/wiki"
+            "https://github.com/Banshal-Yadav/nir-editor/wiki"
         );
     }
 }

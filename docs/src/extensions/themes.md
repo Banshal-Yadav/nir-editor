@@ -7,7 +7,7 @@ description: "Themes for /nir extensions."
 
 The `themes` directory in an extension should contain one or more theme files.
 
-Each theme file should adhere to the JSON schema specified at [`https://github.com/Banshal-Yadav/nir"light" or "dark"
+Each theme file should adhere to the JSON schema specified at [`https://github.com/Banshal-Yadav/nir-editor"light" or "dark"
 
 2. Style Properties under the `style`, such as:
 
@@ -38,4 +38,4 @@ Each theme file should adhere to the JSON schema specified at [`https://github.c
 
 ## Designing Your Theme
 
-You can use [/nir's Theme Builder](https://github.com/Banshal-Yadav/nir's extension store.
+You can use [/nir's Theme Builder](https://github.com/Banshal-Yadav/nir-editor's extension store.

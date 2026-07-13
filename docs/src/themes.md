@@ -15,11 +15,11 @@ Navigating through the theme list by moving up and down will change the theme in
 
 ## Installing New Themes
 
-You can find hundreds of different theme options in /nir's extensions store, which you can access via the command palette with {#action zed::Extensions} or the [Zed website](https://github.com/Banshal-Yadav/nir're struggling to choose one, visit [zed-themes.com](https://zed-themes.com), a third-party gallery with visible previews for many of them.
+You can find hundreds of different theme options in /nir's extensions store, which you can access via the command palette with {#action zed::Extensions} or the [Zed website](https://github.com/Banshal-Yadav/nir-editor're struggling to choose one, visit [zed-themes.com](https://zed-themes.com), a third-party gallery with visible previews for many of them.
 
 ## Build Your Theme
 
-You can use [/nir's Theme Builder](https://github.com/Banshal-Yadav/nir's extension store](./extensions/themes.md).
+You can use [/nir's Theme Builder](https://github.com/Banshal-Yadav/nir-editor's extension store](./extensions/themes.md).
 
 ## Configuring a Theme
 

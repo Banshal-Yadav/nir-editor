@@ -341,7 +341,7 @@ impl PickerDelegate for IconThemeSelectorDelegate {
                                 .color(Color::Muted),
                         )
                         .on_click(|_event, _window, cx| {
-                            cx.open_url("https://github.com/Banshal-Yadav/nir/wiki");
+                            cx.open_url("https://github.com/Banshal-Yadav/nir-editor/wiki");
                         }),
                 )
                 .child(

@@ -20,7 +20,7 @@ Zed's built-in REPL uses [Jupyter kernels](https://docs.jupyter.org/en/latest/pr
             type='video/mp4; codecs="avc1.4D401E, mp4a.40.2"'
         />
         <source
-          src="https://github.com/Banshal-Yadav/nir"
+          src="https://github.com/Banshal-Yadav/nir-editor"
           type="image/png"
         />
     </video>

@@ -13,7 +13,7 @@ Built on the foundations of [Zed](https://github.com/zed-industries/zed). Early 
 **Prerequisites:** Rust (latest stable) + platform deps - [Windows](./docs/src/development/windows.md) · [macOS](./docs/src/development/macos.md) · [Linux](./docs/src/development/linux.md)
 
 ```bash
-git clone https://github.com/Banshal-Yadav/nir
-cd nir
+git clone https://github.com/Banshal-Yadav/nir-editor
+cd nir-editor
 cargo run
 ```

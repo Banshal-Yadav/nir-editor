@@ -69,7 +69,7 @@ pub fn excerpt_context_lines(cx: &App) -> u32 {
 
 /// One or more [`Buffers`](Buffer) being edited in a single view.
 ///
-/// See <https://github.com/Banshal-Yadav/nir>
+/// See <https://github.com/Banshal-Yadav/nir-editor>
 pub struct MultiBuffer {
     /// A snapshot of the [`Excerpt`]s in the MultiBuffer.
     /// Use [`MultiBuffer::snapshot`] to get a up-to-date snapshot.

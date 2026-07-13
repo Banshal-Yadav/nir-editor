@@ -30,7 +30,7 @@ ocamllsp --help
 
 in your terminal. If you get a help message, you're good to go. If not, please revisit the installation instructions for `ocamllsp` and ensure it's properly installed.
 
-With that aside, we can now launch Zed. Given how the OCaml package manager works, we require you to run Zed from the terminal, so please make sure you install the [Zed cli](https://github.com/Banshal-Yadav/nir't already.
+With that aside, we can now launch Zed. Given how the OCaml package manager works, we require you to run Zed from the terminal, so please make sure you install the [Zed cli](https://github.com/Banshal-Yadav/nir-editor't already.
 
 Once you have the cli, simply from a terminal, navigate to your project and run
 

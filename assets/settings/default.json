@@ -2766,7 +2766,7 @@
   // the /nir settings
   //
   // For information on how to configure /nir, see the /nir
-  // documentation: https://github.com/Banshal-Yadav/nir/wiki
+  // documentation: https://github.com/Banshal-Yadav/nir-editor/wiki
   //
   // To see all of /nir's default settings without changing your
   // custom settings, run `nir: open default settings` from the

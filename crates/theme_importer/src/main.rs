@@ -17,7 +17,7 @@ use theme::{Appearance, AppearanceContent};
 use crate::vscode::VsCodeTheme;
 use crate::vscode::VsCodeThemeConverter;
 
-const ZED_THEME_SCHEMA_URL: &str = "https://github.com/Banshal-Yadav/nir";
+const ZED_THEME_SCHEMA_URL: &str = "https://github.com/Banshal-Yadav/nir-editor";
 
 #[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "snake_case")]

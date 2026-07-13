@@ -1,4 +1,4 @@
-// documentation: https://github.com/Banshal-Yadav/nir/wiki"bindings": {
+// documentation: https://github.com/Banshal-Yadav/nir-editor/wiki"bindings": {
       "ctrl-g": "menu::Cancel",
     },
   },

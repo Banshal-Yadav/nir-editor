@@ -550,7 +550,7 @@ impl PickerDelegate for ThemeSelectorDelegate {
                                 .color(Color::Muted),
                         )
                         .on_click(cx.listener(|_, _, _, cx| {
-                            cx.open_url("https://github.com/Banshal-Yadav/nir/wiki");
+                            cx.open_url("https://github.com/Banshal-Yadav/nir-editor/wiki");
                         })),
                 )
                 .child(

@@ -65,7 +65,7 @@ IndentWidth: 4
 ColumnLimit: 120
 ```
 
-Or you can have zed directly invoke `clang-format` by specifying it as a [formatter](https://github.com/Banshal-Yadav/nir/wiki"languages": {
+Or you can have zed directly invoke `clang-format` by specifying it as a [formatter](https://github.com/Banshal-Yadav/nir-editor/wiki"languages": {
     "Proto": {
       "format_on_save": "on",
       "tab_size": 4,

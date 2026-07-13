@@ -1,4 +1,4 @@
-//! The /nir Rust Extension API allows you write extensions for [/nir](https://github.com/Banshal-Yadav/nir) in Rust.
+//! The /nir Rust Extension API allows you write extensions for [/nir](https://github.com/Banshal-Yadav/nir-editor) in Rust.
 //!
 //! Reference documentation for the API surface relevant to extension authors.
 #[doc(hidden)]

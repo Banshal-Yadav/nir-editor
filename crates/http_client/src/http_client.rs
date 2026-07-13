@@ -311,7 +311,7 @@ impl HttpClientWithUrl {
     pub fn build_zed_llm_url(&self, path: &str, query: &[(&str, &str)]) -> Result<Url> {
         let base_url = self.base_url();
         let base_api_url = match base_url.as_ref() {
-            "https://github.com/Banshal-Yadav/nir" => "", // TODO: Disable zed endpoints
+            "https://github.com/Banshal-Yadav/nir-editor" => "", // TODO: Disable zed endpoints
             "https://staging.zed.dev" => "", // TODO: Disable zed endpoints
             "http://localhost:3000" => "http://localhost:8787",
             other => other,
