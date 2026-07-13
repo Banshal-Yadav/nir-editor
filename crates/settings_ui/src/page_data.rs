@@ -8554,7 +8554,7 @@ fn network_page() -> SettingsPage {
             }),
             SettingsPageItem::SettingItem(SettingItem {
                 title: "Server URL",
-                description: "The URL of the Nir server to connect to.",
+                description: "The URL of the Zed server to connect to.",
                 field: Box::new(SettingField {
                     organization_override: None,
                     json_path: Some("server_url"),
@@ -10390,7 +10390,7 @@ fn edit_prediction_language_settings_section() -> [SettingsPageItem; 5] {
             title: "Configure Providers".into(),
             r#type: Default::default(),
             json_path: Some("edit_predictions.providers"),
-            description: Some("Set up different edit prediction providers in complement to Nir's built-in Zeta model.".into()),
+            description: Some("Set up different edit prediction providers in complement to Zed's built-in Zeta model.".into()),
             search_aliases: &[],
             in_json: false,
             files: USER,
