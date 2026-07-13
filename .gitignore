@@ -8,6 +8,9 @@
 *.wasm
 *.xcodeproj
 nir-docs/
+.icon-backup/
+stderr.txt
+stdout.txt
 AGENTS.md
 .DS_Store
 .blob_store
