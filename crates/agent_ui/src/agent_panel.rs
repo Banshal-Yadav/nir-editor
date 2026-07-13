@@ -22,14 +22,14 @@ use project::{AgentId, ProjectItem};
 use serde::{Deserialize, Serialize};
 
 use zed_actions::{
-    DecreaseBufferFontSize, IncreaseBufferFontSize, ResetBufferFontSize,
+    DecreaseBufferFontSize, IncreaseBufferFontSize, OpenSettingsAt, ResetBufferFontSize,
     agent::{
         AddSelectionToThread, ConflictContent, LogoutAgent, OpenSettings, ReauthenticateAgent,
         ResetAgentZoom, ResetOnboarding, ResolveConflictedFilesWithAgent,
         ResolveConflictsWithAgent, ReviewBranchDiff, SelectAgent,
     },
     assistant::{
-        FocusAgent, OpenGlobalAgentsMdRules, OpenProjectAgentsMdRules,
+        FocusAgent, ManageSkills, OpenGlobalAgentsMdRules, OpenProjectAgentsMdRules,
         Toggle, ToggleFocus,
     },
 };
@@ -425,7 +425,6 @@ pub fn init(cx: &mut App) {
                             panel.new_external_agent_thread(action, window, cx);
                         });
                     }
-                })
                 })
                 .register_action(|workspace, action: &SelectAgent, window, cx| {
                     if let Some(panel) = workspace.panel::<AgentPanel>(cx) {
@@ -1161,6 +1160,10 @@ impl BaseView {
     }
 }
 
+enum OverlayView {
+    Configuration,
+}
+
 pub struct AgentPanel {
     workspace: WeakEntity<Workspace>,
     /// Workspace id is used as a database key
@@ -1174,6 +1177,9 @@ pub struct AgentPanel {
     context_server_registry: Entity<ContextServerRegistry>,
     focus_handle: FocusHandle,
     base_view: BaseView,
+    overlay_view: Option<OverlayView>,
+    configuration: Option<Entity<()>>,
+    configuration_subscription: Option<Subscription>,
     last_created_entry_kind: AgentPanelEntryKind,
     draft_thread: Option<Entity<ConversationView>>,
     retained_threads: HashMap<ThreadId, Entity<ConversationView>>,
@@ -1643,6 +1649,9 @@ impl AgentPanel {
             _draft_editor_observation: None,
             _active_draft_reclaim_observation: None,
             _thread_metadata_store_subscription,
+            overlay_view: None,
+            configuration: None,
+            configuration_subscription: None,
             last_context_source: None,
             is_active: false,
             nir_checkpoint_count: 0,
@@ -3910,6 +3919,42 @@ impl AgentPanel {
         })
     }
 
+    fn set_overlay(
+        &mut self,
+        overlay: OverlayView,
+        focus: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.overlay_view = Some(overlay);
+        if focus {
+            self.focus_handle(cx).focus(window, cx);
+        }
+        cx.emit(AgentPanelEvent::ActiveViewChanged);
+    }
+
+    fn clear_overlay(&mut self, focus: bool, window: &mut Window, cx: &mut Context<Self>) {
+        self.clear_overlay_state();
+
+        if focus {
+            self.focus_handle(cx).focus(window, cx);
+        }
+        cx.emit(AgentPanelEvent::ActiveViewChanged);
+    }
+
+    fn clear_overlay_state(&mut self) {
+        self.overlay_view = None;
+        self.configuration_subscription = None;
+        self.configuration = None;
+    }
+
+    pub fn go_back(&mut self, _: &workspace::GoBack, window: &mut Window, cx: &mut Context<Self>) {
+        if self.overlay_view.is_some() {
+            self.clear_overlay(true, window, cx);
+            cx.notify();
+        }
+    }
+
     pub fn toggle_options_menu(
         &mut self,
         _: &ToggleOptionsMenu,
@@ -4024,6 +4069,21 @@ impl AgentPanel {
             }
             cx.emit(PanelEvent::ZoomIn);
         }
+    }
+
+    fn manage_skills(
+        &mut self,
+        _action: &ManageSkills,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        window.dispatch_action(
+            Box::new(zed_actions::OpenSettingsAt {
+                path: zed_actions::AGENT_SKILLS_SETTINGS_PATH.to_string(),
+                target: None,
+            }),
+            cx,
+        );
     }
 
     pub(crate) fn open_configuration(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -6099,6 +6159,18 @@ impl AgentPanel {
                         menu = menu
                             .action("Settings", Box::new(OpenSettings));
 
+                        if !showing_terminal {
+                            menu = menu
+                                .separator()
+                                .action(
+                                    "LLM Providers",
+                                    Box::new(OpenSettingsAt {
+                                        path: "llm_providers".to_string(),
+                                        target: None,
+                                    }),
+                                );
+                        }
+
                         // Agent Logs submenu with stats and quick actions
                         {
                             let checkpoint_count = nir_checkpoint_count;
@@ -6221,6 +6293,21 @@ impl AgentPanel {
 
                         menu
                     }))
+                }
+            })
+    }
+
+    fn render_toolbar_back_button(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let focus_handle = self.focus_handle(cx);
+
+        IconButton::new("go-back", IconName::ArrowLeft)
+            .icon_size(IconSize::Small)
+            .on_click(cx.listener(|this, _, window, cx| {
+                this.go_back(&workspace::GoBack, window, cx);
+            }))
+            .tooltip({
+                move |_window, cx| {
+                    Tooltip::for_action_in("Go Back", &workspace::GoBack, &focus_handle, cx)
                 }
             })
     }
@@ -6506,12 +6593,15 @@ impl AgentPanel {
         };
 
         enum ToolbarMode {
+            Overlay,
             Terminal,
             EmptyThread,
             ActiveThread,
         }
 
-        let mode = if matches!(self.base_view, BaseView::Terminal { .. }) {
+        let mode = if self.overlay_view.is_some() {
+            ToolbarMode::Overlay
+        } else if matches!(self.base_view, BaseView::Terminal { .. }) {
             ToolbarMode::Terminal
         } else if self.active_thread_has_messages(cx) {
             ToolbarMode::ActiveThread
@@ -6550,6 +6640,13 @@ impl AgentPanel {
             )
             .flex_none()
             .justify_between();
+
+        let empty_thread_title = matches!(mode, ToolbarMode::EmptyThread).then(|| {
+            Label::new(format!("New {} Thread", selected_agent_label))
+                .color(Color::Muted)
+                .truncate()
+                .into_any_element()
+        });
 
         let toolbar_content = if can_create_entries && matches!(mode, ToolbarMode::EmptyThread) {
             let (chevron_icon, icon_color, label_color) =

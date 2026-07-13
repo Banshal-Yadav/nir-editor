@@ -2145,8 +2145,41 @@ impl MultiWorkspace {
         for workspace in self.workspaces() {
             let is_active = workspace == active_workspace;
 
-            // DISABLED: git status dots — testing if git_store lock causes typing lag
-            let git_dot_info: Option<(gpui::Hsla, SharedString)> = None;
+            let git_dot_info: Option<(gpui::Hsla, SharedString)> = {
+                let project = workspace.read(cx).project().read(cx);
+                let git_store = project.git_store().read(cx);
+                git_store.active_repository().map(|repo| {
+                    let repo = repo.read(cx);
+                    let summary = repo.status_summary();
+                    if summary.conflict > 0 {
+                        let label = if summary.conflict == 1 {
+                            "1 conflict".into()
+                        } else {
+                            format!("{} conflicts", summary.conflict).into()
+                        };
+                        (gpui::rgba(0xE06C75FF).into(), label) // red
+                    } else if summary.index.added > 0
+                        || summary.index.modified > 0
+                        || summary.index.deleted > 0
+                        || summary.worktree.added > 0
+                        || summary.worktree.modified > 0
+                        || summary.worktree.deleted > 0
+                        || summary.untracked > 0
+                    {
+                        let total = summary.index.added + summary.index.modified + summary.index.deleted
+                            + summary.worktree.added + summary.worktree.modified + summary.worktree.deleted
+                            + summary.untracked;
+                        let label = if total == 1 {
+                            "1 uncommitted change".into()
+                        } else {
+                            format!("{} uncommitted changes", total).into()
+                        };
+                        (gpui::rgba(0xE5C07BFF).into(), label) // yellow
+                    } else {
+                        (gpui::rgba(0x98C379FF).into(), "Clean".into()) // green
+                    }
+                })
+            };
 
             // Case 1 — No worktrees or single-file worktrees only: push a muted file icon.
             // (zero-worktree workspaces satisfy .all() vacuously, so no separate check needed)
