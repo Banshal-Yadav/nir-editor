@@ -500,6 +500,7 @@ pub fn init(cx: &mut App) {
                 .register_action(|_workspace, _: &ResetFastModeWarnings, _window, cx| {
                     reset_fast_mode_warnings(cx);
                 })
+                .register_action(AgentPanel::toggle)
                 .register_action(|workspace, _: &ResetAgentZoom, window, cx| {
                     if let Some(panel) = workspace.panel::<AgentPanel>(cx) {
                         panel.update(cx, |panel, cx| {
