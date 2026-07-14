@@ -5994,8 +5994,6 @@ impl AgentPanel {
             .is_some();
 
         let workspace = self.workspace.clone();
-        let nir_checkpoint_count = self.nir_checkpoint_count;
-        let nir_log_file_count = self.nir_log_file_count;
 
         PopoverMenu::new("agent-options-menu")
             .trigger_with_tooltip(
@@ -6171,111 +6169,20 @@ impl AgentPanel {
                                 );
                         }
 
-                        // Agent Logs submenu with stats and quick actions
-                        {
-                            let checkpoint_count = nir_checkpoint_count;
-                            let log_file_count = nir_log_file_count;
-
-                            menu = menu.submenu(
-                                "Agent Logs",
-                                move |submenu, _window, _cx| {
-                                    submenu
-                                        .custom_entry(
-                                            |_, _| {
-                                                Label::new("Session recording, recall entries, and log files")
-                                                    .size(LabelSize::Small)
-                                                    .color(Color::Muted)
-                                                    .into_any_element()
-                                            },
-                                            |_, _| {},
-                                        )
-                                        .selectable(false)
-                                        .custom_entry(
-                                            {
-                                                let count = checkpoint_count;
-                                                move |_, _| {
-                                                    h_flex()
-                                                        .gap_1()
-                                                        .child(
-                                                            Icon::new(IconName::HistoryRerun)
-                                                                .size(IconSize::XSmall)
-                                                                .color(Color::Muted),
-                                                        )
-                                                        .child(Label::new(format!(
-                                                            "Recall entries: {}",
-                                                            count
-                                                        )))
-                                                        .into_any_element()
-                                                }
-                                            },
-                                            |_, _| {},
-                                        )
-                                        .selectable(false)
-                                        .custom_entry(
-                                            {
-                                                let count = log_file_count;
-                                                move |_, _| {
-                                                    h_flex()
-                                                        .gap_1()
-                                                        .child(
-                                                            Icon::new(IconName::File)
-                                                                .size(IconSize::XSmall)
-                                                                .color(Color::Muted),
-                                                        )
-                                                        .child(Label::new(format!(
-                                                            "Log files: {}",
-                                                            count
-                                                        )))
-                                                        .into_any_element()
-                                                }
-                                            },
-                                            |_, _| {},
-                                        )
-                                        .selectable(false)
-                                        .custom_entry(
-                                            |_, _| {
-                                                h_flex().gap_1().child(Label::new("Open Logs Folder"))
-                                                    .child(Icon::new(IconName::ArrowUpRight).size(IconSize::XSmall).color(Color::Muted))
-                                                    .into_any_element()
-                                            },
-                                            |_, cx| {
-                                                let home = std::env::var("USERPROFILE")
-                                                    .or_else(|_| std::env::var("HOME"))
-                                                    .ok();
-                                                if let Some(home) = home {
-                                                    let logs_dir =
-                                                        std::path::PathBuf::from(home)
-                                                            .join(".nir/brain/logs");
-                                                    if let Err(err) =
-                                                        std::fs::create_dir_all(&logs_dir)
-                                                    {
-                                                        log::warn!(
-                                                            "failed to create logs folder {}: {err:#}",
-                                                            logs_dir.display()
-                                                        );
-                                                    } else {
-                                                        cx.open_with_system(&logs_dir);
-                                                    }
-                                                }
-                                            },
-                                        )
-                                        .separator()
-                                        .entry(
-                                            "Agent Logs Settings…",
-                                            None,
-                                            |window, cx| {
-                                                window.dispatch_action(
-                                                    Box::new(zed_actions::OpenSettingsAt {
-                                                        path: "agent.agent_logs".to_string(),
-                                                        target: None,
-                                                    }),
-                                                    cx,
-                                                );
-                                            },
-                                        )
-                                },
-                            );
-                        }
+                        // Direct link to Agent Memory and Logs settings page
+                        menu = menu.entry(
+                            "Agent Memory and Logs",
+                            None,
+                            |window, cx| {
+                                window.dispatch_action(
+                                    Box::new(zed_actions::OpenSettingsAt {
+                                        path: "agent.agent_logs".to_string(),
+                                        target: None,
+                                    }),
+                                    cx,
+                                );
+                            },
+                        );
 
                         menu = menu
                             .separator()

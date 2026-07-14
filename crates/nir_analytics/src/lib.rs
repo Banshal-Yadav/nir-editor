@@ -19,20 +19,24 @@ pub struct LogEntry {
     pub content: String,
 }
 
-// Windows shells can isolate USERPROFILE vs HOME inconsistently across PowerShell/WSL/MSYS;
-// strict ordering + `.` fallback prevents telemetry from fragmenting to silent directories.
+// Must match agent brain_dir(): APPDATA (Win) / $HOME (Unix)
 fn resolve_home_dir() -> PathBuf {
-    if let Ok(path) = std::env::var("USERPROFILE") {
-        return PathBuf::from(path);
+    if cfg!(windows) {
+        if let Ok(path) = std::env::var("APPDATA") {
+            return PathBuf::from(path);
+        }
     }
     if let Ok(path) = std::env::var("HOME") {
+        return PathBuf::from(path);
+    }
+    if let Ok(path) = std::env::var("USERPROFILE") {
         return PathBuf::from(path);
     }
     PathBuf::from(".")
 }
 
 /// Resolves the logs directory path.
-fn get_logs_dir() -> Result<PathBuf> {
+pub fn get_logs_dir() -> Result<PathBuf> {
     let mut home = resolve_home_dir();
     home.push(".nir");
     home.push("brain");
@@ -130,21 +134,34 @@ fn parse_line_entry(line: &str) -> Option<LogEntry> {
     Some(LogEntry { id, timestamp, content })
 }
 
-/// Lists all daily log markdown filenames.
-pub fn list_log_files() -> Result<Vec<String>> {
-    let logs_dir = get_logs_dir()?;
-    let mut files = Vec::new();
-    
-    for entry in fs::read_dir(logs_dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
-            if let Some(filename) = path.file_name().and_then(|f| f.to_str()) {
-                files.push(filename.to_string());
+fn scan_logs_dir(dir: &Path, seen: &mut std::collections::BTreeSet<String>) {
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() && path.extension().map_or(false, |ext| ext == "md") {
+                if let Some(filename) = path.file_name().and_then(|f| f.to_str()) {
+                    seen.insert(filename.to_string());
+                }
             }
         }
     }
-    
+}
+
+/// Lists log filenames from canonical + legacy locations, deduplicated.
+pub fn list_log_files() -> Result<Vec<String>> {
+    let mut seen = std::collections::BTreeSet::new();
+    scan_logs_dir(&get_logs_dir()?, &mut seen);
+
+    // Also scan the legacy USERPROFILE/.nir/brain/logs/ path so logs
+    // written before the APPDATA migration aren't lost on Windows.
+    if cfg!(windows) {
+        if let Ok(userprofile) = std::env::var("USERPROFILE") {
+            let legacy = PathBuf::from(userprofile).join(".nir/brain/logs");
+            scan_logs_dir(&legacy, &mut seen);
+        }
+    }
+
+    let mut files: Vec<String> = seen.into_iter().collect();
     files.sort_by(|a, b| b.cmp(a));
     Ok(files)
 }
@@ -240,6 +257,14 @@ fn get_brain_dir() -> Result<PathBuf> {
 pub fn get_state_db_path() -> Result<PathBuf> {
     let mut path = get_brain_dir()?;
     path.push("state.db");
+    Ok(path)
+}
+
+/// Resolves the memory directory (``~/.nir/brain/memory``), creating it if missing.
+pub fn get_memory_dir() -> Result<PathBuf> {
+    let mut path = get_brain_dir()?;
+    path.push("memory");
+    fs::create_dir_all(&path).context("Failed to create memory directory")?;
     Ok(path)
 }
 
