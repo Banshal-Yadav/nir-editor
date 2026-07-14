@@ -516,6 +516,10 @@ pub struct StatusBarSettingsContent {
     ///
     /// Default: non_utf8
     pub active_encoding_button: Option<EncodingDisplayOptions>,
+    /// Whether to show the Terminal Agent Launcher button in the status bar.
+    ///
+    /// Default: false
+    pub show_agent_launcher: Option<bool>,
 }
 
 #[derive(

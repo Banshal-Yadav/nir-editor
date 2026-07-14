@@ -819,7 +819,7 @@ impl ThreadView {
                 },
                 window,
                 cx,
-            ).show_stt(true);
+            );
             if let Some(content) = initial_content {
                 match content {
                     AgentInitialContent::ThreadSummary { session_id, title } => {
@@ -4375,7 +4375,7 @@ impl ThreadView {
                                     .w_full()
                                     .min_h_0()
                                     .when(fills_container, |this| this.flex_1())
-                                    .pt_1()
+                                    .pt_2p5()
                                     .pl_2p5()
                                     .pr_2p5()
                                     .child(self.message_editor.clone())

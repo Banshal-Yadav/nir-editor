@@ -103,13 +103,13 @@ struct Args {
     /// Print /nir.s version and the app path.
     #[arg(short, long)]
     version: bool,
-    /// Run zed in the foreground (useful for debugging)
+    /// Run nir in the foreground (useful for debugging)
     #[arg(long)]
     foreground: bool,
-    /// Custom path to Zed.app or the /nir binary
+    /// Custom path to the /nir binary
     #[arg(long)]
     zed: Option<PathBuf>,
-    /// Run zed in dev-server mode
+    /// Run nir in dev-server mode
     #[arg(long)]
     dev_server_token: Option<String>,
     /// The username and WSL distribution to use when opening paths. If not specified,
@@ -150,7 +150,7 @@ struct Args {
     uninstall: bool,
 
     /// Used for SSH/Git password authentication, to remove the need for netcat as a dependency,
-    /// by having Zed act like netcat communicating over a Unix socket.
+    /// by having Nir act like netcat communicating over a Unix socket.
     #[arg(long, hide = true)]
     askpass: Option<String>,
 }
@@ -505,7 +505,7 @@ fn run() -> Result<()> {
 
     let args = Args::parse();
 
-    // `zed --askpass` Makes zed operate in nc/netcat mode for use with askpass
+    // 'nir --askpass' Makes nir operate in nc/netcat mode for use with askpass
     if let Some(socket) = &args.askpass {
         askpass::main(socket);
         return Ok(());
@@ -544,7 +544,7 @@ fn run() -> Result<()> {
     if args.system_specs {
         let path = app.path();
         let msg = [
-            "The `--system-specs` argument is not supported in the Zed CLI, only on /nir binary.",
+            "The `--system-specs` argument is not supported in the /nir CLI, only on /nir binary.",
             "To retrieve the system specs on the command line, run the following command:",
             &format!("{} --system-specs", path.display()),
         ];
@@ -575,7 +575,7 @@ fn run() -> Result<()> {
     }
 
     let (server, server_name) =
-        IpcOneShotServer::<IpcHandshake>::new().context("Handshake before Zed spawn")?;
+        IpcOneShotServer::<IpcHandshake>::new().context("Handshake before Nir spawn")?;
     let url = format!("zed-cli://{server_name}");
 
     let open_behavior = if args.new {
@@ -597,7 +597,7 @@ fn run() -> Result<()> {
         {
             use collections::HashMap;
 
-            // On Linux, the desktop entry uses `cli` to spawn `zed`.
+            // On Linux, the desktop entry uses `cli` to spawn `nir`.
             // We need to handle env vars correctly since std::env::vars() may not contain
             // project-specific vars (e.g. those set by direnv).
             // By setting env to None here, the LSP will use worktree env vars instead,
@@ -652,7 +652,7 @@ fn run() -> Result<()> {
     let (expanded_diff_paths, temp_dirs) = expand_directory_diff_pairs(diff_paths)?;
     diff_paths = expanded_diff_paths;
     // Prevent automatic cleanup of temp directories containing empty stub files
-    // for directory diffs. The CLI process may exit before Zed has read these
+    // for directory diffs. The CLI process may exit before Nir has read these
     // files (e.g., when RPC-ing into an already-running instance). The files
     // live in the OS temp directory and will be cleaned up on reboot.
     for temp_dir in temp_dirs {
@@ -702,7 +702,7 @@ fn run() -> Result<()> {
             let exit_status = exit_status.clone();
             let user_data_dir_for_thread = user_data_dir.clone();
             move || {
-                let (_, handshake) = server.accept().context("Handshake after Zed spawn")?;
+                let (_, handshake) = server.accept().context("Handshake after Nir spawn")?;
                 let (tx, rx) = (handshake.requests, handshake.responses);
 
                 #[cfg(target_os = "windows")]
@@ -834,7 +834,7 @@ fn anonymous_fd(path: &str) -> Option<fs::File> {
 }
 
 /// Shows an interactive prompt asking the user to choose the default open
-/// behavior for `zed <path>`. Returns `None` if the prompt cannot be shown
+/// behavior for `nir <path>`. Returns `None` if the prompt cannot be shown
 /// (e.g. stdin is not a terminal) or the user cancels.
 fn prompt_open_behavior() -> Option<cli::CliBehaviorSetting> {
     if !std::io::stdin().is_terminal() {
@@ -844,16 +844,16 @@ fn prompt_open_behavior() -> Option<cli::CliBehaviorSetting> {
     let blue = console::Style::new().blue();
     let items = [
         format!(
-            "Add to existing Zed window ({})",
-            blue.apply_to("zed --existing")
+            "Add to existing /nir window ({})",
+            blue.apply_to("nir --existing")
         ),
-        format!("Open a new window ({})", blue.apply_to("zed --classic")),
+        format!("Open a new window ({})", blue.apply_to("nir --classic")),
     ];
 
     let prompt = format!(
         "Configure default behavior for {}\n{}",
-        blue.apply_to("zed <path>"),
-        console::style("You can change this later in Zed settings"),
+        blue.apply_to("nir <path>"),
+        console::style("You can change this later in /nir settings"),
     );
 
     let selection = dialoguer::Select::new()
@@ -900,9 +900,9 @@ mod linux {
                 let dir = cli.parent().context("no parent path for cli")?;
 
                 // libexec is the standard, lib/zed is for Arch (and other non-libexec distros),
-                // ./zed is for the target directory in development builds.
+                // ./nir is for the target directory in development builds.
                 let possible_locations =
-                    ["../libexec/zed-editor", "../lib/zed/zed-editor", "./zed"];
+                    ["../libexec/zed-editor", "../lib/zed/zed-editor", "./nir"];
                 possible_locations
                     .iter()
                     .find_map(|p| dir.join(p).canonicalize().ok().filter(|path| path != &cli))
@@ -939,7 +939,7 @@ mod linux {
                 .unwrap_or_else(|| paths::data_dir().clone());
 
             let sock_path = data_dir.join(format!(
-                "zed-{}.sock",
+                "nir-{}.sock",
                 *release_channel::RELEASE_CHANNEL_NAME
             ));
             let sock = UnixDatagram::unbound()?;
@@ -1057,7 +1057,7 @@ mod flatpak {
                 )
                 .into(),
             );
-            args.push(flatpak_dir.join("bin").join("zed").into());
+            args.push(flatpak_dir.join("bin").join("nir").into());
 
             let mut is_app_location_set = false;
             for arg in &env::args_os().collect::<Vec<_>>()[1..] {
@@ -1237,9 +1237,9 @@ mod windows {
                 let cli = std::env::current_exe()?;
                 let dir = cli.parent().context("no parent path for cli")?;
 
-                // ../Zed.exe is the standard, lib/zed is for MSYS2, ./zed.exe is for the target
+                // ../nir.exe is for installed builds, ./nir.exe is for the target
                 // directory in development builds.
-                let possible_locations = ["../Zed.exe", "../lib/zed/zed-editor.exe", "./zed.exe"];
+                let possible_locations = ["../nir.exe", "../lib/zed/zed-editor.exe", "./nir.exe"];
                 possible_locations
                     .iter()
                     .find_map(|p| dir.join(p).canonicalize().ok().filter(|path| path != &cli))
@@ -1356,7 +1356,7 @@ mod mac_os {
                             kCFStringEncodingUTF8,
                             ptr::null(),
                         ));
-                        // equivalent to: open zed-cli:... -a /Applications/Zed\ Preview.app
+                        // equivalent to: open zed-cli:... -a /Applications/Nir.app
                         let urls_to_open =
                             CFArray::from_copyable(&[url_to_open.as_concrete_TypeRef()]);
                         LSOpenFromURLSpec(
@@ -1383,7 +1383,7 @@ mod mac_os {
                         .parent()
                         .with_context(|| format!("Executable {executable:?} path has no parent"))?;
                     let subprocess_stdout_file = fs::File::create(
-                        executable_parent.join("zed_dev.log"),
+                        executable_parent.join("nir_dev.log"),
                     )
                     .with_context(|| format!("Log file creation in {executable_parent:?}"))?;
                     let subprocess_stdin_file =
@@ -1415,7 +1415,7 @@ mod mac_os {
             user_data_dir: Option<&str>,
         ) -> io::Result<ExitStatus> {
             let path = match self {
-                Bundle::App { app_bundle, .. } => app_bundle.join("Contents/MacOS/zed"),
+                Bundle::App { app_bundle, .. } => app_bundle.join("Contents/MacOS/nir"),
                 Bundle::LocalPath { executable, .. } => executable.clone(),
             };
 
@@ -1429,7 +1429,7 @@ mod mac_os {
 
         fn path(&self) -> PathBuf {
             match self {
-                Bundle::App { app_bundle, .. } => app_bundle.join("Contents/MacOS/zed"),
+                Bundle::App { app_bundle, .. } => app_bundle.join("Contents/MacOS/nir"),
                 Bundle::LocalPath { executable, .. } => executable.clone(),
             }
         }

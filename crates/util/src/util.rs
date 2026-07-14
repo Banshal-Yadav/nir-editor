@@ -330,26 +330,26 @@ pub fn get_shell_safe_zed_path(shell_kind: shell::ShellKind) -> anyhow::Result<S
         .context("Failed to shell-escape Zed executable path.")
 }
 
-/// Returns a path for the zed cli executable, this function
-/// should be called from the zed executable, not zed-cli.
+/// Returns a path for the nir cli executable, this function
+/// should be called from the nir executable, not nir-cli.
 pub fn get_zed_cli_path() -> Result<PathBuf> {
     use anyhow::Context as _;
     let zed_path =
-        std::env::current_exe().context("Failed to determine current zed executable path.")?;
+        std::env::current_exe().context("Failed to determine current nir executable path.")?;
     let parent = zed_path
         .parent()
-        .context("Failed to determine parent directory of zed executable path.")?;
+        .context("Failed to determine parent directory of nir executable path.")?;
 
     let possible_locations: &[&str] = if cfg!(target_os = "macos") {
-        // On macOS, the zed executable and zed-cli are inside the app bundle,
+        // On macOS, the nir executable and nir-cli are inside the app bundle,
         // so here ./cli is for both installed and development builds.
         &["./cli"]
     } else if cfg!(target_os = "windows") {
-        // bin/zed.exe is for installed builds, ./cli.exe is for development builds.
-        &["bin/zed.exe", "./cli.exe"]
+        // bin/nir.exe is for installed builds, ./cli.exe is for development builds.
+        &["bin/nir.exe", "./cli.exe"]
     } else if cfg!(target_os = "linux") || cfg!(target_os = "freebsd") {
-        // bin is the standard, ./cli is for the target directory in development builds.
-        &["../bin/zed", "./cli"]
+        // bin/nir is for installed builds, ./cli is for development builds.
+        &["../bin/nir", "./cli"]
     } else {
         anyhow::bail!("unsupported platform for determining zed-cli path");
     };

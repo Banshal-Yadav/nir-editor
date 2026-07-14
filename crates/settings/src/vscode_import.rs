@@ -796,6 +796,7 @@ impl VsCodeSettings {
             cursor_position_button: None,
             line_endings_button: None,
             active_encoding_button: None,
+            show_agent_launcher: None,
         })
     }
 

@@ -207,8 +207,6 @@ pub struct MessageEditor {
     local_commands: SharedLocalCommands,
     agent_id: AgentId,
     thread_store: Option<Entity<ThreadStore>>,
-    stt_button: Entity<crate::stt_button::SttButton>,
-    show_stt: bool,
     _subscriptions: Vec<Subscription>,
     _parse_slash_command_task: Task<()>,
 }
@@ -628,31 +626,6 @@ impl MessageEditor {
             .detach_and_log_err(cx);
         }
 
-        let stt_button = cx.new(|cx| crate::stt_button::SttButton::new(cx));
-
-        cx.subscribe(
-            &stt_button,
-            |this: &mut Self, _, event: &crate::stt_button::SttEvent, cx| {
-                if let crate::stt_button::SttEvent::Transcription(text) = event {
-                    this.editor.update(cx, |editor, cx| {
-                        log::info!("STT Transcription received: {}", text);
-                        if let Some(buffer) = editor.buffer().read(cx).as_singleton() {
-                            buffer.update(cx, |buffer, cx| {
-                                let len = buffer.len();
-                                let text_to_insert = if len > 0 {
-                                    format!(" {}", text)
-                                } else {
-                                    text.clone()
-                                };
-                                buffer.edit([(len..len, text_to_insert.as_str())], None, cx);
-                            });
-                        }
-                    });
-                }
-            },
-        )
-        .detach();
-
         Self {
             editor,
             mention_set,
@@ -661,16 +634,9 @@ impl MessageEditor {
             local_commands,
             agent_id,
             thread_store,
-            stt_button,
-            show_stt: false,
             _subscriptions: subscriptions,
             _parse_slash_command_task: Task::ready(()),
         }
-    }
-
-    pub fn show_stt(mut self, show_stt: bool) -> Self {
-        self.show_stt = show_stt;
-        self
     }
 
     pub fn set_local_commands(&self, commands: Vec<PromptLocalCommand>) {
@@ -2173,8 +2139,7 @@ impl Render for MessageEditor {
                                 ..Default::default()
                             },
                         )
-                    }))
-                    .when(self.show_stt && !self.editor.read(cx).read_only(cx), |this| this.child(self.stt_button.clone())),
+                    })),
             )
     }
 }
