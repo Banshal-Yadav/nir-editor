@@ -1069,7 +1069,7 @@
         "panel.background": "#1e1f1c",
         "panel.foreground": "#f8f8f2",
         "panel.focused_border": "#49483eff",
-        "status_bar.background": "#414339",
+        "status_bar.background": "#1e1f1c",
         "status_bar.foreground": "#f8f8f2",
         "title_bar.background": "#1e1f1c",
         "title_bar.foreground": "#f8f8f2",
