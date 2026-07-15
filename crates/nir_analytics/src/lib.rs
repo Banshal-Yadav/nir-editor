@@ -151,16 +151,6 @@ fn scan_logs_dir(dir: &Path, seen: &mut std::collections::BTreeSet<String>) {
 pub fn list_log_files() -> Result<Vec<String>> {
     let mut seen = std::collections::BTreeSet::new();
     scan_logs_dir(&get_logs_dir()?, &mut seen);
-
-    // Also scan the legacy USERPROFILE/.nir/brain/logs/ path so logs
-    // written before the APPDATA migration aren't lost on Windows.
-    if cfg!(windows) {
-        if let Ok(userprofile) = std::env::var("USERPROFILE") {
-            let legacy = PathBuf::from(userprofile).join(".nir/brain/logs");
-            scan_logs_dir(&legacy, &mut seen);
-        }
-    }
-
     let mut files: Vec<String> = seen.into_iter().collect();
     files.sort_by(|a, b| b.cmp(a));
     Ok(files)

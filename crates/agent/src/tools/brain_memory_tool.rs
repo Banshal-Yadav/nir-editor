@@ -279,8 +279,8 @@ pub enum BrainMemoryAction {
     Auto,
     Create,
     Read,
-    ReadMany,
-    ReadAll,
+    BatchRead,
+    DumpAll,
     Modify,
     Delete,
     List,
@@ -317,9 +317,9 @@ pub struct BrainMemoryInput {
     /// - auto: Infer from content
     /// - create: Add a new entry
     /// - read: Retrieve entries
-    /// - read-many: Batch read files
-    /// - read-all: Dump all memory
-    /// - list: Index entries
+    /// - batch-read: Read from multiple targets at once
+    /// - dump-all: Read all 5 memory files in full
+    /// - list: Show summary index (IDs and first lines only)
     /// - modify: Update existing entry
     /// - delete: Remove entry
     #[serde(default)]
@@ -333,7 +333,7 @@ pub struct BrainMemoryInput {
     /// - bookmark: Quick links and ideas
     #[serde(default)]
     target: BrainMemoryTarget,
-    /// Comma-separated list of targets (for ReadMany).
+    /// Comma-separated list of targets (for BatchRead).
     targets: Option<String>,
     /// The content to write or modify.
     content: Option<String>,
@@ -360,15 +360,15 @@ impl AgentTool for BrainMemoryTool {
     const NAME: &'static str = "brain_memory";
 
     fn description() -> SharedString {
-        "Persistent memory across sessions. Stores notes in 5 files: about, goals, settings, projects, bookmark.
+        "Personal memory/context files (about, goals, settings, projects, bookmark). NOT for project source files — use `read_file` for those.
 
 AVAILABLE ACTIONS:
 - `auto`: Infer action from content (default)
 - `create`: Add a new entry to a target file
 - `read`: Retrieve entries by ID, date, or all from a target
-- `read-many`: Batch read multiple target files (comma-separated targets)
-- `read-all`: Dump all 5 memory files at once
-- `list`: Index entries in a target file
+- `batch-read`: Read from multiple targets at once (comma-separated targets)
+- `dump-all`: Read all 5 memory files in full
+- `list`: Show summary index (IDs and first lines only — not full content)
 - `modify`: Update an existing entry by ID
 - `delete`: Remove an entry by ID
 
@@ -382,6 +382,7 @@ WHEN NOT TO USE:
 - For session-scoped working notes — use `scratchpad` instead
 - For one-off information that doesn't need to persist
 - Do NOT delete without reading first; deletions are by ID and irreversible
+- NOT for reading project source files — use `read_file` for those
 
 TARGETS:
 - `auto`: Defaults to `settings` (default for create with no target)
@@ -455,7 +456,7 @@ Backups: every write auto-saves to `~/.nir/brain/memory/.backups/` (last 5 kept)
 
             let target_file = m_dir.join(format!("{}.md", target_name));
 
-            if action == BrainMemoryAction::ReadAll {
+            if action == BrainMemoryAction::DumpAll {
                 let all_targets = ["about", "goals", "settings", "projects", "bookmark"];
                 let mut results = Vec::new();
                 for t in all_targets {
@@ -466,8 +467,8 @@ Backups: every write auto-saves to `~/.nir/brain/memory/.backups/` (last 5 kept)
                 return Ok(results.join("\n\n"));
             }
 
-            if action == BrainMemoryAction::ReadMany {
-                let t_str = input.targets.ok_or_else(|| "Error: 'targets' is required for read-many.".to_string())?;
+            if action == BrainMemoryAction::BatchRead {
+                let t_str = input.targets.ok_or_else(|| "Error: 'targets' is required for batch-read.".to_string())?;
                 let valid_set: HashSet<&str> = ["about", "goals", "settings", "projects", "bookmark"].into_iter().collect();
                 let requested: Vec<&str> = t_str.split(',')
                     .map(|s| s.trim())

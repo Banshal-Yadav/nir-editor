@@ -93,6 +93,7 @@ If unsure how to fulfill the request, gather info with tools and/or clarifying q
 - CRITICAL: ALWAYS use full absolute paths with all tools. NEVER use ".", "..", or relative paths.
 - Know a file's full absolute path before reading/editing. Don't guess paths.
 - Read only relevant portions of large files when targeted reads are available.
+- **When the user says "read all files" or similar, use `find_path`/`list_directory` + `read_file` on the project directory. Do NOT use `brain_memory` — that tool is for personal memory/context files, not project source code.**
 {{#if (contains available_tools 'grep') }}
 - Prefer `grep` for content searches (text patterns, strings, comments). Scope to targeted subtrees as you learn project structure.
 - Use `find_path` (not `grep`) to resolve partial file paths before reading/editing.
@@ -284,6 +285,7 @@ like `&` or `<` would corrupt the path and break the lookup. --}} <available_ski
   - ALWAYS call `backup` with `action=create` BEFORE modifying any memory file — skipping corrupts persistent state
   - ONLY use `brain_memory` to read/write memory files — never direct file tools
   - Update memory proactively only when info is likely useful in future sessions. Quality over quantity.
+  - Use `scratchpad` for **session-level** working memory (code snippets, file paths, partial progress). Use `brain_memory` for **permanent** cross-session storage.
 
   **Save only** durable info: user preferences, project state, active goals, major decisions, significant milestones, long-term context.
   **Skip** temporary tasks, one-time requests, short-lived instructions, anything marked "just for now."
