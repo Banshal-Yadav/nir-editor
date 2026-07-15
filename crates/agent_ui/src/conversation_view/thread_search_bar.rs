@@ -888,6 +888,7 @@ fn collect_markdowns(
     let mut out = Vec::new();
     match entry {
         AgentThreadEntry::UserMessage(_) => {}
+        AgentThreadEntry::ContextClear => {}
         AgentThreadEntry::AssistantMessage(message) => {
             for (chunk_ix, chunk) in message.chunks.iter().enumerate() {
                 match chunk {
@@ -948,6 +949,7 @@ fn collect_markdowns(
         }
         AgentThreadEntry::Elicitation(_) => {}
         AgentThreadEntry::ContextCompaction(_) => {}
+        AgentThreadEntry::ContextClear => {}
     }
     out
 }

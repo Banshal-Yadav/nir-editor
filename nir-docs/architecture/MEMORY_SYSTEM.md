@@ -74,7 +74,8 @@ A Swiss-army knife tool for reading and writing memory files.
 **Actions:**
 - `create`: Appends a new timestamped entry to a file's Working Notes.
 - `read`: Reads the Working Notes of a file (optionally filtered by ID or date).
-- `read-many`: Reads the *entire* contents of multiple files at once.
+- `batch-read`: Reads the *entire* contents of multiple specified targets at once.
+- `dump-all`: Reads all 5 memory files (about, goals, settings, projects, bookmark) in full.
 - `modify`: Edits an existing entry by ID.
 - `delete`: Removes an existing entry by ID.
 - `list`: Lists all IDs and snippets in a file.

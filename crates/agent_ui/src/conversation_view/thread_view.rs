@@ -3998,6 +3998,25 @@ impl ThreadView {
             .into_any()
     }
 
+    fn render_context_clear(&self, window: &Window, cx: &Context<Self>) -> AnyElement {
+        let header = h_flex()
+            .gap_1()
+            .w_full()
+            .child(Divider::horizontal())
+            .child(
+                Label::new("Context Cleared")
+                    .size(LabelSize::Small)
+                    .color(Color::Muted),
+            )
+            .child(Divider::horizontal());
+
+        div()
+            .px_5()
+            .w_full()
+            .child(v_flex().pt_1p5().mb_1p5().child(header))
+            .into_any()
+    }
+
     fn toggle_compaction_expansion(
         &mut self,
         entry_ix: usize,
@@ -6437,6 +6456,7 @@ impl ThreadView {
             AgentThreadEntry::ContextCompaction(compaction) => {
                 self.render_context_compaction(entry_ix, compaction, window, cx)
             }
+            AgentThreadEntry::ContextClear => self.render_context_clear(window, cx),
         };
 
         let is_subagent_output = self.is_subagent()
@@ -7647,7 +7667,8 @@ impl ThreadView {
                 | AgentThreadEntry::Elicitation(_)
                 | AgentThreadEntry::AssistantMessage(_)
                 | AgentThreadEntry::CompletedPlan(_)
-                | AgentThreadEntry::ContextCompaction(_) => {}
+                | AgentThreadEntry::ContextCompaction(_)
+                | AgentThreadEntry::ContextClear => {}
             }
         }
 

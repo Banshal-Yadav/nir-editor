@@ -168,6 +168,7 @@ impl From<&Skill> for NativeAvailableSkill {
 }
 
 pub const COMPACT_COMMAND_NAME: &str = "compact";
+pub const CLEAR_COMMAND_NAME: &str = "clear";
 
 /// Returns the set of MCP prompt names that must be server-qualified
 /// (`/<server>.<name>`) to stay unambiguous in the slash-command popup: names
@@ -1510,13 +1511,21 @@ impl NativeAgent {
             acp_thread::CommandCategory::Native,
         ));
 
+        let clear_command = acp::AvailableCommand::new(
+            CLEAR_COMMAND_NAME,
+            "Wipe all messages & token usage. Old conversation is lost",
+        )
+        .meta(acp_thread::meta_with_command_category(
+            acp_thread::CommandCategory::Native,
+        ));
+
         let registry = state.context_server_registry.read(cx);
 
         // Reserve the built-in command name so a same-named MCP prompt is
         // force-prefixed (`/<server>.compact`) and stays reachable: an
         // unqualified `/compact` always routes to the native command.
         let ambiguous_prompt_names = ambiguous_mcp_prompt_names(
-            [COMPACT_COMMAND_NAME],
+            [COMPACT_COMMAND_NAME, CLEAR_COMMAND_NAME],
             registry.prompts().map(|p| p.prompt.name.as_str()),
         );
 
@@ -1556,6 +1565,7 @@ impl NativeAgent {
         });
 
         std::iter::once(compact_command)
+            .chain(std::iter::once(clear_command))
             .chain(mcp_commands)
             .collect()
     }
@@ -1957,6 +1967,32 @@ impl NativeAgent {
                 )
             })
             .await
+        })
+    }
+
+    /// Clear all messages and token usage in response to the built-in
+    /// `/clear` slash command.
+    fn send_clear_command(
+        &self,
+        session_id: acp::SessionId,
+        cx: &mut Context<Self>,
+    ) -> Task<Result<acp::PromptResponse>> {
+        cx.spawn(async move |this, cx| {
+            let (acp_thread, thread) = this.update(cx, |this, _cx| {
+                let session = this
+                    .sessions
+                    .get(&session_id)
+                    .context("Failed to get session")?;
+                anyhow::Ok((session.acp_thread.clone(), session.thread.clone()))
+            })??;
+
+            thread.update(cx, |thread, cx| thread.clear_all(cx));
+            acp_thread.update(cx, |acp_thread, cx| {
+                acp_thread.clear_all_entries(cx);
+                acp_thread.update_token_usage(None, cx);
+            });
+
+            Ok(acp::PromptResponse::new(acp::StopReason::EndTurn))
         })
     }
 
@@ -2749,6 +2785,12 @@ impl acp_thread::AgentSessionClientUserMessageIds for NativeAgentConnection {
             if parsed_command.is_unqualified(COMPACT_COMMAND_NAME) {
                 return self.0.update(cx, |agent, cx| {
                     agent.send_compact_command(client_user_message_id, session_id, cx)
+                });
+            }
+
+            if parsed_command.is_unqualified(CLEAR_COMMAND_NAME) {
+                return self.0.update(cx, |agent, cx| {
+                    agent.send_clear_command(session_id, cx)
                 });
             }
 

@@ -393,6 +393,7 @@ pub enum AgentThreadEntry {
     Elicitation(ElicitationEntryId),
     CompletedPlan(Vec<PlanEntry>),
     ContextCompaction(ContextCompaction),
+    ContextClear,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -785,6 +786,7 @@ impl AgentThreadEntry {
             Self::Elicitation(_) => false,
             Self::CompletedPlan(_) => false,
             Self::ContextCompaction(_) => false,
+            Self::ContextClear => false,
         }
     }
 
@@ -803,6 +805,7 @@ impl AgentThreadEntry {
                 md
             }
             Self::ContextCompaction(_) => "--- Context Compacted ---\n\n".to_string(),
+            Self::ContextClear => "--- Context Cleared ---\n\n".to_string(),
         }
     }
 
@@ -2462,7 +2465,8 @@ impl AcpThread {
                 | AgentThreadEntry::Elicitation(_)
                 | AgentThreadEntry::AssistantMessage(_)
                 | AgentThreadEntry::CompletedPlan(_)
-                | AgentThreadEntry::ContextCompaction(_) => {}
+                | AgentThreadEntry::ContextCompaction(_)
+                | AgentThreadEntry::ContextClear => {}
             }
         }
         false
@@ -2492,7 +2496,8 @@ impl AcpThread {
                 | AgentThreadEntry::Elicitation(_)
                 | AgentThreadEntry::AssistantMessage(_)
                 | AgentThreadEntry::CompletedPlan(_)
-                | AgentThreadEntry::ContextCompaction(_) => {}
+                | AgentThreadEntry::ContextCompaction(_)
+                | AgentThreadEntry::ContextClear => {}
             }
         }
 
@@ -2513,7 +2518,8 @@ impl AcpThread {
                 | AgentThreadEntry::Elicitation(_)
                 | AgentThreadEntry::AssistantMessage(_)
                 | AgentThreadEntry::CompletedPlan(_)
-                | AgentThreadEntry::ContextCompaction(_) => {}
+                | AgentThreadEntry::ContextCompaction(_)
+                | AgentThreadEntry::ContextClear => {}
             }
         }
 
@@ -2527,6 +2533,7 @@ impl AcpThread {
                 AgentThreadEntry::AssistantMessage(..)
                 | AgentThreadEntry::CompletedPlan(..)
                 | AgentThreadEntry::ContextCompaction(_)
+                | AgentThreadEntry::ContextClear
                 | AgentThreadEntry::Elicitation(_) => continue,
                 AgentThreadEntry::ToolCall(..) => return true,
             }
@@ -3012,6 +3019,13 @@ impl AcpThread {
         } else {
             self.push_entry(AgentThreadEntry::ContextCompaction(compaction), cx);
         }
+    }
+
+    pub fn clear_all_entries(&mut self, cx: &mut Context<Self>) {
+        let range = 0..self.entries.len();
+        self.entries.clear();
+        cx.emit(AcpThreadEvent::EntriesRemoved(range));
+        self.push_entry(AgentThreadEntry::ContextClear, cx);
     }
 
     pub fn update_context_compaction(

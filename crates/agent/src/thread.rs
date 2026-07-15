@@ -2359,6 +2359,17 @@ impl Thread {
         Some(*tokens)
     }
 
+    pub fn clear_all(&mut self, cx: &mut Context<Self>) {
+        self.cancel(cx).detach();
+        self.pending_message.take();
+        self.messages.clear();
+        self.request_token_usage.clear();
+        self.cumulative_token_usage = TokenUsage::default();
+        self.current_request_token_usage = TokenUsage::default();
+        self.clear_summary();
+        cx.notify();
+    }
+
     pub fn cumulative_token_usage(&self) -> language_model::TokenUsage {
         self.cumulative_token_usage
     }
